@@ -19,13 +19,34 @@ if (!is_admin()) {
 
 define("MLOC_DEBUG", 0);
 
+// TODO namespace
+
+// TODO put these in a functions.php
 function dbg2($str){$fp=fopen("/tmp/log.txt","a");fwrite($fp,$str . "\n");fclose($fp);}
+
+// already declared (in theme) !!
+if (!function_exists('logit')) {
+    function logit (...$items) {
+        $text = '';
+        foreach ($items as $item) {
+            $text .= print_r($item, true) . ' ';
+        }
+        $suffix = ''; 
+        if (strpos($_SERVER['SERVER_NAME'], 'dev.') === 0) {
+            $suffix = '_dev';
+        }
+        error_log(date('Y-m-d H:i:s') . ' ' . $text . "\n", 3, "/var/log/rotary/rotarywp$suffix/php.log");
+    }
+}
 
 include 'set_document_root.php';
 $mrelocator_plugin_URL = mrl_adjpath(plugins_url() . "/" . basename(dirname(__FILE__)));
 $mrelocator_uploaddir_t = wp_upload_dir();
 $mrelocator_uploaddir = mrl_adjpath($mrelocator_uploaddir_t['basedir'], true);
 $mrelocator_uploadurl = mrl_adjpath($mrelocator_uploaddir_t['baseurl'], true);
+logit('mrl_uploaddir_t', $mrelocator_uploaddir_t);
+logit('mrl_uploaddir', $mrelocator_uploaddir);
+logit('mrl_uploadurl', $mrelocator_uploadurl);
 
 
 function mrelocator_init() {
@@ -368,10 +389,9 @@ function udate($format, $utimestamp = null)
     return date(preg_replace('`(?<!\\\\)u`', $milliseconds, $format), $timestamp);
 }
 
-
-function mrelocator_get_subdir($dir)
-{
-	global $mrelocator_uploaddir;
+// This could be where to fix it
+function mrelocator_get_subdir($dir) {
+	global $mrelocator_uploaddir;   // FIXME global??
 	$upload_dir = $mrelocator_uploaddir;
 	$subdir = substr($dir,  strlen($upload_dir));
 	if (substr($subdir,0,1)=="/" || substr($subdir,0,1)=="\\") {
@@ -382,7 +402,7 @@ function mrelocator_get_subdir($dir)
 	return $subdir;
 }
 
-
+// RENAME is not MOVE!!
 function mrelocator_rename_callback()
 {
 	if (!test_mfm_permission()) return 0;
@@ -454,12 +474,13 @@ function mrelocator_rename_callback()
 				$oldp .= "/";
 				$newp .= "/";
 			}
-            logit("oldp=$oldp newp=$newp");
+            echo "oldp=$oldp newp=$newp";
 			$oldu = $mrelocator_uploadurl . ltrim($local_post_dir,"/") . $old[$i].(is_dir($newp)?"/":"");	//old url
 			$newu = $mrelocator_uploadurl . ltrim($local_post_dir,"/") . $new[$i].(is_dir($newp)?"/":"");	//new url
-            logit("oldu=$oldu newu=$newu");
 			$olda = $subdir.$old[$i];	//old attachment file name (subdir+basename)
 			$newa = $subdir.$new[$i];	//new attachment file name (subdir+basename)
+            logit("oldp=$oldp newp=$newp");
+            logit("oldu=$oldu newu=$newu");
             logit("olda=$olda newa=$newa");
 
             // This is where posts are updated with the new URL
@@ -521,8 +542,14 @@ function mrelocator_rename_callback()
 }
 add_action('wp_ajax_mrelocator_rename', 'mrelocator_rename_callback');
 
+// This gets called when a move arrow is clicked, with data: 
+// action:    "mrelocator_move"
+// dir_from:  "/"
+// dir_to:    "/photos/"
+// items:     "AussieCricket03.jpg/AussieCricket03-125x125.jpg/AussieCricket03-150x150.jpg/AussieCricket03-200x100.jpg/AussieCricket03-200x150.jpg"
 function mrelocator_move_callback()
 {
+    logit('-- called mrelocator_move');
 	if (!test_mfm_permission()) return 0;
 
 	global $wpdb;
@@ -539,7 +566,10 @@ $wpdb->show_errors();
 	$local_post_dir_from = stripslashes($_POST['dir_from']);
 	$local_post_dir_to = stripslashes($_POST['dir_to']);
 	$local_post_items = stripslashes($_POST['items']);
-
+    // These are relative to upload_dir e.g. '/' or '/photos'
+    logit('local_post_dir_from:', $local_post_dir_from);
+    logit('local_post_dir_to:', $local_post_dir_to);
+    logit('local_post_items:', $local_post_items);
 	
 	$dir_from = mrl_adjpath($mrelocator_uploaddir."/".$local_post_dir_from, true);
 	$dir_to = mrl_adjpath($mrelocator_uploaddir."/".$local_post_dir_to, true);
@@ -581,9 +611,10 @@ $wpdb->show_errors();
 
 		$subdir_from = mrelocator_get_subdir($dir_from);
 		$subdir_to = mrelocator_get_subdir($dir_to);
+        #logit('items: ', $items);  // no slashes
 
 		for ($i=0; $i<count($items); $i++) {
-			$old = $dir_from . $items[$i];
+			$old = $dir_from . $items[$i];  // FIXME are these used?
 			$new = $dir_to . $items[$i];
 			$isdir=false;
 			if (is_dir($new)) {
@@ -591,10 +622,39 @@ $wpdb->show_errors();
 				$new .= "/";
 				$isdir=true;
 			}
-			$oldu = mrl_adjpath( $mrelocator_uploadurl."/".$local_post_dir_from."/".$items[$i] );	//old url
-			$newu = mrl_adjpath( $mrelocator_uploadurl."/".$local_post_dir_to."/".$items[$i] );	//new url
+			#$oldu = mrl_adjpath( $mrelocator_uploadurl."/".$local_post_dir_from."/".$items[$i] );	//old url
+			#$newu = mrl_adjpath( $mrelocator_uploadurl."/".$local_post_dir_to."/".$items[$i] );	//new url
+            // CD -- make the URLS relative
+            $upload = wp_upload_dir(null, false, false);
+            $upload_dir_rel = _wp_relative_upload_path($upload['basedir']);
+            logit('upload', $upload);
+            logit('ldr', $upload_dir_rel);
+            $siteurl = get_site_url();
+            logit('siteurl', $siteurl);
+            // FIXME calc this outside the loop
+            $rel_uploads = str_replace($siteurl, '', $mrelocator_uploadurl);  // !! this might make a path that matches in too many places
+            // rel_uploads ends in a slash, so do the local_post_dirs
+            // $local_post_dir... start with a slash.
+            $rel_uploads = rtrim($rel_uploads, '/');  // remove all trailins slashes
+            logit('rel_uploads', $rel_uploads);
+            $oldu = $rel_uploads . $local_post_dir_from . $items[$i];
+            $newu = $rel_uploads . $local_post_dir_to   . $items[$i];
+            logit("old=$old    new=$new");
+            logit("oldu=$oldu    newu=$newu");
+            // e.g. old=/var/www/rotarywp-dev/wp-content/uploads/AussieCricket04.jpg new=/var/www/rotarywp-dev/wp-content/uploads/photos/AussieCricket04.jpg
+            //      oldu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/AussieCricket04.jpg newu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/photos/AussieCricket04.jpg 
 
-			if ($wpdb->query("update $wpdb->posts set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') where post_content like '%".$oldu."%'")===FALSE) {throw new Exception('1');}
+            // FIXME use wpdb->update
+			#if ($wpdb->query("update $wpdb->posts set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') where post_content like '%".$oldu."%'")===FALSE) {throw new Exception('1');}
+            $rc = $wpdb->query("
+                update $wpdb->posts 
+                   set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') 
+                 where post_content like '%".$oldu."%'
+                ");
+            if ($rc === FALSE) {
+                throw new Exception('1');
+            }
+            logit("update posts affected $rc rows");
 			if ($wpdb->query("update $wpdb->postmeta set meta_value=replace(meta_value, '" . $oldu . "','" . $newu . "') where meta_value like '%".$oldu."%'")===FALSE) {throw new Exception('2');}
 
 			if ($isdir) {
@@ -821,7 +881,7 @@ function mrelocator_admin_magic_function()
 
 		</td>
 		</tr>
-		<th>File Selector can bu used by </th>
+		<th>File Selector can be used by </th>
 		<td style="text-align: left;">
 <?php
 	$accepted = explode(",", $accepted_roles_selector);

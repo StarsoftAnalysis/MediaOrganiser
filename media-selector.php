@@ -1,5 +1,7 @@
 <?php
 
+// NOTE This is just included at the end of media-relocator.php
+
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 function mrelocator_get_media_list_callback()
@@ -325,20 +327,17 @@ class MrlMediaSelector
 	 */
 	public function onAddShortCode()
 	{
-		//  only in the posting page 投稿の編集画面だけを対象とする
-		if( strpos( $_SERVER[ "REQUEST_URI" ], "post.php"     ) ||
-			strpos( $_SERVER[ "REQUEST_URI" ], "post-new.php" ) ||
-			strpos( $_SERVER[ "REQUEST_URI" ], "page-new.php" ) ||
-			strpos( $_SERVER[ "REQUEST_URI" ], "page.php"     ) ||
-			strpos( $_SERVER[ "REQUEST_URI" ], "index.php"     ) )
+        //  only in the posting page 投稿の編集画面だけを対象とする
+        $request_uri = $_SERVER['REQUEST_URI'];
+		if (strpos($request_uri, "post.php"    ) ||  // pos will never be 0
+			strpos($request_uri, "post-new.php") ||
+			strpos($request_uri, "page-new.php") ||
+			strpos($request_uri, "page.php"    ) ||
+			strpos($request_uri, "index.php"   )    )
 		{
-			echo <<<HTML
-<script type="text/javascript">
-//<![CDATA
-function onMrlMediaSelector_ShortCode( text ) { send_to_editor( text ); }
-//]]>
-</script>
-HTML;
+			echo '<script type="text/javascript">';
+            echo 'function onMrlMediaSelector_ShortCode( text ) { send_to_editor( text ); }';
+            echo '</script>';
 		}
 	}
 
@@ -399,7 +398,7 @@ HTML;
 	 */
 	function onModifyMediaTab( $tabs )
 	{
-		return array( "mrlMS" => "Choose a media" );
+		return array( "mrlMS" => "Choose a media item" );
 	}
 }
 
