@@ -454,13 +454,27 @@ function mrelocator_rename_callback()
 				$oldp .= "/";
 				$newp .= "/";
 			}
+            logit("oldp=$oldp newp=$newp");
 			$oldu = $mrelocator_uploadurl . ltrim($local_post_dir,"/") . $old[$i].(is_dir($newp)?"/":"");	//old url
 			$newu = $mrelocator_uploadurl . ltrim($local_post_dir,"/") . $new[$i].(is_dir($newp)?"/":"");	//new url
+            logit("oldu=$oldu newu=$newu");
 			$olda = $subdir.$old[$i];	//old attachment file name (subdir+basename)
 			$newa = $subdir.$new[$i];	//new attachment file name (subdir+basename)
+            logit("olda=$olda newa=$newa");
 
-			if ($wpdb->query("update $wpdb->posts set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') where post_content like '%".$oldu."%'")===FALSE) {throw new Exception('2');}
-			if ($wpdb->query("update $wpdb->postmeta set meta_value=replace(meta_value, '" . $oldu . "','" . $newu . "') where meta_value like '%".$oldu."%'")===FALSE)  {throw new Exception('3');}
+            // This is where posts are updated with the new URL
+            if ($wpdb->query("update $wpdb->posts 
+                              set post_content = replace(post_content, '" . $oldu . "','" . $newu . "') 
+                              where post_content like '%".$oldu."%'")
+                === FALSE) {
+                throw new Exception('2');
+            }
+            if ($wpdb->query("update $wpdb->postmeta 
+                             set meta_value=replace(meta_value, '" . $oldu . "','" . $newu . "') 
+                             where meta_value like '%".$oldu."%'")
+                === FALSE) {
+                throw new Exception('3');
+            }
 
 			if (is_dir($newp)) {
 				if ($wpdb->query("update $wpdb->posts set guid=replace(guid, '" . $oldu . "','" . $newu . "') where guid like '".$oldu."%'")===FALSE)  {throw new Exception('4');}
