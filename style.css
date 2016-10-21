@@ -1,0 +1,121 @@
+.mrl_pane {
+	width:300px;
+	height:450px;
+	overflow:scroll;
+	bborder: solid 1px #f00;
+}
+
+#mrl_wrapper_all {
+	position:relative;
+	//width:800px;
+	width:auto;
+	height:655px;
+	bborder: solid 1px #0ff;
+}
+
+.mrl_path {
+	float:left;
+	width:auto;
+	height:18px;
+	background-color:#ddd;
+	border: 1px solid #888;
+	font-size: 14px;
+	padding: 0px;
+}
+
+.mrl_wrapper_pane {
+	float:left;
+	width:303px;
+	height:540px;
+	bborder: solid 1px #ff0;
+}
+
+.mrl_box1{
+	position:relative;
+	width:200px;
+	height:75px;
+	padding:0 0 5px 0;
+}
+
+.mrl_filename {
+	border: solid 0px #f00;
+}
+
+#mrl_btn_left2right {
+	padding:200px 5px 0 5px;
+}
+#mrl_btn_right2left {
+	padding:10px 5px 0 5px;
+}
+
+.mrl_dir_up {
+	float:left;
+	padding:3px;
+}
+.mrl_dir_new {
+	float:left;
+}
+.mrl_select_all {
+	float:left;
+	padding-left: 7px;
+}
+.mrl_deselect_all {
+	float:left;
+	padding-left: 7px;
+position:relative;top:-2px;
+}
+.mrl_select_all_button {
+	height:14px;
+	font-weight:bold;
+	font-size:7px;
+	line-height:8px;
+	color:#000099;
+	background-color:#def3ff;
+	border:1px solid #050505;
+	cursor:pointer;
+}
+
+
+#mrl_center_wrapper {
+	width: 34px;
+	float:left;
+	bborder: solid 1px #00f;
+}
+
+
+#mrl_right_menu {
+	position:absolute;
+	border: 1px solid #555;
+	background-color: #eee;
+	padding: 4px;
+}
+
+.mrl_right_menu_item {
+	font-size: 12px;
+	font-color:#000;
+	background-color:#eee;
+}
+.mrl_right_menu_item:hover {
+	font-size: 12px;
+	color:#fff;
+	background-color:#111;
+}
+
+#mrl_input_text
+{
+	position:absolute;
+	border: 1px solid #777;
+	background-color: #eee;
+	padding: 4px;
+}
+
+.mrl_input_text_button_wrapper {
+	margin-top: 4px;
+}
+
+.mrl_input_text_button {
+	display: inline;
+	border: 1px solid #555;
+	margin-right: 4px;
+}
+
