@@ -1,15 +1,23 @@
 <?php
+namespace media_file_manager_cd;
+define(__NAMESPACE__ . '\NS', __NAMESPACE__ . '\\'); // (need to escape \ before ')
+
 /*
 Plugin Name: Media File Manager CD
 Plugin URI: https://example.com
-Description: You can make sub-directories in the upload directory, and move files into them. At the same time, this plugin modifies the URLs/path names in the database. Also an alternative file-selector is added in the editing post/page screen, so you can pick up media files from the subfolders easily.
-Version: 1.4.2
+Description: You can make sub-directories in the upload directory, and move files into them. At the same time, this plugin modifies the URLs/path names in the database. Also an alternative file-selector is added in the editing post/page screen, so you can pick up media files from the subfolders easily.  (CD's version)
+Version: 1.4.2-CD
 Author: Atsushi Ueda, Chris Dennis
 Author URI: 
 License: GPL2
 */
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+if (!defined('ABSPATH')) exit; // Exit if accessed directly
+
+require_once plugin_dir_path(__FILE__) . 'functions.php';
+#debug('__FILE__', __FILE__);
+#debug('__DIR__', __DIR__);
+#debug('prf(F)', plugin_dir_path(__FILE__));  // like __DIR__ but adds trailing slash
 
 _set_time_limit(600);
 
@@ -17,47 +25,27 @@ if (!is_admin()) {
 	return;
 }
 
-define("MLOC_DEBUG", 0);
+// FIXME what's this for?
+if (!isset($_SERVER['DOCUMENT_ROOT'])) $_SERVER['DOCUMENT_ROOT'] = substr($_SERVER['SCRIPT_FILENAME'], 0, 0-strlen($_SERVER['SCRIPT_NAME']) );
 
-// TODO namespace
-
-// TODO put these in a functions.php
-function dbg2($str){$fp=fopen("/tmp/log.txt","a");fwrite($fp,$str . "\n");fclose($fp);}
-
-// already declared (in theme) !!
-if (!function_exists('logit')) {
-    function logit (...$items) {
-        $text = '';
-        foreach ($items as $item) {
-            $text .= print_r($item, true) . ' ';
-        }
-        $suffix = ''; 
-        if (strpos($_SERVER['SERVER_NAME'], 'dev.') === 0) {
-            $suffix = '_dev';
-        }
-        error_log(date('Y-m-d H:i:s') . ' ' . $text . "\n", 3, "/var/log/rotary/rotarywp$suffix/php.log");
-    }
-}
-
-include 'set_document_root.php';
 $mrelocator_plugin_URL = mrl_adjpath(plugins_url() . "/" . basename(dirname(__FILE__)));
 $mrelocator_uploaddir_t = wp_upload_dir();
 $mrelocator_uploaddir = mrl_adjpath($mrelocator_uploaddir_t['basedir'], true);
 $mrelocator_uploadurl = mrl_adjpath($mrelocator_uploaddir_t['baseurl'], true);
-logit('mrl_uploaddir_t', $mrelocator_uploaddir_t);
-logit('mrl_uploaddir', $mrelocator_uploaddir);
-logit('mrl_uploadurl', $mrelocator_uploadurl);
+debug('mrl_uploaddir_t', $mrelocator_uploaddir_t);
+debug('mrl_uploaddir', $mrelocator_uploaddir);
+debug('mrl_uploadurl', $mrelocator_uploadurl);
 
 
 function mrelocator_init() {
 	wp_enqueue_script('jquery');
 }
-add_action('init', 'mrelocator_init');
+add_action('init', NS . 'mrelocator_init');
 
 function mrelocator_admin_register_head() {
 	wp_enqueue_style( "mfm-style", plugins_url( 'style.css', __FILE__ ));
 }
-add_action('admin_head', 'mrelocator_admin_register_head');
+add_action('admin_head', NS . 'mrelocator_admin_register_head');
 
 // test permission for accessing media file manager
 function test_mfm_permission()
@@ -79,7 +67,7 @@ function test_mfm_permission()
 }
 
 // add a setting menu
-add_action('admin_menu', 'mrelocator_plugin_menu');
+add_action('admin_menu', NS . 'mrelocator_plugin_menu');
 function mrelocator_plugin_menu()
 {
 	$role = test_mfm_permission();
@@ -154,6 +142,7 @@ function mrelocator_magic_function()
 
 function mrelocator_getdir($dir, &$ret_arr)
 {
+    // FIXME @ !
 	$dh = @opendir ( $dir );
 
 	if ($dh === false) {
@@ -269,6 +258,7 @@ function mrelocator_getdir_callback()
 		}
 		if ($dir1[$i]['isthumb']==1 || $dir1[$i]['isdir']==1) {continue;}
 		$subdir_fn = mrelocator_get_subdir($dir) . $dir1[$i]['name'];
+        // FIXME @
 		@$db_idx = $idx_subdir_fn[$subdir_fn]; //$wpdb->get_results("select post_id from $wpdb->postmeta where meta_value='".$subdir_fn."'");
 		$dir1[$i]['parent'] = "";
 		$dir1[$i]['thumbnail'] = "";
@@ -328,7 +318,6 @@ function mrelocator_getdir_callback()
 			}
 		}
 	}
-//dbg2("mrelocator_getdir_callback end ".date("l jS \of F Y h:i:s A"));	
 	echo json_encode($dir1);
 	
 	//if ($errflg) mrelocator_log(json_encode($dir1));
@@ -370,6 +359,7 @@ function mrelocator_mkdir_callback()
 	$res = chdir($dir);
 	if (!$res) die($php_errormsg);
 
+    // FIXME @
 	$res = @mkdir($newdir);
 	if (!$res) {die($php_errormsg);}
 
@@ -455,6 +445,7 @@ function mrelocator_rename_callback()
 //echo $dir.$old[$i]." -> ". $dir.$new[$i]."\n";
 		if (!$res) {
 			for ($j=0; $j<$i; $j++) {
+                // FIXME @
 				$res = @rename($dir.$new[$i], $dir.$old[$i]);
 			}
 			die($php_errormsg);
@@ -479,9 +470,9 @@ function mrelocator_rename_callback()
 			$newu = $mrelocator_uploadurl . ltrim($local_post_dir,"/") . $new[$i].(is_dir($newp)?"/":"");	//new url
 			$olda = $subdir.$old[$i];	//old attachment file name (subdir+basename)
 			$newa = $subdir.$new[$i];	//new attachment file name (subdir+basename)
-            logit("oldp=$oldp newp=$newp");
-            logit("oldu=$oldu newu=$newu");
-            logit("olda=$olda newa=$newa");
+            debug("oldp=$oldp newp=$newp");
+            debug("oldu=$oldu newu=$newu");
+            debug("olda=$olda newa=$newa");
 
             // This is where posts are updated with the new URL
             if ($wpdb->query("update $wpdb->posts 
@@ -535,6 +526,7 @@ function mrelocator_rename_callback()
 	} catch (Exception $e) {
 		$wpdb->query("ROLLBACK");
 		for ($j=0; $j<count($new); $j++) {
+            // FIXME @
 			$res = @rename($dir.$new[$j], $dir.$old[$j]);
 		}
 		die("Error ".$e->getMessage());
@@ -549,7 +541,7 @@ add_action('wp_ajax_mrelocator_rename', 'mrelocator_rename_callback');
 // items:     "AussieCricket03.jpg/AussieCricket03-125x125.jpg/AussieCricket03-150x150.jpg/AussieCricket03-200x100.jpg/AussieCricket03-200x150.jpg"
 function mrelocator_move_callback()
 {
-    logit('-- called mrelocator_move');
+    debug('-- called mrelocator_move');
 	if (!test_mfm_permission()) return 0;
 
 	global $wpdb;
@@ -567,9 +559,9 @@ $wpdb->show_errors();
 	$local_post_dir_to = stripslashes($_POST['dir_to']);
 	$local_post_items = stripslashes($_POST['items']);
     // These are relative to upload_dir e.g. '/' or '/photos'
-    logit('local_post_dir_from:', $local_post_dir_from);
-    logit('local_post_dir_to:', $local_post_dir_to);
-    logit('local_post_items:', $local_post_items);
+    debug('local_post_dir_from:', $local_post_dir_from);
+    debug('local_post_dir_to:', $local_post_dir_to);
+    debug('local_post_items:', $local_post_items);
 	
 	$dir_from = mrl_adjpath($mrelocator_uploaddir."/".$local_post_dir_from, true);
 	$dir_to = mrl_adjpath($mrelocator_uploaddir."/".$local_post_dir_to, true);
@@ -611,7 +603,7 @@ $wpdb->show_errors();
 
 		$subdir_from = mrelocator_get_subdir($dir_from);
 		$subdir_to = mrelocator_get_subdir($dir_to);
-        #logit('items: ', $items);  // no slashes
+        #debug('items: ', $items);  // no slashes
 
 		for ($i=0; $i<count($items); $i++) {
 			$old = $dir_from . $items[$i];  // FIXME are these used?
@@ -627,20 +619,20 @@ $wpdb->show_errors();
             // CD -- make the URLS relative
             $upload = wp_upload_dir(null, false, false);
             $upload_dir_rel = _wp_relative_upload_path($upload['basedir']);
-            logit('upload', $upload);
-            logit('ldr', $upload_dir_rel);
+            debug('upload', $upload);
+            debug('ldr', $upload_dir_rel);
             $siteurl = get_site_url();
-            logit('siteurl', $siteurl);
+            debug('siteurl', $siteurl);
             // FIXME calc this outside the loop
             $rel_uploads = str_replace($siteurl, '', $mrelocator_uploadurl);  // !! this might make a path that matches in too many places
             // rel_uploads ends in a slash, so do the local_post_dirs
             // $local_post_dir... start with a slash.
             $rel_uploads = rtrim($rel_uploads, '/');  // remove all trailins slashes
-            logit('rel_uploads', $rel_uploads);
+            debug('rel_uploads', $rel_uploads);
             $oldu = $rel_uploads . $local_post_dir_from . $items[$i];
             $newu = $rel_uploads . $local_post_dir_to   . $items[$i];
-            logit("old=$old    new=$new");
-            logit("oldu=$oldu    newu=$newu");
+            debug("old=$old    new=$new");
+            debug("oldu=$oldu    newu=$newu");
             // e.g. old=/var/www/rotarywp-dev/wp-content/uploads/AussieCricket04.jpg new=/var/www/rotarywp-dev/wp-content/uploads/photos/AussieCricket04.jpg
             //      oldu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/AussieCricket04.jpg newu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/photos/AussieCricket04.jpg 
 
@@ -654,7 +646,7 @@ $wpdb->show_errors();
             if ($rc === FALSE) {
                 throw new Exception('1');
             }
-            logit("update posts affected $rc rows");
+            debug("update posts affected $rc rows");
 			if ($wpdb->query("update $wpdb->postmeta set meta_value=replace(meta_value, '" . $oldu . "','" . $newu . "') where meta_value like '%".$oldu."%'")===FALSE) {throw new Exception('2');}
 
 			if ($isdir) {
@@ -792,7 +784,7 @@ function mrelocator_isvideo($fname)
 
 
 // Add a link to the config page on the setting menu of wordpress 
-add_action('admin_menu', 'mrelocator_admin_plugin_menu');
+add_action('admin_menu', NS . 'mrelocator_admin_plugin_menu');
 function mrelocator_admin_plugin_menu()
 {
 	/*  Add a setting page  */
@@ -801,7 +793,7 @@ function mrelocator_admin_plugin_menu()
 		'Media File Manager', 
 		'manage_options', 
 		'mrelocator_submenu-handle', 
-		'mrelocator_admin_magic_function'
+		NS . 'mrelocator_admin_magic_function'
 	); 
 }
 
@@ -1025,7 +1017,8 @@ function _set_time_limit($t)
 	}
 }
 
-include 'media-selector.php';
+// FIXME m-s contains inline code, so can't use _once
+require plugin_dir_path(__FILE__) . 'media-selector.php';
 
 
 

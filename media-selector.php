@@ -1,8 +1,8 @@
 <?php
+namespace media_file_manager_cd;
 
 // NOTE This is just included at the end of media-relocator.php
 
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 function mrelocator_get_media_list_callback()
 {
@@ -36,7 +36,7 @@ function mrelocator_get_media_list_callback()
 	echo json_encode($res);
 	die();
 }
-add_action('wp_ajax_mrelocator_get_media_list', 'mrelocator_get_media_list_callback');
+add_action('wp_ajax_mrelocator_get_media_list', NS . 'mrelocator_get_media_list_callback');
 
 
 function mrelocator_get_media_subdir_callback()
@@ -53,7 +53,7 @@ function mrelocator_get_media_subdir_callback()
 	echo json_encode($res);
 	die();
 }
-add_action('wp_ajax_mrelocator_get_media_subdir', 'mrelocator_get_media_subdir_callback');
+add_action('wp_ajax_mrelocator_get_media_subdir', NS . 'mrelocator_get_media_subdir_callback');
 
 
 function mrelocator_get_image_info_callback()
@@ -90,7 +90,7 @@ function mrelocator_get_image_info_callback()
 	echo json_encode($ret);
 	die();
 }
-add_action('wp_ajax_mrelocator_get_image_info', 'mrelocator_get_image_info_callback');
+add_action('wp_ajax_mrelocator_get_image_info', NS . 'mrelocator_get_image_info_callback');
 
 
 
@@ -270,7 +270,7 @@ function mrelocator_get_image_insert_screen_callback()
 	die();
 }
 
-add_action('wp_ajax_mrelocator_get_image_insert_screen', 'mrelocator_get_image_insert_screen_callback');
+add_action('wp_ajax_mrelocator_get_image_insert_screen', NS . 'mrelocator_get_image_insert_screen_callback');
 
 function mrelocator_update_media_information_callback()
 {
@@ -288,9 +288,10 @@ function mrelocator_update_media_information_callback()
 	wp_update_post( $edit_post );
 	die();
 }
-add_action('wp_ajax_mrelocator_update_media_information', 'mrelocator_update_media_information_callback');
+add_action('wp_ajax_mrelocator_update_media_information', NS . 'mrelocator_update_media_information_callback');
 
 
+// FIXME silly class
 /**
  *  processing plugin
  */
@@ -315,7 +316,7 @@ class MrlMediaSelector
 			// action
 			add_action( "admin_head_media_upload_mrlMS_form", array( &$this, "onMediaHead"      )     ); /* reading js */
 			add_action( "media_buttons",                         array( &$this, "onMediaButtons"   ), 20 );
-			add_action( "media_upload_mrlMS",                 "media_upload_mrlMS"                 );
+			add_action( "media_upload_mrlMS",                 NS . "media_upload_mrlMS"                 );
 
 			// filter
 			add_filter( "admin_footer", array( &$this, "onAddShortCode" ) );
@@ -417,7 +418,7 @@ if (1)
 		 */
 		function media_upload_mrlMS()
 		{
-			wp_iframe( "media_upload_mrlMS_form" );
+			wp_iframe( NS . "media_upload_mrlMS_form" );
 		}
 
 		/**
