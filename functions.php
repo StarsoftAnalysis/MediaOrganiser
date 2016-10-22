@@ -44,4 +44,8 @@ function mrl_adjpath($adr, $tailslash=false) {
 	return $adr;
 }
 
+function scandir_no_dots ($dir) {
+    return array_diff(scandir($dir), array('.', '..'));
+}
+
 ?>

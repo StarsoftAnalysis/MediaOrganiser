@@ -197,7 +197,7 @@ function mrelocator_get_image_insert_screen_callback()
 		<tr valign="top">
 			<td class="A1B1">
 			<p><a href="<?php echo bloginfo('url').'/?attachment_id='.$id;?>" target="_blank"><img class="thumbnail" src="<?php echo $thumb;?>" alt="" style="margin-top: 3px;"></a></p>
-			<p><!--<input id="imgedit-open-btn-4388" onclick='imageEdit.open( 4388, "1f64e6952c" )' class="button" value="<?php _e("Edit Image");?>" type="button"> <img src="post.php_files/wpspin_light.gif" class="imgedit-wait-spin" alt="">--></p>
+			<p><!--<input id="imgedit-open-btn-4388" onclick='imageEdit.open(4388, "1f64e6952c")' class="button" value="<?php _e("Edit Image");?>" type="button"> <img src="post.php_files/wpspin_light.gif" class="imgedit-wait-spin" alt="">--></p>
 			</td>
 			<td>
 			<p><strong><?php _e('File name:');?></strong> <?php echo $file;?></p>
@@ -285,7 +285,7 @@ function mrelocator_update_media_information_callback()
 	$edit_post['post_excerpt'] = $_POST['caption'];
 	$edit_post['post_content'] = $_POST['description'];
 
-	wp_update_post( $edit_post );
+	wp_update_post($edit_post);
 	die();
 }
 add_action('wp_ajax_mrelocator_update_media_information', NS . 'mrelocator_update_media_information_callback');
@@ -307,19 +307,19 @@ class MrlMediaSelector
 	 */
 	public function __construct()
 	{
-		$exp = explode( DIRECTORY_SEPARATOR, dirname( __FILE__ ) );
-		$this->pluginDirUrl = WP_PLUGIN_URL . '/' . array_pop( $exp ) . "/";
+		$exp = explode(DIRECTORY_SEPARATOR, dirname(__FILE__));
+		$this->pluginDirUrl = WP_PLUGIN_URL . '/' . array_pop($exp) . "/";
 
 		// register handler
-		if( is_admin() )
+		if (is_admin())
 		{
 			// action
-			add_action( "admin_head_media_upload_mrlMS_form", array( &$this, "onMediaHead"      )     ); /* reading js */
-			add_action( "media_buttons",                         array( &$this, "onMediaButtons"   ), 20 );
-			add_action( "media_upload_mrlMS",                 NS . "media_upload_mrlMS"                 );
+			add_action("admin_head_media_upload_mrlMS_form", array(&$this, "onMediaHead"     )    ); /* reading js */
+			add_action("media_buttons",                         array(&$this, "onMediaButtons"  ), 20);
+			add_action("media_upload_mrlMS",                 NS . "media_upload_mrlMS"                );
 
 			// filter
-			add_filter( "admin_footer", array( &$this, "onAddShortCode" ) );
+			add_filter("admin_footer", array(&$this, "onAddShortCode"));
 		}
 	}
 
@@ -330,14 +330,14 @@ class MrlMediaSelector
 	{
         //  only in the posting page 投稿の編集画面だけを対象とする
         $request_uri = $_SERVER['REQUEST_URI'];
-		if (strpos($request_uri, "post.php"    ) ||  // pos will never be 0
+		if (strpos($request_uri, "post.php"   ) ||  // pos will never be 0
 			strpos($request_uri, "post-new.php") ||
 			strpos($request_uri, "page-new.php") ||
-			strpos($request_uri, "page.php"    ) ||
-			strpos($request_uri, "index.php"   )    )
+			strpos($request_uri, "page.php"   ) ||
+			strpos($request_uri, "index.php"  )   )
 		{
 			echo '<script type="text/javascript">';
-            echo 'function onMrlMediaSelector_ShortCode( text ) { send_to_editor( text ); }';
+            echo 'function onMrlMediaSelector_ShortCode(text) { send_to_editor(text); }';
             echo '</script>';
 		}
 	}
@@ -349,12 +349,16 @@ class MrlMediaSelector
 	{
 		$cur_roles0 = get_option('mediafilemanager_accepted_roles_selector', 'administrator,editor,author,contributor,subscriber');
 		$cur_roles = explode(',', $cur_roles0);
-		if (!check_user_role($cur_roles)) return;
+        if (!check_user_role($cur_roles)) {
+            debug('onMediaButtons -- wrong role, cur_roles = ', cur_roles);
+            return;
+        }
+        debug('onMediaButtons -- role OK');
 
 		global $post_ID, $temp_ID;
 
-		$id     = (int)( 0 == $post_ID ? $temp_ID : $post_ID );
-		$iframe = apply_filters( "media_upload_mrlMS_iframe_src", "media-upload.php?post_id={$id}&amp;type=mrlMS&amp;tab=mrlMS" );
+		$id     = (int)(0 == $post_ID ? $temp_ID : $post_ID);
+		$iframe = apply_filters("media_upload_mrlMS_iframe_src", "media-upload.php?post_id={$id}&amp;type=mrlMS&amp;tab=mrlMS");
 		$option = "&amp;TB_iframe=true&amp;keepThis=true&amp;height=500&amp;width=640";
 		$title  = "Media-selector";
 		$button = "{$this->pluginDirUrl}images/media_folder.png";
@@ -387,7 +391,7 @@ class MrlMediaSelector
 	 */
 	public function onMediaHead()
 	{
-		wp_enqueue_script( "media-selector", plugins_url( 'media-selector.js', __FILE__ ));
+		wp_enqueue_script("media-selector", plugins_url('media-selector.js', __FILE__));
 	}
 
 	/**
@@ -397,40 +401,36 @@ class MrlMediaSelector
 	 *
 	 * @return	実際に表示するタブ情報コレクション。
 	 */
-	function onModifyMediaTab( $tabs )
+	function onModifyMediaTab($tabs)
 	{
-		return array( "mrlMS" => "Choose a media item" );
+		return array("mrlMS" => "Choose a media item");
 	}
 }
 
 
 
 // create an instance of plugin
-if (1) 
-{
+if (1) {
 	$MrlMediaSelector = new MrlMediaSelector();
 
 	// The following functions are called only in the administration page.
-	if( is_admin() )
-	{
+	if (is_admin()) {
 		/**
 		 * This function is called when opening a windows by pressing a media button.メディアボタンからダイアログが起動された時に呼び出されます。
 		 */
-		function media_upload_mrlMS()
-		{
-			wp_iframe( NS . "media_upload_mrlMS_form" );
+		function media_upload_mrlMS() {
+			wp_iframe(NS . "media_upload_mrlMS_form");
 		}
 
 		/**
 		 *  This function is called when showing contents in the dialog opened by pressing a media button.メディアボタンから起動されたダイアログの内容を出力する為に呼び出されます。
 		 */
-		function media_upload_mrlMS_form()
-		{
+		function media_upload_mrlMS_form() {
 			global $MrlMediaSelector;
 
-	wp_enqueue_script('jquery');
+            wp_enqueue_script('jquery');
 
-			add_filter( "media_upload_tabs", array( &$MrlMediaSelector, "onModifyMediaTab" ) );
+			add_filter("media_upload_tabs", array(&$MrlMediaSelector, "onModifyMediaTab"));
 
 			echo "<div id=\"media-upload-header\">\n";
 			media_upload_header();
@@ -440,33 +440,35 @@ if (1)
 		}
 	}
 }
-//add_action( 'admin_init', 'MrlMediaButtonInit' );
+//add_action('admin_init', 'MrlMediaButtonInit');
 
-function check_user_role($roles,$user_id=NULL) {
+function check_user_role ($roles, $user_id = NULL) {
 	// Get user by ID, else get current user
-	if ($user_id)
+	if ($user_id) {
 		$user = get_userdata($user_id);
-	else
-		$user = wp_get_current_user();
+    } else {
+        $user = wp_get_current_user();
+    }
  
 	// No user found, return
-	if (empty($user))
-		return FALSE;
+	if (empty($user)) {
+        return FALSE;
+    }
  
 	// Append administrator to roles, if necessary
-	if (!in_array('administrator',$roles))
-		$roles[] = 'administrator';
+	if (!in_array('administrator', $roles)) {
+        $roles[] = 'administrator';
+    }
  
 	// Loop through user roles
 	//echo "<pre>";print_r($roles);echo "</pre>";
 	foreach ($user->roles as $role) {
 	//echo $role;
 		// Does user have role
-		if (in_array($role,$roles)) {
+		if (in_array($role, $roles)) {
 			return TRUE;
 		}
 	}
- //echo "<br>false<br>";
 	// User not in roles
 	return FALSE;
 }
