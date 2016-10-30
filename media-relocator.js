@@ -1,4 +1,10 @@
-//**** Global variables *******************************************************************
+// TODO make it sensible
+//   - better way of deciding when it's busy than counting number of ajax calls
+//   - use wp_die, not die or exit. -- 
+
+//**** Global variables *******************************************************************#
+// -- put them in a namespace
+var mocd = mocd || {};
 var mrl_shift_pressed = false;	// Flag indicates shift key is pressed or not
 var mrl_ajax = 0;
 var mrloc_right_menu;	// Right-click menu class object
@@ -10,13 +16,12 @@ var pane_left, pane_right;	// Pane class objects
 // function name: (none)
 // description :  initialization
 // argument : (void)
-jQuery(document).ready(function()
-{
+jQuery(document).ready(function() {
 	mrloc_right_menu = new MrlRightMenuClass();
 	mrloc_input_text = new MrlInputTextClass();
 
-	pane_left = new MrlPaneClass('mrl_left', true);
-	pane_right = new MrlPaneClass('mrl_right', true);
+	pane_left = new MrlPaneClass('mrl_left');
+	pane_right = new MrlPaneClass('mrl_right');
 
 	pane_left.opposite = pane_right;
 	pane_right.opposite = pane_left;
@@ -51,10 +56,10 @@ jQuery(document).ready(function()
 
 	jQuery('#mrl_test').click(function() {
 		var data = {
-			action: 'mrelocator_test'
+			action: 'mocd_test'
 		};
 		jQuery.post(ajaxurl, data, function(response) {
-			alert("mrelocator_test: "+response);
+			alert("mocd_test: "+response);
 		});
 	});
 
@@ -71,11 +76,10 @@ jQuery(document).ready(function()
 
 
 //**** Pane class *******************************************************************
-var MrlPaneClass = function(id_root, flg_chkbox)
-{
+var MrlPaneClass = function(id_root) {
 	this.cur_dir = "";
 	this.dir_list = new Array();
-	this.dir_disp_list = new Array();
+	//this.dir_disp_list = new Array();   // NOT NEEDED -- now they're all displayed
 	this.id_root = id_root;
 	this.id_wrapper = id_root + "_wrapper";
 	this.id_pane = id_root + "_pane";
@@ -84,12 +88,11 @@ var MrlPaneClass = function(id_root, flg_chkbox)
 	this.id_dir_up = id_root + "_dir_up";
 	this.id_select_all = id_root + "_select_all";
 	this.id_deselect_all = id_root + "_deselect_all";
-	this.flg_chkbox = flg_chkbox;
 	this.checked_loc = -1;
 	this.last_div_id = "";
 	this.chk_prepare_id = -1;
-	this.opposite=this;
-	this.disp_num = 0;
+	this.opposite  = this; // WTF
+	//this.disp_num = 0;
 
 	var that = this;
 
@@ -111,13 +114,13 @@ var MrlPaneClass = function(id_root, flg_chkbox)
 			}
 			var res = "";
 			var data = {
-				action: 'mrelocator_mkdir',
+				action: 'mocd_mkdir',
 				dir: that.cur_dir,
 				newdir: dir
 			};
 			mrl_ajax_in();
 			jQuery.post(ajaxurl, data, function(response) {
-				if (response.search(/Success/i) < 0) alert("mrelocator_mkdir: "+response);
+				if (response.search(/Success/i) < 0) alert("mocd_mkdir: "+response);
 
 				if (that.cur_dir == that.opposite.cur_dir) {
 					that.refresh();
@@ -132,12 +135,13 @@ var MrlPaneClass = function(id_root, flg_chkbox)
 	});
 
 	jQuery('#'+this.id_select_all).click(function(ev) {
-		for (i=0; i<that.disp_num; i++) {
+		//for (i=0; i<that.disp_num; i++) {
+		for (i = 0; i < that.dir_list.length; i++) {
 			jQuery('#'+that.get_chkid(i)).attr('checked',true);
 		}
 	});
 	jQuery('#'+this.id_deselect_all).click(function(ev) {
-		for (i=0; i<that.disp_num; i++) {
+		for (i=0; i<that.dir_list.length; i++) {
 			jQuery('#'+that.get_chkid(i)).attr('checked',false);
 		}
 	});
@@ -150,94 +154,101 @@ MrlPaneClass.prototype.refresh = function () {this.setdir(this.cur_dir);}
 // function name: MrlPaneClass::setdir
 // description : move to the directory and display directory listing
 // argument : (dir)absolute path name of the target directory
-MrlPaneClass.prototype.setdir = function(dir)
-{
+MrlPaneClass.prototype.setdir = function(dir) {
 	jQuery('#'+this.id_wrapper).css('cursor:wait');
 	var data = {
-		action: 'mrelocator_getdir',
+		action: 'mocd_getdir',
 		dir: dir
 	};
 
 	var that = this;
 	mrl_ajax_in();
 	jQuery.post(ajaxurl, data, function(response) {
+        // Process the json directory from ajax,
+        // create the html, and store the list
 		that.dir_list = that.dir_ajax(data.dir, response);
 		mrl_ajax_out();
 	});
 }
 
-// function name: mrl_ins8203
-// description : 
-// argument : (str)
-function mrl_ins8203(str)
-{
-	var ret="", i;
-	for (i=0; i<str.length; i+=3) {
-		ret += str.substr(i, 3);
-		ret += '&#8203;'
-	}
-	return ret;
-}
-
 // function name: MrlPaneClass::dir_ajax
-// description : display directory list retrieved from server
-// argument : (dir)target_dir: target directory; (dirj):list(JSON); 
-MrlPaneClass.prototype.dir_ajax = function(target_dir,dirj) 
-{
-	if (dirj.search(/error/i) == 0) {	
-		alert(dirj);
-		jQuery('#'+this.id_wrapper).css('cursor:default');
-		return;
-	}
-	this.cur_dir = target_dir;
-	jQuery('#'+this.id_dir).val(target_dir);
-	this.disp_num = 0;
-
-	dirj = jQuery.trim(dirj);
-	if (dirj=="") {
-		jQuery('#'+this.id_pane).html("");
-		return new Array();
-	}
+// description : display directory list sent from server
+//               in response to mocd_getdir ajax request              
+// argument : (dir)target_dir: target directory; (response):list(JSON); 
+// response is the array of directory items
+//  -- elements used: name, isthumb, thumbnail_url
+//      (isdir and id no longer used here, but are passed back)
+// returns the dir array
+MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
+//    // Looking at response as a string is silly  
+//	if (response.search(/error/i) == 0) {	
+//		alert(response);
+//		jQuery('#'+this.id_wrapper).css('cursor:default');  // FIXME need a 'reset cursor' function'
+//		return;
+//	}
+//
+//	response = jQuery.trim(response);
+//	if (response=="") {
+//		jQuery('#'+this.id_pane).html("");
+//		return new Array();
+//	}
 	var dir;
-	try {
-		//dirj = dirj.substr(0, dirj.length-1);
-		dir = JSON.parse(dirj);
+
+	this.cur_dir = target_dir;
+	jQuery('#'+this.id_dir).text(target_dir);
+	this.disp_num = 0;
+	
+    try {
+		//response = response.substr(0, response.length-1);
+		dir = JSON.parse(response);
 	} catch (err) {
-		alert(dirj+" : "+mrl_toHex(dirj));
-		document.write('<table border="3"><tr><td width="200">');
-		document.write("<prea>"+err+"\n"+dirj+"</pre>");
-		document.write("</td></tr></table>");
+        display_error('Invalid response when getting directory listing');
+        return;
+		//alert(response + " : " + mrl_toHex(response));
+		//document.write('<table border="3"><tr><td width="200">');
+		//document.write("<pre>"+err+"\n"+response+"</pre>");
+		//document.write("</td></tr></table>");
+        // FIXME should skip the rest of the html-building stuff here.
+        // as done for response.search test above.
 	}
+
+    if (dir.error) {
+        display_error(dir.error);
+        return;
+    }
+    
 	var html = "";
 	var that = this;
 	this.last_chk_id = "";
 
-	for (i=0; i<dir.length; i++) {
-		if (dir[i].isthumb) continue;
-		this.dir_disp_list[this.disp_num] = i;
-		html = html+'<div style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
-		if (this.flg_chkbox) {
-			html = html + '<div style="float:left;"><input type="checkbox" id="'+this.get_chkid(this.disp_num)+'"></div>';
+	for (i = 0; i < dir.length; i++) {
+        // ignore 'thumbnails' -- the flag is on for everything that isn't a parent!
+        // i.e. everything except 'real' items 
+		///if (dir[i].isthumb) continue;
+        var item = dir[i];
+		//this.dir_disp_list[this.disp_num] = i;
+        html += '<div class="mrl_pane_item">'; //style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
+        html += '<div style="float: left;"><input type="checkbox" id="' + this.get_chkid(i) + '"></div>';
+		html += '<div style="float: left;" id="' + this.get_divid(i) + '">';
+		this.last_div_id = this.get_divid(i);
+		if (item.thumbnail_url && item.thumbnail_url != "") {
+			html += '<img style="margin:0 5px 0 5px;" src="' + item.thumbnail_url+'" width="50" />';
 		}
-		html = html + '<div style="float:left;" id="' + this.get_divid(this.disp_num)+'">';
-		this.last_div_id = this.get_divid(this.disp_num);
-		if (dir[i].thumbnail_url && dir[i].thumbnail_url!="") {
-			html=html+'<img style="margin:0 5px 0 5px;" src="' + dir[i].thumbnail_url+'" width="50" />';
-		}
-		html=html+'</div><div class="mrl_filename">';
-		html = html + mrl_ins8203(dir[i].name)/*+" --- " + dir[i].isdir+ (dir[i].id!=""?" "+dir[i].id:"")*/;
-		html = html + '</div></div>';
+		html += '</div><div class="mrl_filename">';
+		html += item.name; //mrl_ins8203(dir[i].name)/*+" --- " + dir[i].isdir+ (dir[i].id!=""?" "+dir[i].id:"")*/;
+		html += '</div>';
+        html += '</div>'
 
-		this.disp_num ++;
+		//this.disp_num ++;
 	}
 	jQuery('#'+this.id_pane).html(html);
 
-	//if (this.flg_chkbox) {
-		function callMethod_chkprepare() {that.prepare_checkboxes();}
+		function callMethod_chkprepare() {
+            that.prepare_checkboxes();
+        }
 		if (this.chk_prepare_id == -1) {
 			this.chk_prepare_id = setInterval(callMethod_chkprepare, 20);
 		}
-	//}
 	jQuery('#'+this.id_wrapper).css('cursor:default');
 	return dir;
 }
@@ -246,22 +257,22 @@ MrlPaneClass.prototype.dir_ajax = function(target_dir,dirj)
 // function name: MrlPaneClass::prepare_checkboxes
 // description : prepare event for checkboxes and right-click events(mkdir, rename)
 // argument : (void)
-MrlPaneClass.prototype.prepare_checkboxes = function()
-{
-	var that = this;
+MrlPaneClass.prototype.prepare_checkboxes = function() {
+	var that = this; // FIXME ?? needed!?
 
 	if (jQuery('#'+this.last_div_id).length>0) {
 		clearInterval(this.chk_prepare_id);
 		this.chk_prepare_id = -1;
 
-		for (i=0; i<this.dir_disp_list.length; i++) {
-			var idx = this.dir_disp_list[i];
-			//if (this.dir_list[idx].isthumb) continue;
+		//for (i=0; i<this.dir_disp_list.length; i++) {
+		//	var idx = this.dir_disp_list[i];
+		for (i = 0; i < this.dir_list.length; i++) {
+			var idx = i; //this.dir_disp_list[i];
+			//if (this.dir_list[idx].isthumb) continue; hmm this ref to isthumb was already commented out
 
 			jQuery('#'+this.get_divid(i)).data('order', i);
 			jQuery('#'+this.get_divid(i)).data('data', idx);
 
-			if (this.flg_chkbox) {
 				jQuery('#'+this.get_chkid(i)).data('order', i);
 				jQuery('#'+this.get_chkid(i)).data('data', idx);
 				jQuery('#'+this.get_chkid(i)).change(function() {
@@ -283,11 +294,12 @@ MrlPaneClass.prototype.prepare_checkboxes = function()
 					}
 					that.checked_loc = jQuery(this).data('order');
 				});
-			}
 
 			jQuery(document).bind("contextmenu",function(e){
 				return false;
 			}); 
+            // NOTE we only reference things in dir_list that are already on the 
+            // screen, so all the isthumb ones are still not needed.
 			jQuery('#'+this.get_divid(i)).mousedown(function(ev) {
 				if (ev.which == 3) {
 					ev.preventDefault();
@@ -306,13 +318,13 @@ MrlPaneClass.prototype.prepare_checkboxes = function()
 						var target = that.dir_list[jQuery(that2).data('data')];
 						var dirname = target['name'];
 						var data = {
-							action: 'mrelocator_delete_empty_dir',
+							action: 'mocd_delete_empty_dir',
 							dir: that.cur_dir,
 							name: dirname
 						};
 						mrl_ajax_in();
 						jQuery.post(ajaxurl, data, function(response) {
-							if (response.search(/Success/i) < 0) {alert("mrelocator_delete_empty_dir: "+response);}
+							if (response.search(/Success/i) < 0) {alert("mocd_delete_empty_dir: "+response);}
 							that.refresh();
 							if (that.cur_dir == that.opposite.cur_dir) {
 								that.opposite.refresh();
@@ -346,7 +358,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function()
 								return;
 							}
 							var data = {
-								action: 'mrelocator_rename',
+								action: 'mocd_rename',
 								dir: that.cur_dir,
 								from: old_name,
 								to: mrloc_input_text.result
@@ -354,7 +366,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function()
 							mrl_ajax_in();
 
 							jQuery.post(ajaxurl, data, function(response) {
-								if (response.search(/Success/i) < 0) alert("mrelocator_rename: "+response);
+								if (response.search(/Success/i) < 0) alert("mocd_rename: "+response);
 								if (that.opposite.cur_dir.indexOf(that.cur_dir+old_name+"/")===0) {
 									that.opposite.setdir(that.cur_dir+mrloc_input_text.result+"/"+that.opposite.cur_dir.substr((that.cur_dir+old_name+"/").length));
 								}
@@ -369,6 +381,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function()
 						});
 					});
 				}
+                // WHAT? why a new var here!?
 				var dir = that.dir_list[jQuery(this).data('data')];
 			});
 
@@ -383,8 +396,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function()
 	}
 }
 
-MrlPaneClass.prototype.check_same_name = function(str)
-{
+MrlPaneClass.prototype.check_same_name = function(str) {
 	for (var i=0; i<this.dir_list.length; i++) {
 		if (this.dir_list[i]['name'] == str) {
 			return true;
@@ -396,8 +408,7 @@ MrlPaneClass.prototype.check_same_name = function(str)
 // function name: MrlPaneClass::chdir
 // description : move directory and display its list
 // argument : (dir)target directory
-MrlPaneClass.prototype.chdir = function(dir)
-{
+MrlPaneClass.prototype.chdir = function(dir) {
 	var last_chr = this.cur_dir.substr(this.cur_dir.length-1,1);
 	var new_dir = this.cur_dir;
 
@@ -420,17 +431,40 @@ MrlPaneClass.prototype.chdir = function(dir)
 	this.setdir(new_dir);
 }
 
+
+// ----------- End of class definition 
+
+// function name: mrl_ins8203
+// description : 
+// argument : (str)
+function mrl_ins8203 (str) {
+    return str;  // FIXME what's this for??   8203 is a zero-width space
+	var ret = "", i, str = str || '';
+	for (i = 0; i < str.length; i += 3) {
+		ret += str.substr(i, 3);
+		ret += '&#8203;'
+	}
+	return ret;
+}
+
+// FIXME where should this go?
+function display_error (text) {
+    // TODO don't (just) alert
+    alert(text);
+}
+
+// FIXME?  this isn't in the class as claimed
 // function name: MrlPaneClass::move
 // description : moving checked files/directories
 // argument : (pane_from)pane object; (pane_to)pane object 
+// FIXME globals!!
 var global_pane_from = "";
 var global_pane_to = "";
 var global_num_par_no = 0;
 var global_move_no = 0;
 var global_move_cnt = 0;
 var global_move_continue=0;
-function mrloc_move(pane_from, pane_to, no)
-{
+function mrloc_move(pane_from, pane_to, no) {
 	no = typeof no !== 'undefined' ? no : 0;
 	var cnt = global_move_cnt;
 	
@@ -458,7 +492,7 @@ function mrloc_move(pane_from, pane_to, no)
 
 	var chk_no = -1;
 	// make list of checked item
-	for (i=0; i<pane_from.dir_disp_list.length; i++) {
+	for (i = 0; i < pane_from.dir_list.length; i++) {
 		var attr = jQuery('#'+pane_from.get_chkid(i)).attr('checked');
 		if (attr=='checked' || attr===true) {
 			chk_no ++;
@@ -468,9 +502,9 @@ function mrloc_move(pane_from, pane_to, no)
 				continue;
 			}
 			cnt++;
-			flist += pane_from.dir_list[pane_from.dir_disp_list[i]].name + "/";
+			flist += pane_from.dir_list[pane_from.dir_list[i]].name + "/";
 			for (j=0; j<pane_from.dir_list.length; j++) {
-				if (pane_from.dir_list[j].isthumb && pane_from.dir_list[j].parent == pane_from.dir_disp_list[i]) {
+				if (pane_from.dir_list[j].isthumb && pane_from.dir_list[j].parent == pane_from.dir_list[i]) {
 					flist += pane_from.dir_list[j].name + "/";
 				}
 			}
@@ -486,7 +520,7 @@ function mrloc_move(pane_from, pane_to, no)
 	//alert(flist);
 
 	var data = {
-		action: 'mrelocator_move',
+		action: 'mocd_move',
 		dir_from: pane_from.cur_dir,
 		dir_to: pane_to.cur_dir,
 		items: flist
@@ -511,9 +545,8 @@ function mrloc_move(pane_from, pane_to, no)
 }
 
 
-//**** right-menu class *******************************************************************
-var MrlRightMenuClass = function()
-{
+//**** right-click menu class *******************************************************************
+var MrlRightMenuClass = function() {
 	var num=0;
 	var flgRegisterRemoveFunc = false;
 	var pos_left = 0;
@@ -524,8 +557,7 @@ var MrlRightMenuClass = function()
 // function name: MrlRightMenuClass::make
 // description : make and display right-click menu
 // argument : (items)array of menu items 
-MrlRightMenuClass.prototype.make = function(items)
-{
+MrlRightMenuClass.prototype.make = function(items) {
 	var html="";
 	var i;
 	jQuery('body').append('<div id="mrl_right_menu"></div>');
@@ -547,8 +579,9 @@ MrlRightMenuClass.prototype.make = function(items)
 	for (i=0; i<items.length; i++) {
 		var id = 'mrl_right_menu_item_' + i;
 		jQuery('#'+id).hover(
-			function(){this.removeClass('mrl_right_menu_item');this.addClass('mrl_right_menu_item_hover');},
-			function(){this.removeClass('mrl_right_menu_item_hover');this.addClass('mrl_right_menu_item');}
+                // FIXME this.removeClass does not exist!!
+			//function(){this.removeClass('mrl_right_menu_item');this.addClass('mrl_right_menu_item_hover');},
+			//function(){this.removeClass('mrl_right_menu_item_hover');this.addClass('mrl_right_menu_item');}
 		);
 	}
 	if (!this.flgRegisterRemoveFunc) {
@@ -560,16 +593,14 @@ MrlRightMenuClass.prototype.make = function(items)
 // function name: MrlRightMenuClass::get_item_id
 // description : get the id of the specified item
 // argument : (n)index of item (starting from 0)
-MrlRightMenuClass.prototype.get_item_id = function(n)
-{
+MrlRightMenuClass.prototype.get_item_id = function(n) {
 	return 'mrl_right_menu_item_' + n;
 }
 
 
 
 //**** Text input form class *******************************************************************
-var MrlInputTextClass = function()
-{
+var MrlInputTextClass = function() {
 	var flgRegisterRemoveFunc = false;
 	var pos_left = 0;
 	var pos_right = 0;
@@ -581,8 +612,7 @@ var MrlInputTextClass = function()
 // function name: MrlInputTextClass::make
 // description : make and display a text input form
 // argument : (title)title; (init_text)initial text; (textbox_width)width of textbox
-MrlInputTextClass.prototype.make = function(title, init_text, textbox_width, is_dirname)
-{
+MrlInputTextClass.prototype.make = function(title, init_text, textbox_width, is_dirname) {
 	this.is_dirname = is_dirname;
 	var html="";
 	jQuery('body').append('<div id="mrl_input_text"></div>');
@@ -628,8 +658,7 @@ MrlInputTextClass.prototype.make = function(title, init_text, textbox_width, is_
 // function name: MrlInputTextClass::set_callback
 // description : register callback function called when OK is pressed
 // argument : (c)callback function
-MrlInputTextClass.prototype.set_callback = function(c)
-{
+MrlInputTextClass.prototype.set_callback = function(c) {
 	this.callback = c;
 }
 
@@ -637,8 +666,7 @@ MrlInputTextClass.prototype.set_callback = function(c)
 // description : check if '.+file extension' pattern exists in the name (ex)abc.jpgdef
 // argument : (str: target string, isdir: the name is of a directory)
 // return : true(exists), false(not exists)
-MrlInputTextClass.prototype.check_dotext = function(str, isdir)
-{
+MrlInputTextClass.prototype.check_dotext = function(str, isdir) {
 	var ext = 
 		['.jpg', '.jpeg', '.gif', '.png', '.mp3','.m4a','.ogg','.wav',
 		 '.mp4v', '.mp4', '.mov', '.wmv', '.avi', '.mpg', '.ogv', '.3gp', '.3g2',  
@@ -659,8 +687,7 @@ var invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&",
 // description : check if invalid character exists in the name.
 // argument : (str: target string)
 // return : true(exists), false(not exists)
-MrlInputTextClass.prototype.check_invalid_chr = function(str)
-{
+MrlInputTextClass.prototype.check_invalid_chr = function(str) {
 	var i;
 	for (i=0; i<invalid_chr.length; i++) {
 		if (str.indexOf(invalid_chr[i]) >= 0) {
@@ -670,8 +697,7 @@ MrlInputTextClass.prototype.check_invalid_chr = function(str)
 	return false;
 }
 
-MrlInputTextClass.prototype.invalid_chr_msg = function()
-{
+MrlInputTextClass.prototype.invalid_chr_msg = function() {
 	var msg = "";
 	for (i=0; i<invalid_chr.length; i++) {
 		msg += invalid_chr[i] + " ";
@@ -686,8 +712,7 @@ MrlInputTextClass.prototype.invalid_chr_msg = function()
 // function name: adjust_layout
 // description : adjust layout when resized
 // argument : (void)
-function adjust_layout()
-{
+function adjust_layout() {
 	var width_all = jQuery('#mrl_wrapper_all').width();
 	var height_all = jQuery('#mrl_wrapper_all').height();
 	var width_center =jQuery('#mrl_center_wrapper').width(); 
@@ -696,13 +721,11 @@ function adjust_layout()
 	var position = jQuery('#wpbody').offset();
 	height_all = jQuery(window).height() - position.top - 100;
 
-
-
 	var pane_w = (width_all - width_center)/2-16;
 	jQuery('.mrl_wrapper_pane').width(pane_w);
 	jQuery('.mrl_path').width(pane_w);
 	jQuery('.mrl_pane').width(pane_w);
-	jQuery('.mrl_pane').height(height_all - height_mrl_box);	
+	// TODO does this help? -- seems better without this line:  jQuery('.mrl_pane').height(height_all - height_mrl_box);	
 	jQuery('.mrl_filename').width(pane_w-32);
 }
 
@@ -710,8 +733,7 @@ function adjust_layout()
 // function name: mrl_ajax_in
 // description : recognize entering ajax procedure to avoid user interrupt while data processing
 // argument : (void)
-function mrl_ajax_in()
-{
+function mrl_ajax_in() {
 	mrl_ajax ++;
 	document.body.style.cursor = "wait";
 	if (mrl_ajax==1) jQuery(document).bind('click.mrl', function(e){
@@ -723,8 +745,7 @@ function mrl_ajax_in()
 // function name: mrl_ajax_out
 // description : recognize finishing ajax procedure
 // argument : (void)
-function mrl_ajax_out()
-{
+function mrl_ajax_out() {
 	mrl_ajax --;
 	if (	mrl_ajax == 0) {
 		document.body.style.cursor = "default";
@@ -732,6 +753,7 @@ function mrl_ajax_out()
 	}
 }
 
+/* silly
 function mrl_toHex(str) {
     var hex = '';
     for(var i=0;i<str.length;i++) {
@@ -739,4 +761,5 @@ function mrl_toHex(str) {
     }
     return hex;
 }
+*/
 

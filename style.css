@@ -5,6 +5,14 @@
 	bborder: solid 1px #f00;
 }
 
+.mrl_pane_item {
+    vertical-align: middle;
+    display: block;
+    height: 55px;
+    clear: both; 
+    position: relative;
+}
+
 #mrl_wrapper_all {
 	position:relative;
 	//width:800px;

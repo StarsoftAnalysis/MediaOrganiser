@@ -1,6 +1,33 @@
 <?php
 namespace media_file_manager_cd;
 
+function define_constants () {
+    // Directories and URLs -- none of these will end in '/'
+    #    ABSPATH /var/www/rotarywp-dev/
+    #   __FILE__ /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd/functions.php  
+    #       d(F) /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd                    
+    #    b(d(F)) media-file-manager-cd                                                          
+    define('PLUGIN_URL', plugins_url() . "/" . basename(dirname(__FILE__)));  // used for URLs of icon images etc.
+    $upload = wp_upload_dir();
+    if ($upload['error']) {
+        debug('failed to get WP upload directory: ' . $upload['error']);
+        // guess:
+        define('UPLOAD_DIR', '/tmp/'); // ought to be e.g. '/var/www/website/wp-content/uploads');
+        define('UPLOAD_URL', '/wp-content/uploads'); 
+        define('UPLOAD_REL', '/wp-content/uploads');
+    } else {
+        define('UPLOAD_DIR', $upload['basedir']);
+        define('UPLOAD_URL', $upload['baseurl']);
+        #define('UPLOAD_REL', _wp_relative_upload_path(UPLOAD_DIR));
+        #define('UPLOAD_REL', '/' . str_replace(ABSPATH, '', UPLOAD_DIR));
+        define('UPLOAD_REL', '/' . remove_prefix(ABSPATH, UPLOAD_DIR));
+    }
+    debug('PLUGIN_URL:', PLUGIN_URL);
+    debug('UPLOAD_DIR:', UPLOAD_DIR);
+    debug('UPLOAD_URL:', UPLOAD_URL);
+    debug('UPLOAD_REL:', UPLOAD_REL);
+}
+
 // Debug to /wp-content/debug.log (see settings in wp-config.php)
 function debug (...$args) {
     // FIXME caller keeps being 'include_once'
@@ -15,8 +42,17 @@ function debug (...$args) {
     error_log($function . $line . $text);
 }
 
+function remove_prefix ($prefix, $text) {
+    if (strpos($text, $prefix) === 0) {
+        $text = substr($text, strlen($prefix));
+    }
+    return $text;
+}
+
 // FIXME avoid using this
 function mrl_adjpath($adr, $tailslash=false) {
+    return $adr;
+    // the rest is nonsense
 	$serverpathflag = false;
     if (strstr($adr, "\\\\") == $adr || 
         strstr($adr, "//"  ) == $adr    ) {
@@ -44,8 +80,120 @@ function mrl_adjpath($adr, $tailslash=false) {
 	return $adr;
 }
 
+// Return a list of files and subdirectories within the given directory.
+// sorted alphabetically, and excluding '.' and '..'
 function scandir_no_dots ($dir) {
-    return array_diff(scandir($dir), array('.', '..'));
+    // scandir gives a warning AND returns false on error, so use '@'
+    $listing = @scandir($dir);
+    if ($listing === false) {
+        return [];
+    }
+    // Strip the dot directories
+    return array_diff ($listing, array('.', '..'));
+}
+
+// Return a list of subdirectories within the given directory
+function subdirs ($dir) {
+    $items = scandir_no_dots($dir);
+    $listing = [];
+    foreach ($items as $item) {
+        if (is_dir($dir . '/' . $item)) {
+            $listing[] = $item;
+        }
+    }
+    return $listing;
+}
+
+# Return a request (get or post) data field, or '' if not set
+function request_data ($field) {
+    if (!isset($_REQUEST[$field])) {
+        return '';
+    }
+    return $_REQUEST[$field];
+}
+
+// Provide icons for those without thumbnails
+// TODO: pdfs?
+function thumbnail_url ($fname, $mimetype = '') {
+    if (isimage($fname, $mimetype)) {
+        return UPLOAD_URL . '/' . $fname;
+    } elseif (isaudio($fname, $mimetype)) {
+        return PLUGIN_URL . "/images/audio.png";
+    } elseif (isvideo($fname, $mimetype)) {
+        return PLUGIN_URL . "/images/video.png";
+    }
+    return PLUGIN_URL . "/images/file.png";
+}
+
+function isimage ($fname, $mimetype = '') {
+    if ($mimetype) {
+        return strpos($mimetype, 'image/') === 0;
+    }
+    return preg_match('/\.(jpg|jpeg|gif|png|bmp|tif|tiff|dng|pef|cr2)$/i', $fname);
+}
+
+function isaudio ($fname, $mimetype = '') {
+    if ($mimetype) {
+        return strpos($mimetype, 'audio/') === 0;
+    }
+    return preg_match('/\.(wav|mp3|m3u|wma|ra|ram|aac|flac|ogg|opus)$/i', $fname);
+}
+
+function isvideo ($fname, $mimetype = '') {
+    if ($mimetype) {
+        return strpos($mimetype, 'video/') === 0;
+    }
+    return preg_match('/\.(mp4|wma|avi|flv|ogv|divx|mov|3gp)$/i', $fname);
+}
+
+function isEmptyDir($dir) {
+    // FIXME perhaps this doesn't work
+    // FIXME deal with scandir returning false and use @
+    return count(scandir($dir)) <= 2;  // ignore '.' and '..'
+    /*
+	$dh = @opendir ($dir);
+
+	if ($dh === false) {
+		return true;
+	}
+	for ($i=0;;$i++) {
+		$str = readdir($dh);
+		if ($str=="." || $str=="..") {$i--;continue;}
+		if ($str === FALSE) break;
+		return false;
+	}
+    return true;
+     */
+}
+
+/* Just use scandir_no_dots */
+// Get a directory listing as an array
+function getdir ($dir, &$ret_arr) {
+    // FIXME can we avoid @ ? 
+	$dh = @opendir($dir);
+	if ($dh === false) {
+		die("error: cannot open directory (".$dir.")");
+    }
+    $ret_arr = array();
+	for ($i = 0; ; $i++) {
+		$str = readdir($dh);
+		if ($str == "." || $str == "..") {$i--;continue;}
+		if ($str === FALSE) break;
+		# changed from this $ret_arr[$i] = $str;
+		$ret_arr[] = $str;
+    }
+    return $ret_arr;
+}
+
+// This could be where to fix it  FIXME what?
+function get_subdir($dir) {
+	$subdir = substr($dir,  strlen(UPLOAD_DIR));
+	if (substr($subdir,0,1)=="/" || substr($subdir,0,1)=="\\") {
+		$subdir = substr($subdir, 1);
+	}
+	$subdir = mrl_adjpath($subdir, true);
+	if ($subdir=="/") $subdir="";
+	return $subdir;
 }
 
 ?>

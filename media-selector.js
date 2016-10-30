@@ -31,7 +31,7 @@ var mrl_get_data_id = -1;
 jQuery(document).ready(function() {
 
 	var data = {
-		action: 'mrelocator_get_media_subdir'
+		action: 'mocd_get_media_subdir'
 	};
 	jQuery.post(ajaxurl, data, function(response) {
 		mrl_subdir_data = JSON.parse(response);
@@ -40,7 +40,7 @@ jQuery(document).ready(function() {
 
 
 	var data = {
-		action: 'mrelocator_get_media_list'
+		action: 'mocd_get_media_list'
 	};
 	jQuery.post(ajaxurl, data, function(response) {
 		mrl_files_data = JSON.parse(response);
@@ -218,7 +218,7 @@ function mrl_set_selector_event()
 function mrl_open_selector_insert_dialog(id)
 {
 	var data = {
-		action: 'mrelocator_get_image_insert_screen',
+		action: 'mocd_get_image_insert_screen',
 		id: id
 	};
 	// since 2.8 ajaxurl is always defined in the admin header and points to admin-ajax.php
@@ -276,7 +276,7 @@ function mrl_open_selector_insert_dialog_main(dat)
 		}
 
 		var data = {
-			action: 'mrelocator_update_media_information',
+			action: 'mocd_update_media_information',
 			id:mrl_data['posts']['ID'],
 			title:title,
 			caption:caption,

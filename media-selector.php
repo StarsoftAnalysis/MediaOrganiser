@@ -4,10 +4,9 @@ namespace media_file_manager_cd;
 // NOTE This is just included at the end of media-relocator.php
 
 
-function mrelocator_get_media_list_callback()
+function get_media_list_callback()
 {
 	global $wpdb;
-	global $mrelocator_plugin_URL;
 
 	$res = $wpdb->get_results(
 		"SELECT ".
@@ -20,9 +19,9 @@ function mrelocator_get_media_list_callback()
 	for ($i=0; $i<count($res); $i++) {
 		$meta = wp_get_attachment_metadata($res[$i]->ID);
 		if (substr($res[$i]->post_mime_type,0,5)=='audio') {
-			$res[$i]->thumbnail = $mrelocator_plugin_URL . "/images/audio.png";
+			$res[$i]->thumbnail = PLUGIN_URL . "/images/audio.png";
 		} else if (substr($res[$i]->post_mime_type,0,5)=='video') {
-			$res[$i]->thumbnail = $mrelocator_plugin_URL . "/images/video.png";
+			$res[$i]->thumbnail = PLUGIN_URL . "/images/video.png";
 		} else if (substr($res[$i]->post_mime_type,0,5)=='image') {
 			if (isset($meta['sizes']['thumbnail'])) {
 				$res[$i]->thumbnail = $res[$i]->subfolder . $meta['sizes']['thumbnail']['file'];
@@ -30,16 +29,15 @@ function mrelocator_get_media_list_callback()
 				$res[$i]->thumbnail = $res[$i]->file;
 			}
 		} else {
-			$res[$i]->thumbnail = $mrelocator_plugin_URL . "/images/file.png";
+			$res[$i]->thumbnail = PLUGIN_URL . "/images/file.png";
 		}
 	}
 	echo json_encode($res);
 	die();
 }
-add_action('wp_ajax_mrelocator_get_media_list', NS . 'mrelocator_get_media_list_callback');
 
 
-function mrelocator_get_media_subdir_callback()
+function get_media_subdir_callback()
 {
 	global $wpdb;
 	$res = $wpdb->get_results(
@@ -53,10 +51,9 @@ function mrelocator_get_media_subdir_callback()
 	echo json_encode($res);
 	die();
 }
-add_action('wp_ajax_mrelocator_get_media_subdir', NS . 'mrelocator_get_media_subdir_callback');
 
 
-function mrelocator_get_image_info_callback()
+function get_image_info_callback()
 {
 	global $wpdb;
 	$id = $_POST['id'];
@@ -90,14 +87,12 @@ function mrelocator_get_image_info_callback()
 	echo json_encode($ret);
 	die();
 }
-add_action('wp_ajax_mrelocator_get_image_info', NS . 'mrelocator_get_image_info_callback');
 
 
 
-function mrelocator_get_image_insert_screen_callback()
+function get_image_insert_screen_callback()
 {
 	global $wpdb;
-	global $mrelocator_uploadurl;
 
 	$id = $_POST['id'];
 	if (!is_numeric($id)) {
@@ -143,10 +138,10 @@ function mrelocator_get_image_insert_screen_callback()
 	$dat['meta'] = $meta;
 	$dat['is_image'] = $is_image;
 
-	$urldir = $mrelocator_uploadurl . $file;
+	$urldir = UPLOAD_URL . $file;
 	$urldir = substr($urldir, 0, strrpos($urldir,"/")+1);
 	$dat['urldir'] = $urldir;
-	$url = $mrelocator_uploadurl . $file;
+	$url = UPLOAD_URL . $file;
 
 	if ($is_image) {
 		$width=$meta['width'];
@@ -155,7 +150,7 @@ function mrelocator_get_image_insert_screen_callback()
 		if (isset($meta['sizes']['thumbnail'])) {
 			$thumb = $urldir . $meta['sizes']['thumbnail']['file'];
 		} else {
-			$thumb = $mrelocator_uploadurl . $file;
+			$thumb = UPLOAD_URL . $file;
 		}
 
 		$size_thumbnail="";
@@ -187,289 +182,254 @@ function mrelocator_get_image_insert_screen_callback()
 			$alt = esc_html($res[0]->meta_value);
 		}
 	}
-?>
-<div id="media-items">
+    echo '<div id="media-items">';
 
-<div class="media-item preloaded"><img class="pinkynail toggle" src="media-upload_data/aab-150x150.jpg" alt="" style="margin-top: 3px; display: none;"><div style="display: none;" class="progress"></div><div id="media-upload-error-4388"></div><div class="filename"></div>
-	<div class="filename new"><span class="title"><?php echo $title;?></span></div>
-	<table style="display: table;" class="slidetoggle describe">
-		<thead class="media-item-info">
-		<tr valign="top">
-			<td class="A1B1">
-			<p><a href="<?php echo bloginfo('url').'/?attachment_id='.$id;?>" target="_blank"><img class="thumbnail" src="<?php echo $thumb;?>" alt="" style="margin-top: 3px;"></a></p>
-			<p><!--<input id="imgedit-open-btn-4388" onclick='imageEdit.open(4388, "1f64e6952c")' class="button" value="<?php _e("Edit Image");?>" type="button"> <img src="post.php_files/wpspin_light.gif" class="imgedit-wait-spin" alt="">--></p>
-			</td>
-			<td>
-			<p><strong><?php _e('File name:');?></strong> <?php echo $file;?></p>
-			<p><strong><?php _e('File type:');?></strong> <?php echo $mime_type;?></p>
-			<p><strong><?php _e('Upload date:');?></strong> <?php echo $upload_date;?></p>
-<?php if ($is_image): ?>
-			<p><strong><?php _e('Dimensions:');?></strong> <span id="media-dims"><?php echo $width;?>&nbsp;×&nbsp;<?php echo $height;?></span> </p>
-<?php endif; ?>
-</td></tr>
+    echo '<div class="media-item preloaded">';
+    echo '<img class="pinkynail toggle" src="media-upload_data/aab-150x150.jpg" alt="" style="margin-top: 3px; display: none;">';
+    echo '<div style="display: none;" class="progress">';
+    echo '</div>';
+    echo '<div id="media-upload-error-4388"></div>';
+    echo '<div class="filename"></div>';
+	echo '<div class="filename new"><span class="title"><?php echo $title;?></span></div>';
+	echo '<table style="display: table;" class="slidetoggle describe">';
+	echo '<thead class="media-item-info">';
+	echo '<tr valign="top">';
+	echo '<td class="A1B1">';
+    echo '<p><a href="', bloginfo('url') , '/?attachment_id=' , $id , '" target="_blank">';
+    echo '<img class="thumbnail" src="', $thumb, '" alt="" style="margin-top: 3px;"></a></p>';
+    //echo '<p><!--<input id="imgedit-open-btn-4388" onclick='imageEdit.open(4388, "1f64e6952c")' class="button" value="', _e("Edit Image"), '" type="button"> <img src="post.php_files/wpspin_light.gif" class="imgedit-wait-spin" alt="">--></p>';
+	echo '</td>';
+	echo '<td>';
+	echo '<p><strong>', _e('File name:'), '</strong> ', $file, '</p>';
+	echo '<p><strong>', _e('File type:'), '</strong> ', $mime_type, '</p>';
+	echo '<p><strong>', _e('Upload date:'), '</strong> ', $upload_date, '</p>';
+    if ($is_image) {
+        echo '<p><strong>', _e('Dimensions:'), '</strong> <span id="media-dims">', $width, '&nbsp;×&nbsp;', $height, '</span></p>';
+    }
+    echo '</td></tr>';
+    echo '</thead>';
+    echo '<tbody>';
+	echo '<tr><td colspan="2" class="imgedit-response" id="imgedit-response-4388"></td></tr>';
+	echo '<tr><td style="display: none;" colspan="2" class="image-editor" id="image-editor-4388"></td></tr>';
+    echo '<tr class="post_title form-required">';
+    // FIXME what's 4388?
+    echo '<th scope="row" class="label" valign="top"><label for="attachments[4388][post_title]">';
+    echo '<span class="alignleft">', _e('Title'), '</span><span class="alignright"><abbr title="required" class="required">*</abbr></span>';
+    echo '<br class="clear"></label></th>';
+    echo '<td class="field"><input class="text" id="attachments_post_title" name="attachments_post_title" value="', $title, '" aria-required="true" type="text"></td>';
+    echo '</tr>';
+    if ($is_image) {
+		echo '<tr class="image_alt">';
+        echo '<th scope="row" class="label" valign="top"><label for="attachments_image_alt">';
+        echo '<span class="alignleft">', _e('Alternate Text'), '</span>';
+        echo '<br class="clear"></label></th>';
+        echo '<td class="field"><input class="text" id="attachments_image_alt" name="attachments_image_alt" value="', $alt, '" type="text">';
+        echo '<p class="help">', _e('Alt text for the image, e.g. “The Mona Lisa”'), '</p></td>';
+		echo '</tr>';
+    }
+    echo '<tr class="post_excerpt">';
+	echo '<th scope="row" class="label" valign="top"><label for="attachments_post_excerpt"><span class="alignleft">', _e('Caption'), '</span><br class="clear"></label></th>';
+	echo '<td class="field"><input class="text" id="attachments_post_excerpt" name="attachments_post_excerpt" value="', $caption, '" type="text"></td>';
+	echo '</tr>';
+	echo '<tr class="post_content">';
+	echo '<th scope="row" class="label" valign="top"><label for="attachments_post_content"><span class="alignleft">', _e('Description'), '</span><br class="clear"></label></th>';
+	echo '<td class="field"><textarea id="attachments_post_content" name="attachments_post_content">', $description, '</textarea></td>';
+	echo '</tr>';
+	echo '<tr class="url">';
+	echo '<th scope="row" class="label" valign="top"><label for="attachments_url"><span class="alignleft">', _e('Link URL'), '</span><br class="clear"></label></th>';
+	echo '<td class="field">';
+	echo '<input class="text urlfield" id="attachments_url" name="attachments_url" value="', $url, '" type="text"><br>';
+	echo '<button type="button" id="urlnone" class="button urlnone" data-link-url="">', _e('None'), '</button>';
+	echo '<button type="button" id="urlfile" class="button urlfile" data-link-url="', url, '">', _e('File URL'), '</button>';
+	echo '<button type="button" id="urlpost" class="button urlpost" data-link-url="', bloginfo('url'), '/?attachment_id=', $id, '">', _e('Attachment Post URL'), '</button>';
+    echo '<p class="help">', _e('Enter a link URL or click above for presets.'), '</p></td>';
+    echo '</tr>';
+    if ($is_image) {
+		echo '<tr class="align">';
+		echo '<th scope="row" class="label" valign="top"><label for="attachments_align"><span class="alignleft">', _e('Alignment'), '</span><br class="clear"></label></th>';
+		echo '<td class="field">';
+        echo '<input name="attachments_align" id="image-align-none" value="none" checked="checked" type="radio"><label for="image-align-none" class="align image-align-none-label">', _e('None'), '</label>';
+        echo '<input name="attachments_align" id="image-align-left" value="left" type="radio"><label for="image-align-left" class="align image-align-left-label">', _e('Left'), '</label>';
+        echo '<input name="attachments_align" id="image-align-center" value="center" type="radio"><label for="image-align-center" class="align image-align-center-label">', _e('Center'), '</label>';
+        echo '<input name="attachments_align" id="image-align-right" value="right" type="radio"><label for="image-align-right" class="align image-align-right-label">', _e('Right'), '</label></td>';
+        echo '</tr>';
+        echo '<tr class="image-size">';
+        echo '<th scope="row" class="label" valign="top"><label for="attachments-image-size"><span class="alignleft">', _e('Size'), '</span><br class="clear"></label></th>';
+        echo '<td class="field">';
+        echo '<div class="image-size-item"><input ', $disable_thumbnail, ' name="attachments-image-size" id="image-size-thumbnail" value="thumbnail" type="radio"><label for="image-size-thumbnail">', _e('Thumbnail'), '</label> <label for="image-size-thumbnail" class="help">', $size_thumbnail, '</label></div>';
+        echo '<div class="image-size-item"><input ', $disable_medium, ' name="attachments-image-size" id="image-size-medium" value="medium" type="radio"><label for="image-size-medium">', _e('Medium'), '</label> <label for="image-size-medium" class="help">', $size_medium, '</label></div>';
+        echo '<div class="image-size-item"><input ', $disable_large, ' name="attachments-image-size" id="image-size-large" value="large" type="radio"><label for="image-size-large">', _e('Large'), '</label> <label for="image-size-large" class="help">', $size_large, '</label></div>';
+        echo '<div class="image-size-item"><input name="attachments-image-size" id="image-size-full" value="full" checked="checked" type="radio"><label for="image-size-full">', _e('Full Size'), '</label> <label for="image-size-full" class="help">', $size_full, '</label></div></td>';
+        echo '</tr>';
+    }
+    echo '<tr class="submit"><td></td><td class="savesend"><input name="send" id="send" class="button" value="', _e('Insert into Post'), '" type="submit">';
+    echo '<button type="button" id="mrl_cancel" class="button" >', _e('Cancel'), '</button>';
+	echo '</td></tr>';
+    echo '</tbody>';
+	echo '</table>';
+    echo '</div>';
+    echo '</div>';
+    // FIXME really dump data in the html? -- better to do it the WP way?
+    echo '<div id="mrl_data" style="display:none;">';
+    echo json_encode($dat);
+    echo '</div>';
 
-		</thead>
-		<tbody>
-		<tr><td colspan="2" class="imgedit-response" id="imgedit-response-4388"></td></tr>
-		<tr><td style="display: none;" colspan="2" class="image-editor" id="image-editor-4388"></td></tr>
-		<tr class="post_title form-required">
-			<th scope="row" class="label" valign="top"><label for="attachments[4388][post_title]"><span class="alignleft"><?php _e('Title');?></span><span class="alignright"><abbr title="required" class="required">*</abbr></span><br class="clear"></label></th>
-			<td class="field"><input class="text" id="attachments_post_title" name="attachments_post_title" value="<?php echo $title;?>" aria-required="true" type="text"></td>
-		</tr>
-<?php if ($is_image): ?>
-		<tr class="image_alt">
-			<th scope="row" class="label" valign="top"><label for="attachments_image_alt"><span class="alignleft"><?php _e('Alternate Text');?></span><br class="clear"></label></th>
-			<td class="field"><input class="text" id="attachments_image_alt" name="attachments_image_alt" value="<?php echo $alt;?>" type="text"><p class="help"><?php _e('Alt text for the image, e.g. “The Mona Lisa”');?></p></td>
-		</tr>
-<?php endif; ?>
-		<tr class="post_excerpt">
-			<th scope="row" class="label" valign="top"><label for="attachments_post_excerpt"><span class="alignleft"><?php _e('Caption');?></span><br class="clear"></label></th>
-			<td class="field"><input class="text" id="attachments_post_excerpt" name="attachments_post_excerpt" value="<?php echo $caption;?>" type="text"></td>
-		</tr>
-		<tr class="post_content">
-			<th scope="row" class="label" valign="top"><label for="attachments_post_content"><span class="alignleft"><?php _e('Description');?></span><br class="clear"></label></th>
-			<td class="field"><textarea id="attachments_post_content" name="attachments_post_content"><?php echo $description;?></textarea></td>
-		</tr>
-		<tr class="url">
-			<th scope="row" class="label" valign="top"><label for="attachments_url"><span class="alignleft"><?php _e('Link URL');?></span><br class="clear"></label></th>
-			<td class="field">
-	<input class="text urlfield" id="attachments_url" name="attachments_url" value="<?php echo $url;?>" type="text"><br>
-	<button type="button" id="urlnone" class="button urlnone" data-link-url=""><?php _e('None');?></button>
-	<button type="button" id="urlfile" class="button urlfile" data-link-url="<?php echo $url;?>"><?php _e('File URL');?></button>
-	<button type="button" id="urlpost" class="button urlpost" data-link-url="<?php echo bloginfo('url').'/?attachment_id='.$id;?>"><?php _e('Attachment Post URL');?></button>
-<p class="help"><?php _e('Enter a link URL or click above for presets.');?></p></td>
-		</tr>
-<?php if ($is_image): ?>
-		<tr class="align">
-			<th scope="row" class="label" valign="top"><label for="attachments_align"><span class="alignleft"><?php _e('Alignment');?></span><br class="clear"></label></th>
-			<td class="field">
-<input name="attachments_align" id="image-align-none" value="none" checked="checked" type="radio"><label for="image-align-none" class="align image-align-none-label"><?php _e('None');?></label>
-<input name="attachments_align" id="image-align-left" value="left" type="radio"><label for="image-align-left" class="align image-align-left-label"><?php _e('Left');?></label>
-<input name="attachments_align" id="image-align-center" value="center" type="radio"><label for="image-align-center" class="align image-align-center-label"><?php _e('Center');?></label>
-<input name="attachments_align" id="image-align-right" value="right" type="radio"><label for="image-align-right" class="align image-align-right-label"><?php _e('Right');?></label></td>
-		</tr>
-		<tr class="image-size">
-			<th scope="row" class="label" valign="top"><label for="attachments-image-size"><span class="alignleft"><?php _e('Size');?></span><br class="clear"></label></th>
-			<td class="field">
-<div class="image-size-item"><input <?php echo $disable_thumbnail;?> name="attachments-image-size" id="image-size-thumbnail" value="thumbnail" type="radio"><label for="image-size-thumbnail"><?php _e('Thumbnail');?></label> <label for="image-size-thumbnail" class="help"><?php echo $size_thumbnail;?></label></div>
-<div class="image-size-item"><input <?php echo $disable_medium;?> name="attachments-image-size" id="image-size-medium" value="medium" type="radio"><label for="image-size-medium"><?php _e('Medium');?></label> <label for="image-size-medium" class="help"><?php echo $size_medium;?></label></div>
-<div class="image-size-item"><input <?php echo $disable_large;?> name="attachments-image-size" id="image-size-large" value="large" type="radio"><label for="image-size-large"><?php _e('Large');?></label> <label for="image-size-large" class="help"><?php echo $size_large;?></label></div>
-<div class="image-size-item"><input name="attachments-image-size" id="image-size-full" value="full" checked="checked" type="radio"><label for="image-size-full"><?php _e('Full Size');?></label> <label for="image-size-full" class="help"><?php echo $size_full;?></label></div></td>
-		</tr>
-<?php endif;?>
-		<tr class="submit"><td></td><td class="savesend"><input name="send" id="send" class="button" value="<?php _e('Insert into Post');?>" type="submit">  
-			<button type="button" id="mrl_cancel" class="button" ><?php _e('Cancel');?></button>
-			
-		</td></tr>
-		</tbody>
-	</table>
-</div>
-</div>
-<div id="mrl_data" style="display:none;"><?php echo json_encode($dat);?></div>
-<?php
 	die();
 }
 
-add_action('wp_ajax_mrelocator_get_image_insert_screen', NS . 'mrelocator_get_image_insert_screen_callback');
 
-function mrelocator_update_media_information_callback()
-{
-	$id = (int)$_POST['id'];
-	$alt = $_POST['alt'];
-	if ($alt != "$none$") {
-		update_post_meta($id, '_wp_attachment_image_alt', $alt);
-	}
-	$edit_post = array();
-	$edit_post['ID'] = $id;
-	$edit_post['post_title'] = $_POST['title'];
-	$edit_post['post_excerpt'] = $_POST['caption'];
-	$edit_post['post_content'] = $_POST['description'];
+function update_media_information_callback() {
+    $id = (int)$_POST['id'];
+    $alt = $_POST['alt'];
+    if ($alt != "$none$") {
+        update_post_meta($id, '_wp_attachment_image_alt', $alt);
+    }
+    $edit_post = array();
+    $edit_post['ID'] = $id;
+    $edit_post['post_title'] = $_POST['title'];
+    $edit_post['post_excerpt'] = $_POST['caption'];
+    $edit_post['post_content'] = $_POST['description'];
 
-	wp_update_post($edit_post);
-	die();
+    wp_update_post($edit_post);
+    die();
 }
-add_action('wp_ajax_mrelocator_update_media_information', NS . 'mrelocator_update_media_information_callback');
 
 
-// FIXME silly class
+
 /**
- *  processing plugin
+ *  embed a script to insert a shortcoed.
  */
-class MrlMediaSelector
+function onAddShortCode() {
+    //  only in the posting page 投稿の編集画面だけを対象とする
+    $request_uri = $_SERVER['REQUEST_URI'];
+    if (strpos($request_uri, "post.php"   ) ||  // pos will never be 0
+        strpos($request_uri, "post-new.php") ||
+        strpos($request_uri, "page-new.php") ||
+        strpos($request_uri, "page.php"   ) ||
+        strpos($request_uri, "index.php"  )   )
+    {
+        echo '<script type="text/javascript">';
+        echo 'function onMrlMediaSelector_ShortCode(text) { send_to_editor(text); }';
+        echo '</script>';
+    }
+}
+
+/**
+ *  This function is called when setting a media button. 
+ */
+function onMediaButtons() {
+    $cur_roles0 = get_option('mediafilemanager_accepted_roles_selector', 'administrator,editor,author,contributor,subscriber');
+    $cur_roles = explode(',', $cur_roles0);
+    if (!check_user_role($cur_roles)) {
+        debug('onMediaButtons -- wrong role, cur_roles = ', cur_roles);
+        return;
+    }
+    debug('onMediaButtons -- role OK');
+
+    global $post_ID, $temp_ID;
+
+    $id     = (int)(0 == $post_ID ? $temp_ID : $post_ID);
+    $iframe = apply_filters("media_upload_mrlMS_iframe_src", "media-upload.php?post_id={$id}&amp;type=mrlMS&amp;tab=mrlMS");
+    $option = "&amp;TB_iframe=true&amp;keepThis=true&amp;height=500&amp;width=640";
+    $title  = "Media-selector";
+    $button = PLUGIN_URL . "images/media_folder.png";
+
+    //		echo '<a href="' . $iframe . $option . '" class="thickbox" title="' . $title . '"><img src="' . $button . '" alt="' . $title . '" /></a>';
+    echo ' <a href="' . $iframe . $option . '" class="wp-media-buttons button add_media thickbox" title="' . $title . '">';
+    echo '<span class="wp-media-buttons-icon" ></span><span  style="background-color:#ff0;"> &nbsp;&nbsp;'.$title.'&nbsp;&nbsp; </a> </span></span>';
+}
+
+/**
+ *  This function is called when showing contents in the dialog opened by pressing a media button.
+ */
+function onMediaButtonPage() {
+    echo "<script type=\"text/javascript\"> var uploaddir = '".UPLOAD_DIR."' </script>\n";
+    echo "<script type=\"text/javascript\"> var uploadurl = '".UPLOAD_URL."' </script>\n";
+    echo "<script type=\"text/javascript\"> var pluginurl = '".PLUGIN_URL."' </script>\n";
+
+    echo '<p></p>';
+    echo '<div id="mrl_control"> </div>';
+    echo '<div id="mrl_selector"> </div>';
+    echo '<div id="mrl_edit"> </div>';
+}
+
+/**
+ *  This function is called when generating header of a window opened by a media button.
+ */
+function onMediaHead() {
+    wp_enqueue_script("media-selector", plugins_url('media-selector.js', __FILE__));
+}
+
+/**
+ * This function is called when setting tabs in the window opened by pressing a media button.
+ *
+ * @param	$tabs	規定のタブ情報コレクション。
+ *
+ * @return	実際に表示するタブ情報コレクション。
+ */
+function onModifyMediaTab($tabs)
 {
-	/**
-	 *  The URL that points to the directory of this plugin.
-	 */
-	private $pluginDirUrl;
-
-	/**
-	 * Initialize instance
-	 */
-	public function __construct()
-	{
-		$exp = explode(DIRECTORY_SEPARATOR, dirname(__FILE__));
-		$this->pluginDirUrl = WP_PLUGIN_URL . '/' . array_pop($exp) . "/";
-
-		// register handler
-		if (is_admin())
-		{
-			// action
-			add_action("admin_head_media_upload_mrlMS_form", array(&$this, "onMediaHead"     )    ); /* reading js */
-			add_action("media_buttons",                         array(&$this, "onMediaButtons"  ), 20);
-			add_action("media_upload_mrlMS",                 NS . "media_upload_mrlMS"                );
-
-			// filter
-			add_filter("admin_footer", array(&$this, "onAddShortCode"));
-		}
-	}
-
-	/**
-	 *  embed a script to insert a shortcoed.
-	 */
-	public function onAddShortCode()
-	{
-        //  only in the posting page 投稿の編集画面だけを対象とする
-        $request_uri = $_SERVER['REQUEST_URI'];
-		if (strpos($request_uri, "post.php"   ) ||  // pos will never be 0
-			strpos($request_uri, "post-new.php") ||
-			strpos($request_uri, "page-new.php") ||
-			strpos($request_uri, "page.php"   ) ||
-			strpos($request_uri, "index.php"  )   )
-		{
-			echo '<script type="text/javascript">';
-            echo 'function onMrlMediaSelector_ShortCode(text) { send_to_editor(text); }';
-            echo '</script>';
-		}
-	}
-
-	/**
-	 *  This function is called when setting a media button. 
-	 */
-	public function onMediaButtons()
-	{
-		$cur_roles0 = get_option('mediafilemanager_accepted_roles_selector', 'administrator,editor,author,contributor,subscriber');
-		$cur_roles = explode(',', $cur_roles0);
-        if (!check_user_role($cur_roles)) {
-            debug('onMediaButtons -- wrong role, cur_roles = ', cur_roles);
-            return;
-        }
-        debug('onMediaButtons -- role OK');
-
-		global $post_ID, $temp_ID;
-
-		$id     = (int)(0 == $post_ID ? $temp_ID : $post_ID);
-		$iframe = apply_filters("media_upload_mrlMS_iframe_src", "media-upload.php?post_id={$id}&amp;type=mrlMS&amp;tab=mrlMS");
-		$option = "&amp;TB_iframe=true&amp;keepThis=true&amp;height=500&amp;width=640";
-		$title  = "Media-selector";
-		$button = "{$this->pluginDirUrl}images/media_folder.png";
-
-//		echo '<a href="' . $iframe . $option . '" class="thickbox" title="' . $title . '"><img src="' . $button . '" alt="' . $title . '" /></a>';
-		echo ' <a href="' . $iframe . $option . '" class="wp-media-buttons button add_media thickbox" title="' . $title . '">';
-		echo '<span class="wp-media-buttons-icon" ></span><span  style="background-color:#ff0;"> &nbsp;&nbsp;'.$title.'&nbsp;&nbsp; </a> </span></span>';
-	}
-
-	/**
-	 *  This function is called when showing contents in the dialog opened by pressing a media button.
-	 */
-	public function onMediaButtonPage()
-	{
-		global $mrelocator_uploaddir;
-		global $mrelocator_uploadurl;
-		global $mrelocator_plugin_URL;
-		echo "<script type=\"text/javascript\"> var uploaddir = '".$mrelocator_uploaddir."' </script>\n";
-		echo "<script type=\"text/javascript\"> var uploadurl = '".$mrelocator_uploadurl."' </script>\n";
-		echo "<script type=\"text/javascript\"> var pluginurl = '".$mrelocator_plugin_URL."' </script>\n";
-
-		echo '<p></p>';
-		echo '<div id="mrl_control"> </div>';
-		echo '<div id="mrl_selector"> </div>';
-		echo '<div id="mrl_edit"> </div>';
-	}
-
-	/**
-	 *  This function is called when generating header of a window opened by a media button.
-	 */
-	public function onMediaHead()
-	{
-		wp_enqueue_script("media-selector", plugins_url('media-selector.js', __FILE__));
-	}
-
-	/**
-	 * This function is called when setting tabs in the window opened by pressing a media button.
-	 *
-	 * @param	$tabs	規定のタブ情報コレクション。
-	 *
-	 * @return	実際に表示するタブ情報コレクション。
-	 */
-	function onModifyMediaTab($tabs)
-	{
-		return array("mrlMS" => "Choose a media item");
-	}
+    return array("mrlMS" => "Choose a media item");
 }
 
 
-
+// FIXME Inline code
 // create an instance of plugin
-if (1) {
-	$MrlMediaSelector = new MrlMediaSelector();
+#$MrlMediaSelector = new MrlMediaSelector();
 
-	// The following functions are called only in the administration page.
-	if (is_admin()) {
-		/**
-		 * This function is called when opening a windows by pressing a media button.メディアボタンからダイアログが起動された時に呼び出されます。
-		 */
-		function media_upload_mrlMS() {
-			wp_iframe(NS . "media_upload_mrlMS_form");
-		}
+/**
+ * This function is called when opening a windows by pressing a media button.メディアボタンからダイアログが起動された時に呼び出されます。
+ */
+function media_upload_mrlMS() {
+    wp_iframe(NS . "media_upload_mrlMS_form");
+}
 
-		/**
-		 *  This function is called when showing contents in the dialog opened by pressing a media button.メディアボタンから起動されたダイアログの内容を出力する為に呼び出されます。
-		 */
-		function media_upload_mrlMS_form() {
-			global $MrlMediaSelector;
+/**
+ *  This function is called when showing contents in the dialog opened by pressing a media button.メディアボタンから起動されたダイアログの内容を出力する為に呼び出されます。
+ */
+function media_upload_mrlMS_form() {
+    #global $MrlMediaSelector;
 
-            wp_enqueue_script('jquery');
+    wp_enqueue_script('jquery');
 
-			add_filter("media_upload_tabs", array(&$MrlMediaSelector, "onModifyMediaTab"));
+    add_filter("media_upload_tabs", NS . "onModifyMediaTab");
 
-			echo "<div id=\"media-upload-header\">\n";
-			media_upload_header();
-			echo "</div>\n";
+    echo "<div id=\"media-upload-header\">\n";
+    media_upload_header();
+    echo "</div>\n";
 
-			$MrlMediaSelector->onMediaButtonPage();
-		}
-	}
+    onMediaButtonPage();
 }
 //add_action('admin_init', 'MrlMediaButtonInit');
 
 function check_user_role ($roles, $user_id = NULL) {
-	// Get user by ID, else get current user
-	if ($user_id) {
-		$user = get_userdata($user_id);
+    // Get user by ID, else get current user
+    if ($user_id) {
+        $user = get_userdata($user_id);
     } else {
         $user = wp_get_current_user();
     }
- 
-	// No user found, return
-	if (empty($user)) {
+
+    // No user found, return
+    if (empty($user)) {
         return FALSE;
     }
- 
-	// Append administrator to roles, if necessary
-	if (!in_array('administrator', $roles)) {
+
+    // Append administrator to roles, if necessary
+    if (!in_array('administrator', $roles)) {
         $roles[] = 'administrator';
     }
- 
-	// Loop through user roles
-	//echo "<pre>";print_r($roles);echo "</pre>";
-	foreach ($user->roles as $role) {
-	//echo $role;
-		// Does user have role
-		if (in_array($role, $roles)) {
-			return TRUE;
-		}
-	}
-	// User not in roles
-	return FALSE;
+
+    // Loop through user roles
+    //echo "<pre>";print_r($roles);echo "</pre>";
+    foreach ($user->roles as $role) {
+        //echo $role;
+        // Does user have role
+        if (in_array($role, $roles)) {
+            return TRUE;
+        }
+    }
+    // User not in roles
+    return FALSE;
 }
 ?>
