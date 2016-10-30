@@ -1,11 +1,11 @@
-.mrl_pane {
+.mocd_pane {
 	width:300px;
 	height:450px;
 	overflow:scroll;
 	bborder: solid 1px #f00;
 }
 
-.mrl_pane_item {
+.mocd_pane_item {
     vertical-align: middle;
     display: block;
     height: 55px;
@@ -13,7 +13,7 @@
     position: relative;
 }
 
-#mrl_wrapper_all {
+#mocd_wrapper_all {
 	position:relative;
 	//width:800px;
 	width:auto;
@@ -21,7 +21,7 @@
 	bborder: solid 1px #0ff;
 }
 
-.mrl_path {
+.mocd_path {
 	float:left;
 	width:auto;
 	height:18px;
@@ -31,48 +31,48 @@
 	padding: 0px;
 }
 
-.mrl_wrapper_pane {
+.mocd_wrapper_pane {
 	float:left;
 	width:303px;
 	height:540px;
 	bborder: solid 1px #ff0;
 }
 
-.mrl_box1{
+.mocd_box1{
 	position:relative;
 	width:200px;
 	height:75px;
 	padding:0 0 5px 0;
 }
 
-.mrl_filename {
+.mocd_filename {
 	border: solid 0px #f00;
 }
 
-#mrl_btn_left2right {
+#mocd_btn_left2right {
 	padding:200px 5px 0 5px;
 }
-#mrl_btn_right2left {
+#mocd_btn_right2left {
 	padding:10px 5px 0 5px;
 }
 
-.mrl_dir_up {
+.mocd_dir_up {
 	float:left;
 	padding:3px;
 }
-.mrl_dir_new {
+.mocd_dir_new {
 	float:left;
 }
-.mrl_select_all {
+.mocd_select_all {
 	float:left;
 	padding-left: 7px;
 }
-.mrl_deselect_all {
+.mocd_deselect_all {
 	float:left;
 	padding-left: 7px;
 position:relative;top:-2px;
 }
-.mrl_select_all_button {
+.mocd_select_all_button {
 	height:14px;
 	font-weight:bold;
 	font-size:7px;
@@ -84,32 +84,32 @@ position:relative;top:-2px;
 }
 
 
-#mrl_center_wrapper {
+#mocd_center_wrapper {
 	width: 34px;
 	float:left;
 	bborder: solid 1px #00f;
 }
 
 
-#mrl_right_menu {
+#mocd_right_menu {
 	position:absolute;
 	border: 1px solid #555;
 	background-color: #eee;
 	padding: 4px;
 }
 
-.mrl_right_menu_item {
+.mocd_right_menu_item {
 	font-size: 12px;
 	font-color:#000;
 	background-color:#eee;
 }
-.mrl_right_menu_item:hover {
+.mocd_right_menu_item:hover {
 	font-size: 12px;
 	color:#fff;
 	background-color:#111;
 }
 
-#mrl_input_text
+#mocd_input_text
 {
 	position:absolute;
 	border: 1px solid #777;
@@ -117,11 +117,11 @@ position:relative;top:-2px;
 	padding: 4px;
 }
 
-.mrl_input_text_button_wrapper {
+.mocd_input_text_button_wrapper {
 	margin-top: 4px;
 }
 
-.mrl_input_text_button {
+.mocd_input_text_button {
 	display: inline;
 	border: 1px solid #555;
 	margin-right: 4px;

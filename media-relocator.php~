@@ -65,7 +65,7 @@ function display_config () {
 	echo "<script type='text/javascript'>mrloc_url_root='", UPLOAD_URL, "'</script>";
 
 	echo '<div class="wrap">';
-	echo '<h2>Media File Manager</h2>';
+	echo '<h2>Media Organizer</h2>';
 
     // a bit late to test this for an error!
     /*
@@ -78,7 +78,9 @@ function display_config () {
 	echo '<div id="mrl_wrapper_all">';
 	echo '<div class="mrl_wrapper_pane" id="mrl_left_wrapper">';
 	echo '<div class="mrl_box1">';
-	echo '<input type="textbox" class="mrl_path" id="mrl_left_path">';
+    // Don't need an input box for the path
+    #echo '<input type="textbox" class="mrl_path" id="mrl_left_path">';
+    echo '<p class=mrl_path id=mrl_left_path>';
 	echo '<div style="clear:both;"></div>';
 	echo '<div class="mrl_dir_up" id="mrl_left_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
     echo '<div class="mrl_dir_up" id="mrl_left_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
@@ -97,7 +99,8 @@ function display_config () {
 
     echo '<div class="mrl_wrapper_pane" id="mrl_right_wrapper">';
 	echo '<div class="mrl_box1">';
-	echo '<input type="textbox" class="mrl_path" id="mrl_right_path">';
+	#echo '<input type="textbox" class="mrl_path" id="mrl_right_path">';
+    echo '<p class=mrl_path id=mrl_right_path>';
 	echo '<div style="clear:both;"></div>';
     echo '<div class="mrl_dir_up" id="mrl_right_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
 	echo '<div class="mrl_dir_up" id="mrl_right_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
@@ -110,8 +113,8 @@ function display_config () {
 
 	echo '</div>';
 	echo '</div>';
-    echo '<div id="debug">.<br></div>';
-    echo '<div id="mrl_test" style="display:none;">test<br></div>'; # FIXME what?
+    #echo '<div id="debug">.<br></div>';
+    #echo '<div id="mrl_test" style="display:none;">test<br></div>'; # FIXME what?
 	echo '</div>';
 
 	#if (isset($_POST['updateEsAudioPlayerSetting'])) {

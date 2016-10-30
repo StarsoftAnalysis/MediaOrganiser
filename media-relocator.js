@@ -2,59 +2,109 @@
 //   - better way of deciding when it's busy than counting number of ajax calls
 //   - use wp_die, not die or exit. -- 
 
-//**** Global variables *******************************************************************#
 // -- put them in a namespace
 var mocd = mocd || {};
-var mrl_shift_pressed = false;	// Flag indicates shift key is pressed or not
-var mrl_ajax = 0;
-var mrloc_right_menu;	// Right-click menu class object
-var mrloc_input_text;	// Text-input form class object
-var mrloc_mouse_x, mrloc_mouse_y;
-var pane_left, pane_right;	// Pane class objects
+mocd.shift_pressed = false;	// Flag indicates shift key is pressed or not
+mocd.ajax_count = 0;
+mocd.right_click_menu = {};	// Right-click menu class object
+mocd.input_text = {};	// Text-input form class object
+mocd.mouse_x = 0; 
+mocd.mouse_y = 0;
+mocd.pane_right = {};	// Pane class objects
+mocd.pane_left = {};
+
+
+// function name: adjust_layout
+// description : adjust layout when resized
+// argument : (void)
+mocd.adjust_layout = function () {
+	var width_all = jQuery('#mocd_wrapper_all').width();
+	var height_all = jQuery('#mocd_wrapper_all').height();
+	var width_center =jQuery('#mocd_center_wrapper').width(); 
+	var height_mocd_box = jQuery('.mocd_box1').height();
+
+	var position = jQuery('#wpbody').offset();
+	height_all = jQuery(window).height() - position.top - 100;
+
+	var pane_w = (width_all - width_center)/2 - 16;
+	jQuery('.mocd_wrapper_pane').width(pane_w);
+	jQuery('.mocd_path').width(pane_w);
+	jQuery('.mocd_pane').width(pane_w);
+	// TODO does this help? -- seems better without this line:  jQuery('.mocd_pane').height(height_all - height_mocd_box);	
+	jQuery('.mocd_filename').width(pane_w - 32);
+}
+
+
+// function name: mocd.ajax_count_in
+// description : recognize entering ajax procedure to avoid user interrupt while data processing
+// argument : (void)
+mocd.ajax_count_in = function () {
+	mocd.ajax_count++;
+	document.body.style.cursor = "wait";
+	if (mocd.ajax_count == 1) {
+        jQuery(document).bind('click.mrl', function(e){
+	    	e.cancelBubble = true;
+		    if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+		    e.preventDefault();
+	    });
+    }
+}
+// function name: mocd.ajax_count_out
+// description : recognize finishing ajax procedure
+// argument : (void)
+mocd.ajax_count_out = function () {
+	mocd.ajax_count--;
+	if (mocd.ajax_count == 0) {
+		document.body.style.cursor = "default";
+		jQuery(document).unbind('click.mrl');
+	}
+}
 
 
 // function name: (none)
 // description :  initialization
 // argument : (void)
 jQuery(document).ready(function() {
-	mrloc_right_menu = new MrlRightMenuClass();
-	mrloc_input_text = new MrlInputTextClass();
+	mocd.right_click_menu = new MrlRightMenuClass();
+	mocd.input_text = new MrlInputTextClass();
 
-	pane_left = new MrlPaneClass('mrl_left');
-	pane_right = new MrlPaneClass('mrl_right');
+	mocd.pane_left = new MrlPaneClass('mocd_left');
+	mocd.pane_right = new MrlPaneClass('mocd_right');
 
-	pane_left.opposite = pane_right;
-	pane_right.opposite = pane_left;
+	mocd.pane_left.opposite = mocd.pane_right;
+	mocd.pane_right.opposite = mocd.pane_left;
 
 	//adjust_layout();
 
-	pane_left.setdir("/");
-	pane_right.setdir("/");
+	mocd.pane_left.setdir("/");
+	mocd.pane_right.setdir("/");
 
 	jQuery(document).keydown(function (e) {
 	  if(e.shiftKey) {
-	    mrl_shift_pressed = true;
+	    mocd.shift_pressed = true;
 	  }
 	});
    	jQuery(document).mousemove(function(e){
-		mrloc_mouse_x = e.pageX;
-		mrloc_mouse_y = e.pageY;
+		mocd.mouse_x = e.pageX;
+		mocd.mouse_y = e.pageY;
 	}); 
 	jQuery(document).keyup(function(event){
-	   mrl_shift_pressed = false;
+	   mocd.shift_pressed = false;
 	});
 
-	jQuery('#mrl_btn_left2right').click(function() {
-		if (mrl_ajax) return;
-		mrloc_move(pane_left, pane_right);
+	jQuery('#mocd_btn_left2right').click(function() {
+		if (mocd.ajax_count) return;
+		mrloc_move(mocd.pane_left, mocd.pane_right);
 	});
-	jQuery('#mrl_btn_right2left').click(function() {
-		if (mrl_ajax) return;
-		mrloc_move(pane_right, pane_left);
+	jQuery('#mocd_btn_right2left').click(function() {
+		if (mocd.ajax_count) return;
+		mrloc_move(mocd.pane_right, mocd.pane_left);
 	});
 
 
-	jQuery('#mrl_test').click(function() {
+	jQuery('#mocd_test').click(function() {
 		var data = {
 			action: 'mocd_test'
 		};
@@ -65,11 +115,11 @@ jQuery(document).ready(function() {
 
 	jQuery(window).resize(function() {
 		//jQuery('#debug').html(jQuery('#wpbody').height());
-		adjust_layout();
+		mocd.adjust_layout();
 	});
 
 	
-	adjust_layout();
+	mocd.adjust_layout();
 });
 
 
@@ -97,16 +147,16 @@ var MrlPaneClass = function(id_root) {
 	var that = this;
 
 	jQuery('#'+this.id_dir_up).click(function(ev) {
-		if (mrl_ajax) return;
+		if (mocd.ajax_count) return;
 		if ("/" == that.cur_dir) return;
 		that.chdir("..");
 	});
 
 	jQuery('#'+this.id_dir_new).click(function(ev) {
-		if (mrl_ajax) return;
-		mrloc_input_text.make("Make Directory","",300, true);
-		mrloc_input_text.set_callback(function(){
-			var dir  =  mrloc_input_text.result;
+		if (mocd.ajax_count) return;
+		mocd.input_text.make("Make Directory","",300, true);
+		mocd.input_text.set_callback(function(){
+			var dir  =  mocd.input_text.result;
 			if (dir=="") return;
 			if (that.check_same_name(dir)) {
 				alert("The same name exists.");
@@ -118,7 +168,7 @@ var MrlPaneClass = function(id_root) {
 				dir: that.cur_dir,
 				newdir: dir
 			};
-			mrl_ajax_in();
+			mocd.ajax_count_in();
 			jQuery.post(ajaxurl, data, function(response) {
 				if (response.search(/Success/i) < 0) alert("mocd_mkdir: "+response);
 
@@ -129,7 +179,7 @@ var MrlPaneClass = function(id_root) {
 					that.refresh();
 				}
 
-				mrl_ajax_out();
+				mocd.ajax_count_out();
 			});
 		});
 	});
@@ -162,12 +212,12 @@ MrlPaneClass.prototype.setdir = function(dir) {
 	};
 
 	var that = this;
-	mrl_ajax_in();
+	mocd.ajax_count_in();
 	jQuery.post(ajaxurl, data, function(response) {
         // Process the json directory from ajax,
         // create the html, and store the list
 		that.dir_list = that.dir_ajax(data.dir, response);
-		mrl_ajax_out();
+		mocd.ajax_count_out();
 	});
 }
 
@@ -204,7 +254,7 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
 	} catch (err) {
         display_error('Invalid response when getting directory listing');
         return;
-		//alert(response + " : " + mrl_toHex(response));
+		//alert(response + " : " + mocd_toHex(response));
 		//document.write('<table border="3"><tr><td width="200">');
 		//document.write("<pre>"+err+"\n"+response+"</pre>");
 		//document.write("</td></tr></table>");
@@ -227,15 +277,15 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
 		///if (dir[i].isthumb) continue;
         var item = dir[i];
 		//this.dir_disp_list[this.disp_num] = i;
-        html += '<div class="mrl_pane_item">'; //style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
+        html += '<div class="mocd_pane_item">'; //style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
         html += '<div style="float: left;"><input type="checkbox" id="' + this.get_chkid(i) + '"></div>';
 		html += '<div style="float: left;" id="' + this.get_divid(i) + '">';
 		this.last_div_id = this.get_divid(i);
 		if (item.thumbnail_url && item.thumbnail_url != "") {
 			html += '<img style="margin:0 5px 0 5px;" src="' + item.thumbnail_url+'" width="50" />';
 		}
-		html += '</div><div class="mrl_filename">';
-		html += item.name; //mrl_ins8203(dir[i].name)/*+" --- " + dir[i].isdir+ (dir[i].id!=""?" "+dir[i].id:"")*/;
+		html += '</div><div class="mocd_filename">';
+		html += item.name; //mocd_ins8203(dir[i].name)/*+" --- " + dir[i].isdir+ (dir[i].id!=""?" "+dir[i].id:"")*/;
 		html += '</div>';
         html += '</div>'
 
@@ -276,7 +326,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
 				jQuery('#'+this.get_chkid(i)).data('order', i);
 				jQuery('#'+this.get_chkid(i)).data('data', idx);
 				jQuery('#'+this.get_chkid(i)).change(function() {
-					if (mrl_shift_pressed && that.checked_loc >= 0) {
+					if (mocd.shift_pressed && that.checked_loc >= 0) {
 						var loc1 = jQuery(this).data('order');
 						var loc2 = that.checked_loc;
 						var checked = jQuery('#'+that.get_chkid(loc1)).attr('checked');
@@ -308,10 +358,10 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
 					if (isDir) {
 						arrMenu.push("Delete");
 					}
-					mrloc_right_menu.make(arrMenu);
+					mocd.right_click_menu.make(arrMenu);
 					var that2 = this;
 					if (isDir) {
-					jQuery('#'+mrloc_right_menu.get_item_id(2)).click(function(){ //delete
+					jQuery('#'+mocd.right_click_menu.get_item_id(2)).click(function(){ //delete
 						var target = that.dir_list[jQuery(that2).data('data')];
 						var isEmptyDir = target['isemptydir'];
 						if (!isEmptyDir) {alert('Directory not empty.');return;}
@@ -322,7 +372,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
 							dir: that.cur_dir,
 							name: dirname
 						};
-						mrl_ajax_in();
+						mocd.ajax_count_in();
 						jQuery.post(ajaxurl, data, function(response) {
 							if (response.search(/Success/i) < 0) {alert("mocd_delete_empty_dir: "+response);}
 							that.refresh();
@@ -332,28 +382,28 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
 							if (that.cur_dir+dirname+"/" == that.opposite.cur_dir) {
 								that.opposite.setdir(that.cur_dir);
 							}
-							mrl_ajax_out();
+							mocd.ajax_count_out();
 						});
 					});
 					}
-					jQuery('#'+mrloc_right_menu.get_item_id(0)).click(function(){ //preview
+					jQuery('#'+mocd.right_click_menu.get_item_id(0)).click(function(){ //preview
 						var url = mrloc_url_root + (that.cur_dir+that.dir_list[jQuery(that2).data('data')]['name'])/*.substr(mrloc_document_root.length)*/;
 						window.open(url, 'mrlocpreview', 'toolbar=0,location=0,menubar=0')
 					});
-					jQuery('#'+mrloc_right_menu.get_item_id(1)).click(function(){ //rename
-						if (mrl_ajax) return;
+					jQuery('#'+mocd.right_click_menu.get_item_id(1)).click(function(){ //rename
+						if (mocd.ajax_count) return;
 						var target = that.dir_list[jQuery(that2).data('data')];
 						if (target['norename']) {
 							alert("Sorry, you cannot rename this item.");
 							return;
 						}
 						var old_name = target['name'];
-						mrloc_input_text.make("Rename ("+old_name+")",old_name,300, target['isdir'] );
-						mrloc_input_text.set_callback(function(){
-							if (old_name == mrloc_input_text.result || mrloc_input_text.result=="") {
+						mocd.input_text.make("Rename ("+old_name+")",old_name,300, target['isdir'] );
+						mocd.input_text.set_callback(function(){
+							if (old_name == mocd.input_text.result || mocd.input_text.result=="") {
 								return;
 							}
-							if (that.check_same_name(mrloc_input_text.result)) {
+							if (that.check_same_name(mocd.input_text.result)) {
 								alert("The same name exists.");
 								return;
 							}
@@ -361,14 +411,14 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
 								action: 'mocd_rename',
 								dir: that.cur_dir,
 								from: old_name,
-								to: mrloc_input_text.result
+								to: mocd.input_text.result
 							};
-							mrl_ajax_in();
+							mocd.ajax_count_in();
 
 							jQuery.post(ajaxurl, data, function(response) {
 								if (response.search(/Success/i) < 0) alert("mocd_rename: "+response);
 								if (that.opposite.cur_dir.indexOf(that.cur_dir+old_name+"/")===0) {
-									that.opposite.setdir(that.cur_dir+mrloc_input_text.result+"/"+that.opposite.cur_dir.substr((that.cur_dir+old_name+"/").length));
+									that.opposite.setdir(that.cur_dir+mocd.input_text.result+"/"+that.opposite.cur_dir.substr((that.cur_dir+old_name+"/").length));
 								}
 								if (that.cur_dir == that.opposite.cur_dir) {
 									that.refresh();
@@ -376,7 +426,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
 								} else {
 									that.refresh();
 								}
-								mrl_ajax_out();
+								mocd.ajax_count_out();
 							});
 						});
 					});
@@ -386,7 +436,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
 			});
 
 			jQuery('#'+this.get_divid(i)).click(function() {
-				if (mrl_ajax) return;
+				if (mocd.ajax_count) return;
 				var dir = that.dir_list[jQuery(this).data('data')];
 				if (dir.isdir) {
 					that.chdir(dir.name);
@@ -434,10 +484,10 @@ MrlPaneClass.prototype.chdir = function(dir) {
 
 // ----------- End of class definition 
 
-// function name: mrl_ins8203
+// function name: mocd_ins8203
 // description : 
 // argument : (str)
-function mrl_ins8203 (str) {
+function mocd_ins8203 (str) {
     return str;  // FIXME what's this for??   8203 is a zero-width space
 	var ret = "", i, str = str || '';
 	for (i = 0; i < str.length; i += 3) {
@@ -530,16 +580,16 @@ function mrloc_move(pane_from, pane_to, no) {
 	global_move_cnt = cnt;
 
 	if (no == 1) {
-		mrl_ajax_in();
+		mocd.ajax_count_in();
 	}
 	jQuery.post(ajaxurl, data, function(response) {
 		if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
 		if (global_move_continue) {
 			mrloc_move(global_pane_from, global_pane_to, global_move_no+1);
 		} else {
-			pane_left.refresh();
-			pane_right.refresh();
-			mrl_ajax_out();
+			mocd.pane_left.refresh();
+			mocd.pane_right.refresh();
+			mocd.ajax_count_out();
 		}
 	});
 }
@@ -560,32 +610,32 @@ var MrlRightMenuClass = function() {
 MrlRightMenuClass.prototype.make = function(items) {
 	var html="";
 	var i;
-	jQuery('body').append('<div id="mrl_right_menu"></div>');
+	jQuery('body').append('<div id="mocd_right_menu"></div>');
 
 	this.num = items.length;
 	for (i=0; i<items.length; i++) {
-		html += '<div class="mrl_right_menu_item" id="mrl_right_menu_item_' + i + '">';
+		html += '<div class="mocd_right_menu_item" id="mocd_right_menu_item_' + i + '">';
 		html += items[i];
 		html += '</div>';
 	}
 
-	this.pos_left = mrloc_mouse_x;
-	this.pos_top = mrloc_mouse_y;
+	this.pos_left = mocd.mouse_x;
+	this.pos_top = mocd.mouse_y;
 
-	jQuery('#mrl_right_menu').html(html);
-	jQuery('#mrl_right_menu').css('top',this.pos_top+"px");
-	jQuery('#mrl_right_menu').css('left',this.pos_left+"px");
+	jQuery('#mocd_right_menu').html(html);
+	jQuery('#mocd_right_menu').css('top',this.pos_top+"px");
+	jQuery('#mocd_right_menu').css('left',this.pos_left+"px");
 
 	for (i=0; i<items.length; i++) {
-		var id = 'mrl_right_menu_item_' + i;
+		var id = 'mocd_right_menu_item_' + i;
 		jQuery('#'+id).hover(
                 // FIXME this.removeClass does not exist!!
-			//function(){this.removeClass('mrl_right_menu_item');this.addClass('mrl_right_menu_item_hover');},
-			//function(){this.removeClass('mrl_right_menu_item_hover');this.addClass('mrl_right_menu_item');}
+			//function(){this.removeClass('mocd_right_menu_item');this.addClass('mocd_right_menu_item_hover');},
+			//function(){this.removeClass('mocd_right_menu_item_hover');this.addClass('mocd_right_menu_item');}
 		);
 	}
 	if (!this.flgRegisterRemoveFunc) {
-		jQuery(document).click(function(){jQuery('#mrl_right_menu').remove();});
+		jQuery(document).click(function(){jQuery('#mocd_right_menu').remove();});
 		this.flgRegisterRemoveFunc = true;
 	}
 }
@@ -594,7 +644,7 @@ MrlRightMenuClass.prototype.make = function(items) {
 // description : get the id of the specified item
 // argument : (n)index of item (starting from 0)
 MrlRightMenuClass.prototype.get_item_id = function(n) {
-	return 'mrl_right_menu_item_' + n;
+	return 'mocd_right_menu_item_' + n;
 }
 
 
@@ -607,6 +657,7 @@ var MrlInputTextClass = function() {
 	var result = "";
 	var flgOK = false;
 	var callback;
+    var invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
 }
 
 // function name: MrlInputTextClass::make
@@ -615,25 +666,25 @@ var MrlInputTextClass = function() {
 MrlInputTextClass.prototype.make = function(title, init_text, textbox_width, is_dirname) {
 	this.is_dirname = is_dirname;
 	var html="";
-	jQuery('body').append('<div id="mrl_input_text"></div>');
+	jQuery('body').append('<div id="mocd_input_text"></div>');
 	html = '<div class="title">'+title+'</div>';
-	html += '<input type="textbox" id="mrl_input_textbox" style="width:'+textbox_width+'px"/>';
-	html += '<div class="mrl_input_text_button_wrapper">';
-	html += '<div class="mrl_input_text_button" id="mrl_input_text_ok">&nbsp;OK&nbsp;</div>';
-	html += '<div class="mrl_input_text_button" id="mrl_input_text_cancel">&nbsp;Cancel&nbsp;</div>';
+	html += '<input type="textbox" id="mocd_input_textbox" style="width:'+textbox_width+'px"/>';
+	html += '<div class="mocd_input_text_button_wrapper">';
+	html += '<div class="mocd_input_text_button" id="mocd_input_text_ok">&nbsp;OK&nbsp;</div>';
+	html += '<div class="mocd_input_text_button" id="mocd_input_text_cancel">&nbsp;Cancel&nbsp;</div>';
 	html += '</div>';
 
-	this.pos_left = mrloc_mouse_x;
-	this.pos_top = mrloc_mouse_y;
+	this.pos_left = mocd.mouse_x;
+	this.pos_top = mocd.mouse_y;
 
-	jQuery('#mrl_input_text').html(html);
-	jQuery('#mrl_input_text').css('top',this.pos_top+"px");
-	jQuery('#mrl_input_text').css('left',this.pos_left+"px");
-	jQuery('#mrl_input_textbox').val(init_text);
+	jQuery('#mocd_input_text').html(html);
+	jQuery('#mocd_input_text').css('top',this.pos_top+"px");
+	jQuery('#mocd_input_text').css('left',this.pos_left+"px");
+	jQuery('#mocd_input_textbox').val(init_text);
 
 	var that = this;
-	jQuery('#mrl_input_text_ok').click(function(){
-		var result = jQuery('#mrl_input_textbox').val();
+	jQuery('#mocd_input_text_ok').click(function(){
+		var result = jQuery('#mocd_input_textbox').val();
 		if (that.check_dotext(result, that.is_dirname)) {
 			alert("Please do not use 'dot + file extension' pattern in the directory name because that can cause problems.");
 			return;
@@ -644,15 +695,15 @@ MrlInputTextClass.prototype.make = function(title, init_text, textbox_width, is_
 		}
 		jQuery('body').unbind('click.mrlinput');
 		that.result = result;
-		jQuery('#mrl_input_text').remove();
+		jQuery('#mocd_input_text').remove();
 		that.callback();
 	});
-	jQuery('#mrl_input_text_cancel').click(function(){
-		jQuery('#mrl_input_text').remove();
+	jQuery('#mocd_input_text_cancel').click(function(){
+		jQuery('#mocd_input_text').remove();
 		jQuery('body').unbind('click.mrlinput');
 	});
 	jQuery('body').bind('click.mrlinput', function(e){e.preventDefault();})
-	jQuery('#mrl_input_textbox').focus();
+	jQuery('#mocd_input_textbox').focus();
 }
 
 // function name: MrlInputTextClass::set_callback
@@ -681,7 +732,6 @@ MrlInputTextClass.prototype.check_dotext = function(str, isdir) {
 }
 
 
-var invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
 
 // function name: MrlInputTextClass::invalid_chr
 // description : check if invalid character exists in the name.
@@ -689,8 +739,8 @@ var invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&",
 // return : true(exists), false(not exists)
 MrlInputTextClass.prototype.check_invalid_chr = function(str) {
 	var i;
-	for (i=0; i<invalid_chr.length; i++) {
-		if (str.indexOf(invalid_chr[i]) >= 0) {
+	for (i = 0; i < this.invalid_chr.length; i++) {
+		if (str.indexOf(this.invalid_chr[i]) >= 0) {
 			return true;
 		}
 	}
@@ -699,67 +749,11 @@ MrlInputTextClass.prototype.check_invalid_chr = function(str) {
 
 MrlInputTextClass.prototype.invalid_chr_msg = function() {
 	var msg = "";
-	for (i=0; i<invalid_chr.length; i++) {
-		msg += invalid_chr[i] + " ";
+	for (i = 0; i < this.invalid_chr.length; i++) {
+		msg += this.invalid_chr[i] + " ";
 	}
 	return msg;
 }
 
 
-
-//**** Global functions*********************************************************************************
-
-// function name: adjust_layout
-// description : adjust layout when resized
-// argument : (void)
-function adjust_layout() {
-	var width_all = jQuery('#mrl_wrapper_all').width();
-	var height_all = jQuery('#mrl_wrapper_all').height();
-	var width_center =jQuery('#mrl_center_wrapper').width(); 
-	var height_mrl_box = jQuery('.mrl_box1').height();
-
-	var position = jQuery('#wpbody').offset();
-	height_all = jQuery(window).height() - position.top - 100;
-
-	var pane_w = (width_all - width_center)/2-16;
-	jQuery('.mrl_wrapper_pane').width(pane_w);
-	jQuery('.mrl_path').width(pane_w);
-	jQuery('.mrl_pane').width(pane_w);
-	// TODO does this help? -- seems better without this line:  jQuery('.mrl_pane').height(height_all - height_mrl_box);	
-	jQuery('.mrl_filename').width(pane_w-32);
-}
-
-
-// function name: mrl_ajax_in
-// description : recognize entering ajax procedure to avoid user interrupt while data processing
-// argument : (void)
-function mrl_ajax_in() {
-	mrl_ajax ++;
-	document.body.style.cursor = "wait";
-	if (mrl_ajax==1) jQuery(document).bind('click.mrl', function(e){
-		e.cancelBubble = true;
-		if (e.stopPropagation) e.stopPropagation();
-		e.preventDefault();
-	});
-}
-// function name: mrl_ajax_out
-// description : recognize finishing ajax procedure
-// argument : (void)
-function mrl_ajax_out() {
-	mrl_ajax --;
-	if (	mrl_ajax == 0) {
-		document.body.style.cursor = "default";
-		jQuery(document).unbind('click.mrl');
-	}
-}
-
-/* silly
-function mrl_toHex(str) {
-    var hex = '';
-    for(var i=0;i<str.length;i++) {
-        hex += ''+str.charCodeAt(i).toString(16);
-    }
-    return hex;
-}
-*/
 

@@ -65,7 +65,7 @@ function display_config () {
 	echo "<script type='text/javascript'>mrloc_url_root='", UPLOAD_URL, "'</script>";
 
 	echo '<div class="wrap">';
-	echo '<h2>Media File Manager</h2>';
+	echo '<h2>Media Organizer</h2>';
 
     // a bit late to test this for an error!
     /*
@@ -75,46 +75,46 @@ function display_config () {
     }
      */
 
-	echo '<div id="mrl_wrapper_all">';
-	echo '<div class="mrl_wrapper_pane" id="mrl_left_wrapper">';
-	echo '<div class="mrl_box1">';
+	echo '<div id="mocd_wrapper_all">';
+	echo '<div class="mocd_wrapper_pane" id="mocd_left_wrapper">';
+	echo '<div class="mocd_box1">';
     // Don't need an input box for the path
-    #echo '<input type="textbox" class="mrl_path" id="mrl_left_path">';
-    echo '<p class=mrl_path id=mrl_left_path>';
+    #echo '<input type="textbox" class="mocd_path" id="mocd_left_path">';
+    echo '<p class=mocd_path id=mocd_left_path>';
 	echo '<div style="clear:both;"></div>';
-	echo '<div class="mrl_dir_up" id="mrl_left_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
-    echo '<div class="mrl_dir_up" id="mrl_left_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
-	echo '<div class="mrl_select_all"><input class="mrl_select_all_button" id="mrl_left_select_all" type="button" value="Select All"></div>';
-	echo '<div class="mrl_deselect_all"><input class="mrl_select_all_button" id="mrl_left_deselect_all"type="button" value="Deselect All"></div>';
-	echo '</div>';
-	echo '<div style="clear:both;"></div>';
-    // This is the div that gets filled in with the dir listing in JS
-	echo '<div class="mrl_pane" id="mrl_left_pane"></div>';
-	echo '</div>';
-
-	echo '<div id="mrl_center_wrapper">';
-	echo '<div id="mrl_btn_left2right"><img src="', PLUGIN_URL, '/images/right.png"></div>';
-	echo '<div id="mrl_btn_right2left"><img src="', PLUGIN_URL, '/images/left.png"></div>';
-	echo '</div>';
-
-    echo '<div class="mrl_wrapper_pane" id="mrl_right_wrapper">';
-	echo '<div class="mrl_box1">';
-	#echo '<input type="textbox" class="mrl_path" id="mrl_right_path">';
-    echo '<p class=mrl_path id=mrl_right_path>';
-	echo '<div style="clear:both;"></div>';
-    echo '<div class="mrl_dir_up" id="mrl_right_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
-	echo '<div class="mrl_dir_up" id="mrl_right_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
-	echo '<div class="mrl_select_all"><input class="mrl_select_all_button" id="mrl_right_select_all" type="button" value="Select All"></div>';
-	echo '<div class="mrl_deselect_all"><input class="mrl_select_all_button" id="mrl_right_deselect_all" type="button" value="Deselect All"></div>';
+	echo '<div class="mocd_dir_up" id="mocd_left_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
+    echo '<div class="mocd_dir_up" id="mocd_left_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
+	echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_left_select_all" type="button" value="Select All"></div>';
+	echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_left_deselect_all"type="button" value="Deselect All"></div>';
 	echo '</div>';
 	echo '<div style="clear:both;"></div>';
     // This is the div that gets filled in with the dir listing in JS
-	echo '<div class="mrl_pane" id="mrl_right_pane"></div>';
+	echo '<div class="mocd_pane" id="mocd_left_pane"></div>';
+	echo '</div>';
+
+	echo '<div id="mocd_center_wrapper">';
+	echo '<div id="mocd_btn_left2right"><img src="', PLUGIN_URL, '/images/right.png"></div>';
+	echo '<div id="mocd_btn_right2left"><img src="', PLUGIN_URL, '/images/left.png"></div>';
+	echo '</div>';
+
+    echo '<div class="mocd_wrapper_pane" id="mocd_right_wrapper">';
+	echo '<div class="mocd_box1">';
+	#echo '<input type="textbox" class="mocd_path" id="mocd_right_path">';
+    echo '<p class=mocd_path id=mocd_right_path>';
+	echo '<div style="clear:both;"></div>';
+    echo '<div class="mocd_dir_up" id="mocd_right_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
+	echo '<div class="mocd_dir_up" id="mocd_right_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
+	echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_right_select_all" type="button" value="Select All"></div>';
+	echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_right_deselect_all" type="button" value="Deselect All"></div>';
+	echo '</div>';
+	echo '<div style="clear:both;"></div>';
+    // This is the div that gets filled in with the dir listing in JS
+	echo '<div class="mocd_pane" id="mocd_right_pane"></div>';
 
 	echo '</div>';
 	echo '</div>';
-    echo '<div id="debug">.<br></div>';
-    echo '<div id="mrl_test" style="display:none;">test<br></div>'; # FIXME what?
+    #echo '<div id="debug">.<br></div>';
+    #echo '<div id="mocd_test" style="display:none;">test<br></div>'; # FIXME what?
 	echo '</div>';
 
 	#if (isset($_POST['updateEsAudioPlayerSetting'])) {
@@ -236,7 +236,7 @@ function old_getdir_callback() {
 	$local_post_dir = stripslashes($_POST['dir']);
 	$errflg = false;
 
-	$dir = mrl_adjpath(UPLOAD_DIR . "/" . $local_post_dir, true);
+	$dir = mocd_adjpath(UPLOAD_DIR . "/" . $local_post_dir, true);
     debug("mgc: local_post_dir = $local_post_dir   dir = $dir");
 	#$dir0=array();
 	#getdir($dir, $dir0);
