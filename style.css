@@ -1,47 +1,67 @@
 .mocd_pane {
-	width:300px;
-	height:450px;
+	/*width:300px;
+	height:450px;*/
 	overflow:scroll;
 	bborder: solid 1px #f00;
 }
 
-.mocd_pane_item {
-    vertical-align: middle;
-    display: block;
-    height: 55px;
-    clear: both; 
-    position: relative;
+.mocd_pane_list {
+    list-style-type: none;
 }
 
 #mocd_wrapper_all {
 	position:relative;
-	//width:800px;
+	/*width:800px;*/
 	width:auto;
-	height:655px;
-	bborder: solid 1px #0ff;
+	/*height:655px;*/
+	border: solid 1px #0ff;
+}
+
+#mocd_wrapper_all div {
+    display: inline-block;
+    vertical-align: top;
 }
 
 .mocd_path {
-	float:left;
+	/*float:left;
 	width:auto;
-	height:18px;
-	background-color:#ddd;
-	border: 1px solid #888;
+	height:18px;*/
+	/*background-color:#ddd;*/
+	/*border: 1px solid #888;*/
 	font-size: 14px;
-	padding: 0px;
+	/*padding: 0px; */
 }
 
 .mocd_wrapper_pane {
-	float:left;
-	width:303px;
-	height:540px;
-	bborder: solid 1px #ff0;
+	xfloat:left;
+    display: inline-block;
+	xwidth:303px;
+	xheight:540px;
+	border: solid 1px #ff0;
+}
+
+.mocd_pane_list div {
+    vertical-align: middle;
+}
+
+.mocd_pane_item {
+    xvertical-align: middle;
+    xdisplay: block;
+    xheight: 55px;
+    xclear: both; 
+    xposition: relative;
+}
+
+/* Folder icon or thumbnail image in pane */
+.mocd_pane_img {
+    width: 50px;
+    margin: 0 5px 0 5px;
 }
 
 .mocd_box1{
-	position:relative;
-	width:200px;
-	height:75px;
+	xposition:relative;
+	xwidth:200px;
+	xheight:75px;
 	padding:0 0 5px 0;
 }
 
@@ -50,29 +70,30 @@
 }
 
 #mocd_btn_left2right {
-	padding:200px 5px 0 5px;
+	padding:10px 5px 0 5px;
 }
 #mocd_btn_right2left {
 	padding:10px 5px 0 5px;
 }
 
 .mocd_dir_up {
-	float:left;
+	xfloat:left;
 	padding:3px;
 }
 .mocd_dir_new {
-	float:left;
+	xfloat:left;
 }
-.mocd_select_all {
+/*.mocd_select_all {
 	float:left;
 	padding-left: 7px;
 }
 .mocd_deselect_all {
 	float:left;
 	padding-left: 7px;
-position:relative;top:-2px;
+    position:relative;top:-2px; 
 }
 .mocd_select_all_button {
+    
 	height:14px;
 	font-weight:bold;
 	font-size:7px;
@@ -82,12 +103,12 @@ position:relative;top:-2px;
 	border:1px solid #050505;
 	cursor:pointer;
 }
-
+*/
 
 #mocd_center_wrapper {
 	width: 34px;
-	float:left;
-	bborder: solid 1px #00f;
+	xfloat:left;
+	border: solid 1px #00f;
 }
 
 

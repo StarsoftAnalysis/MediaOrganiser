@@ -82,10 +82,18 @@ function display_config () {
     #echo '<input type="textbox" class="mocd_path" id="mocd_left_path">';
     echo '<p class=mocd_path id=mocd_left_path>';
 	echo '<div style="clear:both;"></div>';
+    echo '<div class="mocd_action" id="mocd_left_action">Action: '; 
+    echo '<select name="mocd_left_select">';
+    echo '<option value="rename">Rename</option>';
+    echo '<option value="move">Move</option>';
+    echo '<option value="delete">Delete</option>';
+    echo '</select>';
+    echo '<button id="mocd_left_button_go" type="button">Go</button>';
+    echo '</div>';
 	echo '<div class="mocd_dir_up" id="mocd_left_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
     echo '<div class="mocd_dir_up" id="mocd_left_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
-	echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_left_select_all" type="button" value="Select All"></div>';
-	echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_left_deselect_all"type="button" value="Deselect All"></div>';
+	#echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_left_select_all" type="button" value="Select All"></div>';
+	#echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_left_deselect_all"type="button" value="Deselect All"></div>';
 	echo '</div>';
 	echo '<div style="clear:both;"></div>';
     // This is the div that gets filled in with the dir listing in JS
@@ -104,8 +112,8 @@ function display_config () {
 	echo '<div style="clear:both;"></div>';
     echo '<div class="mocd_dir_up" id="mocd_right_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
 	echo '<div class="mocd_dir_up" id="mocd_right_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
-	echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_right_select_all" type="button" value="Select All"></div>';
-	echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_right_deselect_all" type="button" value="Deselect All"></div>';
+	#echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_right_select_all" type="button" value="Select All"></div>';
+	#echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_right_deselect_all" type="button" value="Deselect All"></div>';
 	echo '</div>';
 	echo '<div style="clear:both;"></div>';
     // This is the div that gets filled in with the dir listing in JS
@@ -154,6 +162,7 @@ function getdir_callback () {
     $sdirs = subdirs($dir);
     foreach ($sdirs as $sdir) {
         $dirlist[] = [
+            'path' => $sdir, // FIXME either don't use it or make it different from name
             'name' => $sdir,
             'isdir' => true,
 			'isemptydir' => isEmptyDir($dir . "/" . $sdir),
@@ -184,7 +193,8 @@ function getdir_callback () {
     foreach ($results as $item) {
         $dirlist[] = [
             'id' => $item['ID'], // ??needed?
-            'name' => $item['meta_value'],
+            'path' => $item['meta_value'],
+            'name' => basename($item['meta_value']),
             'isdir' => false,
             'isthumb' => false, // always false now
             'norename' => false, // TODO
@@ -663,6 +673,14 @@ function rename_callback() {
 	}
 }
 
+// This gets called when a move arrow is clicked, with data:
+// action:    "move"
+// dir_from:  "/"
+// dir_to:    "/photos/"
+// items:     array of names e.g. ["AussieCricket03.jpg", "AussieCricket03-125x125.jpg"]
+function new_move_callback () {
+    // AJAX handler
+}
 // This gets called when a move arrow is clicked, with data:
 // action:    "move"
 // dir_from:  "/"

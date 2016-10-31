@@ -1,6 +1,9 @@
 // TODO make it sensible
 //   - better way of deciding when it's busy than counting number of ajax calls
 //   - use wp_die, not die or exit. -- 
+// - get rid of jQuery.bind -- use .on
+// - don't use right-click
+// - nicer buttons and icons
 
 // -- put them in a namespace
 var mocd = mocd || {};
@@ -30,7 +33,7 @@ mocd.adjust_layout = function () {
 	jQuery('.mocd_wrapper_pane').width(pane_w);
 	jQuery('.mocd_path').width(pane_w);
 	jQuery('.mocd_pane').width(pane_w);
-	// TODO does this help? -- seems better without this line:  jQuery('.mocd_pane').height(height_all - height_mocd_box);	
+//	// TODO does this help? -- seems better without this line:  jQuery('.mocd_pane').height(height_all - height_mocd_box);	
 	jQuery('.mocd_filename').width(pane_w - 32);
 }
 
@@ -62,7 +65,8 @@ mocd.ajax_count_out = function () {
 	}
 }
 
-
+// TODO Get rid of right-click stuff
+//
 // function name: (none)
 // description :  initialization
 // argument : (void)
@@ -96,11 +100,11 @@ jQuery(document).ready(function() {
 
 	jQuery('#mocd_btn_left2right').click(function() {
 		if (mocd.ajax_count) return;
-		mrloc_move(mocd.pane_left, mocd.pane_right);
+		mocd.new_move_items(mocd.pane_left, mocd.pane_right);
 	});
 	jQuery('#mocd_btn_right2left').click(function() {
 		if (mocd.ajax_count) return;
-		mrloc_move(mocd.pane_right, mocd.pane_left);
+		mocd.new_move_items(mocd.pane_right, mocd.pane_left);
 	});
 
 
@@ -136,8 +140,6 @@ var MrlPaneClass = function(id_root) {
 	this.id_dir = id_root + "_path";
 	this.id_dir_new = id_root + "_dir_new";
 	this.id_dir_up = id_root + "_dir_up";
-	this.id_select_all = id_root + "_select_all";
-	this.id_deselect_all = id_root + "_deselect_all";
 	this.checked_loc = -1;
 	this.last_div_id = "";
 	this.chk_prepare_id = -1;
@@ -184,17 +186,22 @@ var MrlPaneClass = function(id_root) {
 		});
 	});
 
-	jQuery('#'+this.id_select_all).click(function(ev) {
-		//for (i=0; i<that.disp_num; i++) {
-		for (i = 0; i < that.dir_list.length; i++) {
-			jQuery('#'+that.get_chkid(i)).attr('checked',true);
-		}
+    // 'Select All' box affects all boxes on this pane
+	jQuery('div.mocd_pane').on('click', '#' + this.id_pane + '_ck_all', function(ev) {
+        jQuery('.' + that.id_pane + '_ck').attr('checked', this.checked);
 	});
-	jQuery('#'+this.id_deselect_all).click(function(ev) {
-		for (i=0; i<that.dir_list.length; i++) {
-			jQuery('#'+that.get_chkid(i)).attr('checked',false);
-		}
-	});
+
+//	jQuery('#'+this.id_select_all).click(function(ev) {
+//		//for (i=0; i<that.disp_num; i++) {
+//		for (i = 0; i < that.dir_list.length; i++) {
+//			jQuery('#'+that.get_chkid(i)).attr('checked',true);
+//		}
+//	});
+//	jQuery('#'+this.id_deselect_all).click(function(ev) {
+//		for (i=0; i<that.dir_list.length; i++) {
+//			jQuery('#'+that.get_chkid(i)).attr('checked',false);
+//		}
+//	});
 }
 
 MrlPaneClass.prototype.get_chkid = function (n) {return this.id_pane+'_ck_'+n;}
@@ -243,6 +250,7 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
 //		return new Array();
 //	}
 	var dir;
+    var thispane = this;
 
 	this.cur_dir = target_dir;
 	jQuery('#'+this.id_dir).text(target_dir);
@@ -269,182 +277,221 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
     
 	var html = "";
 	var that = this;
+    var thumb_url = '';
 	this.last_chk_id = "";
 
+    html += '<ul class=mocd_pane_list>';
+
+    // First item is the 'de/select all' box
+    html += '<li class=mocd_pane_item>';
+    html += '<div><input type="checkbox" id="' + this.id_pane + '_ck_all' + '"></div>';
+    html += '<div>Select All</div>';
+    html += '</li>';
+
+    // Display all items as a list
 	for (i = 0; i < dir.length; i++) {
+//        html += '<li>';
         // ignore 'thumbnails' -- the flag is on for everything that isn't a parent!
         // i.e. everything except 'real' items 
 		///if (dir[i].isthumb) continue;
         var item = dir[i];
 		//this.dir_disp_list[this.disp_num] = i;
-        html += '<div class="mocd_pane_item">'; //style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
-        html += '<div style="float: left;"><input type="checkbox" id="' + this.get_chkid(i) + '"></div>';
-		html += '<div style="float: left;" id="' + this.get_divid(i) + '">';
+        html += '<li class="mocd_pane_item">'; //style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
+        html += '<div><input type="checkbox" class="' + this.id_pane + '_ck' + '" id="' + this.get_chkid(i) + '"></div>';
+		html += '<div id="' + this.get_divid(i) + '">';
 		this.last_div_id = this.get_divid(i);
+        // Thumbnail img URL should always be supplied by backend
 		if (item.thumbnail_url && item.thumbnail_url != "") {
-			html += '<img style="margin:0 5px 0 5px;" src="' + item.thumbnail_url+'" width="50" />';
-		}
+            thumb_url = item.thumbnail_url;
+		} else {
+            thumb_url = 'notfound.jpg';
+        }
+		html += '<img class=mocd_pane_img src="' + thumb_url + '">';
 		html += '</div><div class="mocd_filename">';
 		html += item.name; //mocd_ins8203(dir[i].name)/*+" --- " + dir[i].isdir+ (dir[i].id!=""?" "+dir[i].id:"")*/;
 		html += '</div>';
-        html += '</div>'
+        //html += '</div>'
 
 		//this.disp_num ++;
+        html += '</li>';
 	}
-	jQuery('#'+this.id_pane).html(html);
+    html += '</ul>';
+    jQuery('#'+this.id_pane).html(html);
 
-		function callMethod_chkprepare() {
-            that.prepare_checkboxes();
+    // Now that the items are in the DOM,
+    // go through the list again and set folders as clickable.
+    // Note cunning use of bind to avoid having to re-extract
+    // the index from the item's id or data.
+    // TODO set cursor shape -- maybe set a class on the folder ones
+    for (i = 0; i < dir.length; i++) {
+        if (dir[i].isdir) {
+            jQuery('#'+this.get_divid(i)).on('click', function (newdir, e) {
+                if (mocd.ajax_count > 0) {
+                    return;
+                }
+                thispane.chdir(newdir);
+            }.bind(this, dir[i].name));  // dir[i].name gets passed in as newdir
         }
-		if (this.chk_prepare_id == -1) {
-			this.chk_prepare_id = setInterval(callMethod_chkprepare, 20);
-		}
-	jQuery('#'+this.id_wrapper).css('cursor:default');
-	return dir;
+    }
+
+    // FIXME this looks very silly
+    // // but it also sets up the directories as left-click buttons
+    //    so we'll just call it once
+    this.prepare_checkboxes();
+    //function callMethod_chkprepare() {
+    //    that.prepare_checkboxes();
+   // }
+    //if (this.chk_prepare_id == -1) {
+    //    this.chk_prepare_id = setInterval(callMethod_chkprepare, 20);
+    //}
+    jQuery('#'+this.id_wrapper).css('cursor:default');
+    return dir;
 }
 
 
 // function name: MrlPaneClass::prepare_checkboxes
 // description : prepare event for checkboxes and right-click events(mkdir, rename)
 // argument : (void)
+// OH FIXME -- this does the right click stuff as well as checkboxes
 MrlPaneClass.prototype.prepare_checkboxes = function() {
-	var that = this; // FIXME ?? needed!?
+    var that = this; // FIXME ?? needed!?
 
-	if (jQuery('#'+this.last_div_id).length>0) {
-		clearInterval(this.chk_prepare_id);
-		this.chk_prepare_id = -1;
+    if (jQuery('#'+this.last_div_id).length>0) {
+        clearInterval(this.chk_prepare_id);
+        this.chk_prepare_id = -1;
 
-		//for (i=0; i<this.dir_disp_list.length; i++) {
-		//	var idx = this.dir_disp_list[i];
-		for (i = 0; i < this.dir_list.length; i++) {
-			var idx = i; //this.dir_disp_list[i];
-			//if (this.dir_list[idx].isthumb) continue; hmm this ref to isthumb was already commented out
+        //for (i=0; i<this.dir_disp_list.length; i++) {
+        //	var idx = this.dir_disp_list[i];
+        for (i = 0; i < this.dir_list.length; i++) {
+            var idx = i; //this.dir_disp_list[i];
+            //if (this.dir_list[idx].isthumb) continue; hmm this ref to isthumb was already commented out
 
-			jQuery('#'+this.get_divid(i)).data('order', i);
-			jQuery('#'+this.get_divid(i)).data('data', idx);
+            jQuery('#'+this.get_divid(i)).data('order', i);
+            jQuery('#'+this.get_divid(i)).data('data', idx);
 
-				jQuery('#'+this.get_chkid(i)).data('order', i);
-				jQuery('#'+this.get_chkid(i)).data('data', idx);
-				jQuery('#'+this.get_chkid(i)).change(function() {
-					if (mocd.shift_pressed && that.checked_loc >= 0) {
-						var loc1 = jQuery(this).data('order');
-						var loc2 = that.checked_loc;
-						var checked = jQuery('#'+that.get_chkid(loc1)).attr('checked');
-						for (n=Math.min(loc1,loc2); n<=Math.max(loc1,loc2); n++) {
-							if (checked == 'checked') {
-								jQuery('#'+that.get_chkid(n)).attr('checked','checked');
-							} else if (checked === true) {
-								jQuery('#'+that.get_chkid(n)).attr('checked',true);
-							} else if (checked === false) { 
-								jQuery('#'+that.get_chkid(n)).attr('checked',false);
-							} else {
-								jQuery('#'+that.get_chkid(n)).removeAttr('checked');
-							}
-						}
-					}
-					that.checked_loc = jQuery(this).data('order');
-				});
-
-			jQuery(document).bind("contextmenu",function(e){
-				return false;
-			}); 
+            jQuery('#'+this.get_chkid(i)).data('order', i);
+            jQuery('#'+this.get_chkid(i)).data('data', idx);
+            jQuery('#'+this.get_chkid(i)).change(function() {
+                if (mocd.shift_pressed && that.checked_loc >= 0) {
+                    var loc1 = jQuery(this).data('order');
+                    var loc2 = that.checked_loc;
+                    var checked = jQuery('#'+that.get_chkid(loc1)).attr('checked');
+                    for (n=Math.min(loc1,loc2); n<=Math.max(loc1,loc2); n++) {
+                        if (checked == 'checked') {
+                            jQuery('#'+that.get_chkid(n)).attr('checked','checked');
+                        } else if (checked === true) {
+                            jQuery('#'+that.get_chkid(n)).attr('checked',true);
+                        } else if (checked === false) { 
+                            jQuery('#'+that.get_chkid(n)).attr('checked',false);
+                        } else {
+                            jQuery('#'+that.get_chkid(n)).removeAttr('checked');
+                        }
+                    }
+                }
+                that.checked_loc = jQuery(this).data('order');
+            });
+            /* Don't steal r-click
+               jQuery(document).bind("contextmenu",function(e){
+               return false;
+               }); 
+               */
             // NOTE we only reference things in dir_list that are already on the 
             // screen, so all the isthumb ones are still not needed.
-			jQuery('#'+this.get_divid(i)).mousedown(function(ev) {
-				if (ev.which == 3) {
-					ev.preventDefault();
-					var isDir = that.dir_list[jQuery(this).data('data')]['isdir'];
-					var arrMenu = new Array("Preview","Rename");
-					if (isDir) {
-						arrMenu.push("Delete");
-					}
-					mocd.right_click_menu.make(arrMenu);
-					var that2 = this;
-					if (isDir) {
-					jQuery('#'+mocd.right_click_menu.get_item_id(2)).click(function(){ //delete
-						var target = that.dir_list[jQuery(that2).data('data')];
-						var isEmptyDir = target['isemptydir'];
-						if (!isEmptyDir) {alert('Directory not empty.');return;}
-						var target = that.dir_list[jQuery(that2).data('data')];
-						var dirname = target['name'];
-						var data = {
-							action: 'mocd_delete_empty_dir',
-							dir: that.cur_dir,
-							name: dirname
-						};
-						mocd.ajax_count_in();
-						jQuery.post(ajaxurl, data, function(response) {
-							if (response.search(/Success/i) < 0) {alert("mocd_delete_empty_dir: "+response);}
-							that.refresh();
-							if (that.cur_dir == that.opposite.cur_dir) {
-								that.opposite.refresh();
-							}
-							if (that.cur_dir+dirname+"/" == that.opposite.cur_dir) {
-								that.opposite.setdir(that.cur_dir);
-							}
-							mocd.ajax_count_out();
-						});
-					});
-					}
-					jQuery('#'+mocd.right_click_menu.get_item_id(0)).click(function(){ //preview
-						var url = mrloc_url_root + (that.cur_dir+that.dir_list[jQuery(that2).data('data')]['name'])/*.substr(mrloc_document_root.length)*/;
-						window.open(url, 'mrlocpreview', 'toolbar=0,location=0,menubar=0')
-					});
-					jQuery('#'+mocd.right_click_menu.get_item_id(1)).click(function(){ //rename
-						if (mocd.ajax_count) return;
-						var target = that.dir_list[jQuery(that2).data('data')];
-						if (target['norename']) {
-							alert("Sorry, you cannot rename this item.");
-							return;
-						}
-						var old_name = target['name'];
-						mocd.input_text.make("Rename ("+old_name+")",old_name,300, target['isdir'] );
-						mocd.input_text.set_callback(function(){
-							if (old_name == mocd.input_text.result || mocd.input_text.result=="") {
-								return;
-							}
-							if (that.check_same_name(mocd.input_text.result)) {
-								alert("The same name exists.");
-								return;
-							}
-							var data = {
-								action: 'mocd_rename',
-								dir: that.cur_dir,
-								from: old_name,
-								to: mocd.input_text.result
-							};
-							mocd.ajax_count_in();
+            jQuery('#'+this.get_divid(i)).mousedown(function(ev) {
+                if (ev.which == 3) {
+                    ev.preventDefault();
+                    var isDir = that.dir_list[jQuery(this).data('data')]['isdir'];
+                    var arrMenu = new Array("Preview","Rename");
+                    if (isDir) {
+                        arrMenu.push("Delete");
+                    }
+                    mocd.right_click_menu.make(arrMenu);
+                    var that2 = this;
+                    if (isDir) {
+                        jQuery('#'+mocd.right_click_menu.get_item_id(2)).click(function(){ //delete
+                            var target = that.dir_list[jQuery(that2).data('data')];
+                            var isEmptyDir = target['isemptydir'];
+                            if (!isEmptyDir) {alert('Directory not empty.');return;}
+                            var target = that.dir_list[jQuery(that2).data('data')];
+                            var dirname = target['name'];
+                            var data = {
+                                action: 'mocd_delete_empty_dir',
+                                dir: that.cur_dir,
+                                name: dirname
+                            };
+                            mocd.ajax_count_in();
+                            jQuery.post(ajaxurl, data, function(response) {
+                                if (response.search(/Success/i) < 0) {alert("mocd_delete_empty_dir: "+response);}
+                                that.refresh();
+                                if (that.cur_dir == that.opposite.cur_dir) {
+                                    that.opposite.refresh();
+                                }
+                                if (that.cur_dir+dirname+"/" == that.opposite.cur_dir) {
+                                    that.opposite.setdir(that.cur_dir);
+                                }
+                                mocd.ajax_count_out();
+                            });
+                        });
+                    }
+                    jQuery('#'+mocd.right_click_menu.get_item_id(0)).click(function(){ //preview
+                        var url = mrloc_url_root + (that.cur_dir+that.dir_list[jQuery(that2).data('data')]['name'])/*.substr(mrloc_document_root.length)*/;
+                        window.open(url, 'mrlocpreview', 'toolbar=0,location=0,menubar=0')
+                    });
+                    jQuery('#'+mocd.right_click_menu.get_item_id(1)).click(function(){ //rename
+                        if (mocd.ajax_count) return;
+                        var target = that.dir_list[jQuery(that2).data('data')];
+                        if (target['norename']) {
+                            alert("Sorry, you cannot rename this item.");
+                            return;
+                        }
+                        var old_name = target['name'];
+                        mocd.input_text.make("Rename ("+old_name+")",old_name,300, target['isdir'] );
+                        mocd.input_text.set_callback(function(){
+                            if (old_name == mocd.input_text.result || mocd.input_text.result=="") {
+                                return;
+                            }
+                            if (that.check_same_name(mocd.input_text.result)) {
+                                alert("The same name exists.");
+                                return;
+                            }
+                            var data = {
+                                action: 'mocd_rename',
+                                dir: that.cur_dir,
+                                from: old_name,
+                                to: mocd.input_text.result
+                            };
+                            mocd.ajax_count_in();
 
-							jQuery.post(ajaxurl, data, function(response) {
-								if (response.search(/Success/i) < 0) alert("mocd_rename: "+response);
-								if (that.opposite.cur_dir.indexOf(that.cur_dir+old_name+"/")===0) {
-									that.opposite.setdir(that.cur_dir+mocd.input_text.result+"/"+that.opposite.cur_dir.substr((that.cur_dir+old_name+"/").length));
-								}
-								if (that.cur_dir == that.opposite.cur_dir) {
-									that.refresh();
-									that.opposite.refresh();
-								} else {
-									that.refresh();
-								}
-								mocd.ajax_count_out();
-							});
-						});
-					});
-				}
+                            jQuery.post(ajaxurl, data, function(response) {
+                                if (response.search(/Success/i) < 0) alert("mocd_rename: "+response);
+                                if (that.opposite.cur_dir.indexOf(that.cur_dir+old_name+"/")===0) {
+                                    that.opposite.setdir(that.cur_dir+mocd.input_text.result+"/"+that.opposite.cur_dir.substr((that.cur_dir+old_name+"/").length));
+                                }
+                                if (that.cur_dir == that.opposite.cur_dir) {
+                                    that.refresh();
+                                    that.opposite.refresh();
+                                } else {
+                                    that.refresh();
+                                }
+                                mocd.ajax_count_out();
+                            });
+                        });
+                    });
+                }
                 // WHAT? why a new var here!?
-				var dir = that.dir_list[jQuery(this).data('data')];
-			});
+                var dir = that.dir_list[jQuery(this).data('data')];
+            });
 
-			jQuery('#'+this.get_divid(i)).click(function() {
-				if (mocd.ajax_count) return;
-				var dir = that.dir_list[jQuery(this).data('data')];
-				if (dir.isdir) {
-					that.chdir(dir.name);
-				}
-			});
-		}
-	}
-}
+            jQuery('#'+this.get_divid(i)).click(function() {
+                if (mocd.ajax_count) return;
+                var dir = that.dir_list[jQuery(this).data('data')];
+                if (dir.isdir) {
+                    that.chdir(dir.path);
+                }
+            });
+        }
+    }
+    }
 
 MrlPaneClass.prototype.check_same_name = function(str) {
 	for (var i=0; i<this.dir_list.length; i++) {
@@ -503,38 +550,65 @@ function display_error (text) {
     alert(text);
 }
 
+mocd.new_move_items = function nmi (pane_from, pane_to) {
+    var flist = [];  // list of filenames to return
+    for (var i = 0; i < pane_from.dir_list.length; i++) {
+        if (jQuery('#' + pane_from.get_divid(i)).attr('checked')) {
+           flist.push(pane_from.dir_list[i].name);
+        } 
+    }
+	var data = {
+		action: 'new_mocd_move',
+		dir_from: pane_from.cur_dir,
+		dir_to: pane_to.cur_dir,
+		items: flist
+	};
+    console.log('nmi sending data: ', data);
+    // TODO do we need to do them in batches?
+    mocd.ajax_count_in();
+	jQuery.post(ajaxurl, data, function (response) {
+		if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
+		//if (mocd.move_continue) {
+		//	move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
+		//} else {
+			mocd.pane_left.refresh();
+			mocd.pane_right.refresh();
+			mocd.ajax_count_out();
+		//}
+	});
+}
+
 // FIXME?  this isn't in the class as claimed
 // function name: MrlPaneClass::move
 // description : moving checked files/directories
 // argument : (pane_from)pane object; (pane_to)pane object 
-// FIXME globals!!
-var global_pane_from = "";
-var global_pane_to = "";
-var global_num_par_no = 0;
-var global_move_no = 0;
-var global_move_cnt = 0;
-var global_move_continue=0;
-function mrloc_move(pane_from, pane_to, no) {
+mocd.pane_from = "";
+mocd.pane_to = "";
+mocd.num_par_no = 0;
+mocd.move_no = 0;
+mocd.move_cnt = 0;
+mocd.move_continue=0;
+
+mocd.move_items = function move_items (pane_from, pane_to, no) {
 	no = typeof no !== 'undefined' ? no : 0;
-	var cnt = global_move_cnt;
+	var cnt = mocd.move_cnt;
 	
 	if (no==0) {
-		global_pane_from = pane_from;
-		global_pane_to = pane_to;
-		global_move_cnt = 0;
-		mrloc_move(pane_from, pane_to, 1);
+		mocd.pane_from = pane_from;
+		mocd.pane_to = pane_to;
+		mocd.move_cnt = 0;
+		move_items(pane_from, pane_to, 1);
 		return;
 	}
 	
 	var num_par_no = 50;
-	global_num_par_no = num_par_no;
-	global_move_continue = 0;
+	mocd.num_par_no = num_par_no;
+	mocd.move_continue = 0;
 	var no_from = (no-1)*num_par_no;
 	var no_to = no_from + num_par_no-1;
 
-	//alert(no+" "+global_pane_from.cur_dir+"-"+global_pane_to.cur_dir+"   "+no_from+"-"+no_to);
+	//alert(no+" "+mocd.pane_from.cur_dir+"-"+mocd.pane_to.cur_dir+"   "+no_from+"-"+no_to);
 
-	
 	var i,j;
 	var flist="";
 
@@ -548,11 +622,12 @@ function mrloc_move(pane_from, pane_to, no) {
 			chk_no ++;
 			if (chk_no<no_from) continue;
 			if (chk_no>no_to) {
-				global_move_continue = 1;
+				mocd.move_continue = 1;
 				continue;
 			}
 			cnt++;
-			flist += pane_from.dir_list[pane_from.dir_list[i]].name + "/";
+			//flist += pane_from.dir_list[pane_from.dir_list[i]].name + "/";
+			flist += pane_from.dir_list[i].name + "/";
 			for (j=0; j<pane_from.dir_list.length; j++) {
 				if (pane_from.dir_list[j].isthumb && pane_from.dir_list[j].parent == pane_from.dir_list[i]) {
 					flist += pane_from.dir_list[j].name + "/";
@@ -576,16 +651,16 @@ function mrloc_move(pane_from, pane_to, no) {
 		items: flist
 	};
 	
-	global_move_no = no;
-	global_move_cnt = cnt;
+	mocd.move_no = no;
+	mocd.move_cnt = cnt;
 
 	if (no == 1) {
 		mocd.ajax_count_in();
 	}
 	jQuery.post(ajaxurl, data, function(response) {
 		if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
-		if (global_move_continue) {
-			mrloc_move(global_pane_from, global_pane_to, global_move_no+1);
+		if (mocd.move_continue) {
+			move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
 		} else {
 			mocd.pane_left.refresh();
 			mocd.pane_right.refresh();

@@ -263,14 +263,14 @@ function get_image_insert_screen_callback()
         echo '</tr>';
     }
     echo '<tr class="submit"><td></td><td class="savesend"><input name="send" id="send" class="button" value="', _e('Insert into Post'), '" type="submit">';
-    echo '<button type="button" id="mrl_cancel" class="button" >', _e('Cancel'), '</button>';
+    echo '<button type="button" id="mocd_cancel" class="button" >', _e('Cancel'), '</button>';
 	echo '</td></tr>';
     echo '</tbody>';
 	echo '</table>';
     echo '</div>';
     echo '</div>';
     // FIXME really dump data in the html? -- better to do it the WP way?
-    echo '<div id="mrl_data" style="display:none;">';
+    echo '<div id="mocd_data" style="display:none;">';
     echo json_encode($dat);
     echo '</div>';
 
@@ -348,9 +348,9 @@ function onMediaButtonPage() {
     echo "<script type=\"text/javascript\"> var pluginurl = '".PLUGIN_URL."' </script>\n";
 
     echo '<p></p>';
-    echo '<div id="mrl_control"> </div>';
-    echo '<div id="mrl_selector"> </div>';
-    echo '<div id="mrl_edit"> </div>';
+    echo '<div id="mocd_control"> </div>';
+    echo '<div id="mocd_selector"> </div>';
+    echo '<div id="mocd_edit"> </div>';
 }
 
 /**

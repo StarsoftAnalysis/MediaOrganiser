@@ -36,6 +36,7 @@ if (is_admin()) {
     add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');
     add_action('wp_ajax_mocd_rename',           NS . 'rename_callback');
     add_action('wp_ajax_mocd_move',             NS . 'move_callback');
+    add_action('wp_ajax_new_mocd_move',         NS . 'new_move_callback');
     add_action('wp_ajax_mocd_delete_empty_dir', NS . 'delete_empty_dir_callback');
     add_action('wp_ajax_mocd_download_log',     NS . 'download_log_callback');
     add_action('wp_ajax_mocd_delete_log',       NS . 'delete_log_callback');
