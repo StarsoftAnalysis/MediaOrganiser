@@ -41,6 +41,14 @@ Before try this plugin, I recommend you to backup your contents(files, database)
 
 *Click an icon of media file you'll insert. Then the media insert dialog similar as usual appears. Edit information of the media and click insert button.
 
+Media Organizer was forked from version 1.4.2 of Media File Manager by Atsushi Ueda.
+
+Since the fork, various changes have been made including:
+
+* restructuring and simplifying the code
+* better error handling
+* ...
+
 == Installation ==
 
 Install the plugin like usual ones. Then activate it.

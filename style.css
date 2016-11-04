@@ -52,6 +52,9 @@
     xposition: relative;
 }
 
+.mocd_isdir {
+	cursor: pointer;
+}
 /* Folder icon or thumbnail image in pane */
 .mocd_pane_img {
     width: 50px;
@@ -130,9 +133,10 @@
 	background-color:#111;
 }
 
-#mocd_input_text
-{
-	position:absolute;
+#mocd_input_text {
+	position: absolute;
+    top: 50%;
+    left: 50%;
 	border: 1px solid #777;
 	background-color: #eee;
 	padding: 4px;

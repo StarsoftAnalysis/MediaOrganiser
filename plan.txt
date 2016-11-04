@@ -1,0 +1,11 @@
+Plan
+====
+
+* moving directories -- how/where to maintain state?
+
+
+Spec:
+----
+
+* return info from PHP to JS on AJAX calls:
+    * 

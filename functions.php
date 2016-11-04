@@ -20,12 +20,17 @@ function define_constants () {
         define('UPLOAD_URL', $upload['baseurl']);
         #define('UPLOAD_REL', _wp_relative_upload_path(UPLOAD_DIR));
         #define('UPLOAD_REL', '/' . str_replace(ABSPATH, '', UPLOAD_DIR));
-        define('UPLOAD_REL', '/' . remove_prefix(ABSPATH, UPLOAD_DIR));
+        define('UPLOAD_DIR_REL', DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, UPLOAD_DIR));
+        define('UPLOAD_URL_REL', '/' . remove_prefix(ABSPATH, UPLOAD_DIR));
     }
-    debug('PLUGIN_URL:', PLUGIN_URL);
-    debug('UPLOAD_DIR:', UPLOAD_DIR);
-    debug('UPLOAD_URL:', UPLOAD_URL);
-    debug('UPLOAD_REL:', UPLOAD_REL);
+    debug('ABSPATH:', ABSPATH);       // e.g. /var/www/website/
+    debug('PLUGIN_URL:', PLUGIN_URL); // e.g. http://example.com/wp-content/plugins/media-organizer-cd
+    debug('UPLOAD_DIR:', UPLOAD_DIR); // e.g. /var/www/website/wp-content/uploads
+    debug('UPLOAD_URL:', UPLOAD_URL); // e.g. http://example.com/wp-content/uploads
+    // !! need separate UPLOAD_URL_REL and UPLOAD_DIR_REL because separator may not be
+    //    '/' in a dir, but always is in an URL.
+    debug('UPLOAD_DIR_REL:', UPLOAD_DIR_REL); // e.g. /wp-content/uploads
+    debug('UPLOAD_URL_REL:', UPLOAD_URL_REL); // e.g. /wp-content/uploads
 }
 
 // Debug to /wp-content/debug.log (see settings in wp-config.php)
@@ -196,4 +201,11 @@ function get_subdir($dir) {
 	return $subdir;
 }
 
+function get_post ($key) {
+    $value = '';
+    if (isset($_POST[$key])) {
+        $value = $_POST[$key];
+    }
+    return stripslashes($value);
+}
 ?>

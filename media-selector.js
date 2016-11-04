@@ -1,8 +1,7 @@
 /**
  */
 
-var MrlMediaSelector = function()
-{
+var MrlMediaSelector = function() {
 
 	// this function is called when the insert button is pressed.
 	this.onClickSubmitButton = function(html)

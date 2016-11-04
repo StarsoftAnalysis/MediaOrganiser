@@ -56,10 +56,32 @@ function plugin_menu () {
 	}
 }
 
+// Echo the html for either the left or right pane
+function pane_html ($side) {
+	echo '<div class="mocd_wrapper_pane" id="mocd_', $side, '_wrapper">';
+	echo '<div class="mocd_box1">';
+    echo '<p class=mocd_path id=mocd_', $side, '_path>';
+	echo '<div style="clear:both;"></div>';
+    echo '<div class="mocd_action" id="mocd_', $side, '_action">Action: ';
+    echo '<select name="mocd_', $side, '_select">';
+    echo '<option value="rename">Rename</option>';
+    echo '<option value="move">Move</option>';
+    echo '<option value="delete">Delete</option>';
+    echo '</select>';
+    echo '<button id="mocd_', $side, '_button_go" type="button">Go</button>';
+    echo '</div>';
+    // FIXME class should just be mocd_dir
+	echo '<div class="mocd_dir_up" id="mocd_', $side, '_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
+    echo '<div class="mocd_dir_up" id="mocd_', $side, '_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
+	echo '</div>';
+	echo '<div style="clear:both;"></div>';
+    // This is the div that gets filled in with the dir listing in JS
+	echo '<div class="mocd_pane" id="mocd_', $side, '_pane"></div>';
+	echo '</div>';
+}
 
 /*  show a configuration screen  */
 function display_config () {
-
 	wp_enqueue_script("media-relocator", plugins_url('media-relocator.js', __FILE__));
 	# FIXME do the proper thing for this:
 	echo "<script type='text/javascript'>mrloc_url_root='", UPLOAD_URL, "'</script>";
@@ -67,80 +89,46 @@ function display_config () {
 	echo '<div class="wrap">';
 	echo '<h2>Media Organizer</h2>';
 
-    // a bit late to test this for an error!
-    /*
-    if (UPLOAD_DIR_t['error'] != "") {
-        echo "<div class=\"error\"><p>", UPLOAD_DIR_t['error'], "</p></div>";
-        die();
-    }
-     */
-
 	echo '<div id="mocd_wrapper_all">';
-	echo '<div class="mocd_wrapper_pane" id="mocd_left_wrapper">';
-	echo '<div class="mocd_box1">';
-    // Don't need an input box for the path
-    #echo '<input type="textbox" class="mocd_path" id="mocd_left_path">';
-    echo '<p class=mocd_path id=mocd_left_path>';
-	echo '<div style="clear:both;"></div>';
-    echo '<div class="mocd_action" id="mocd_left_action">Action: '; 
-    echo '<select name="mocd_left_select">';
-    echo '<option value="rename">Rename</option>';
-    echo '<option value="move">Move</option>';
-    echo '<option value="delete">Delete</option>';
-    echo '</select>';
-    echo '<button id="mocd_left_button_go" type="button">Go</button>';
-    echo '</div>';
-	echo '<div class="mocd_dir_up" id="mocd_left_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
-    echo '<div class="mocd_dir_up" id="mocd_left_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
-	#echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_left_select_all" type="button" value="Select All"></div>';
-	#echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_left_deselect_all"type="button" value="Deselect All"></div>';
-	echo '</div>';
-	echo '<div style="clear:both;"></div>';
-    // This is the div that gets filled in with the dir listing in JS
-	echo '<div class="mocd_pane" id="mocd_left_pane"></div>';
-	echo '</div>';
+
+    pane_html('left');
 
 	echo '<div id="mocd_center_wrapper">';
 	echo '<div id="mocd_btn_left2right"><img src="', PLUGIN_URL, '/images/right.png"></div>';
 	echo '<div id="mocd_btn_right2left"><img src="', PLUGIN_URL, '/images/left.png"></div>';
-	echo '</div>';
+    echo '</div>';
 
-    echo '<div class="mocd_wrapper_pane" id="mocd_right_wrapper">';
-	echo '<div class="mocd_box1">';
-	#echo '<input type="textbox" class="mocd_path" id="mocd_right_path">';
-    echo '<p class=mocd_path id=mocd_right_path>';
-	echo '<div style="clear:both;"></div>';
-    echo '<div class="mocd_dir_up" id="mocd_right_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
-	echo '<div class="mocd_dir_up" id="mocd_right_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
-	#echo '<div class="mocd_select_all"><input class="mocd_select_all_button" id="mocd_right_select_all" type="button" value="Select All"></div>';
-	#echo '<div class="mocd_deselect_all"><input class="mocd_select_all_button" id="mocd_right_deselect_all" type="button" value="Deselect All"></div>';
-	echo '</div>';
-	echo '<div style="clear:both;"></div>';
-    // This is the div that gets filled in with the dir listing in JS
-	echo '<div class="mocd_pane" id="mocd_right_pane"></div>';
+    pane_html('right');
 
 	echo '</div>';
 	echo '</div>';
-    #echo '<div id="debug">.<br></div>';
-    #echo '<div id="mocd_test" style="display:none;">test<br></div>'; # FIXME what?
-	echo '</div>';
-
-	#if (isset($_POST['updateEsAudioPlayerSetting'])) {
-	#	//echo '<script type="text/javascript">alert("Options Saved.");</script>';
-	#}
 }
- 
+
+function mkdir_callback() {
+    if (!test_mfm_permission()) {
+        ajax_response(0, 'no permission');
+    }
+	$dir    = get_post('dir');
+    $newdir = get_post('newdir');
+    $path = UPLOAD_DIR . $dir;
+    $newpath = $path . $newdir;
+    #debug('mkdir_c:', $path, $newpath);
+    if (file_exists($newpath)) {
+        ajax_response(0, "Can't create '$newdir' -- already exists");
+    }
+    if (!mkdir($newpath, 0777)) {
+        ajax_response(0, "Failed to create '$newdir'");
+    }
+    ajax_response(1, "Created '$newdir' successfully");
+}
+
 
 // AJAX response ...
 function getdir_callback () {
     global $wpdb;
     // CD's version -- hopefully simpler.
     if (!test_mfm_permission()) {
-        // Send back an empty list
-        // BETTER: frontend looks for 'error'
-        $result = ['error' => 'Not permitted'];
-        echo json_encode($result);
-        exit;
+        ajax_response(0, 'no permission');
     }
     // Get the directory to display, relative to...
 	//$dir = stripslashes(request_data('dir');
@@ -153,7 +141,7 @@ function getdir_callback () {
     $post_dir = filter_input(INPUT_POST, 'dir', FILTER_DEFAULT, $opts);
     // $dir is relative to the uploads dir, e.g. '/' or 'photos'
 	$dir = UPLOAD_DIR . $post_dir;
-    $reldir = UPLOAD_REL . $post_dir; // relative to ..  .  not used
+    $reldir = UPLOAD_DIR_REL . $post_dir; // relative to ..  .  not used
     $attdir = ltrim($post_dir, '/');  // remove leading /
     debug("gc: post_dir = $post_dir   dir = $dir   attdir = $attdir");
     // FIXME how to prevent going up to the root??
@@ -162,11 +150,13 @@ function getdir_callback () {
     $sdirs = subdirs($dir);
     foreach ($sdirs as $sdir) {
         $dirlist[] = [
+            #'id' => null,
+            'path' => $sdir, // FIXME either don't use it or make it different from name
             'name' => $sdir,
+            'post_id' => null,  // needed when updating metadata
             'isdir' => true,
 			'isemptydir' => isEmptyDir($dir . "/" . $sdir),
             'norename' => false, // FIXME ??
-            // FIXME derive the following properly
             'thumbnail_url' => PLUGIN_URL . '/images/dir.png'
         ];
     }
@@ -180,10 +170,16 @@ function getdir_callback () {
     // so get wp_postmeta where meta_key is _wp_attached_file and meta_value is like 'photos/thingy.jpg'
     // Can't just say: like 'photos/%' because that would include 'photos/otherphotos/foo.jpg'
     // This seems to work:
-    $sql = "select p.ID, p.post_mime_type, m.meta_value 
-              from wp_posts p 
+
+
+    // FIXME !"!!!!!! can't always rely on attachments to be correct
+    // -- e.g. when testing and we've moved the file but not updated the database!!
+
+
+    $sql = "select p.ID, p.post_mime_type, m.meta_value
+              from wp_posts p
          left join wp_postmeta m on p.ID = m.post_id and m.meta_key = '_wp_attached_file'
-             where post_type = 'attachment' 
+             where post_type = 'attachment'
                and m.meta_value regexp '^{$attdir}[^/]+$'
           order by m.meta_value"; // FIXME better way to interpolate
     debug('gc sql: ', $sql);
@@ -191,14 +187,14 @@ function getdir_callback () {
     debug('gc results: ', $results);
     foreach ($results as $item) {
         $dirlist[] = [
-            'id' => $item['ID'], // ??needed?
-            'path' => $item['meta_value'],
-            'name' => basename($item['meta_value']),
-            'isdir' => false,
-            'isthumb' => false, // always false now
+            'post_id'  => $item['ID'],
+            'path'     => $item['meta_value'],
+            'name'     => basename($item['meta_value']),
+            'isdir'    => false,
+            'isthumb'  => false, // always false now
             'norename' => false, // TODO
-            'parent' => false, // always false now
-            // TODO thumbnail is different depending on file type
+            'parent'   => false, // always false now
+            // TODO if it's an image, get a nice small version of it (then it will be square)
             'thumbnail_url' => thumbnail_url($item['meta_value'], $item['post_mime_type'])
             ];
     }
@@ -214,7 +210,7 @@ function getdir_callback () {
         'isthumb' => 0, // will always be false now
         'norename' => 0,
         //'id' => 505,
-        'parent' => 0, // meaningless for dir? 
+        'parent' => 0, // meaningless for dir?
         // Have to provide the icon:
         'thumbnail_url' => 'http://dev.fordingbridge-rotary.org.uk/wp-content/plugins/media-file-manager-cd/images/dir.png'
       ];
@@ -232,8 +228,9 @@ function getdir_callback () {
     ];
      */
     // Send the list back to the JS
-	echo json_encode($dirlist);
-    wp_die(); // completes the AJAX thing
+    ajax_response(1, 'Got dir OK', $dirlist)
+	#echo json_encode($dirlist);
+    #wp_die(); // completes the AJAX thing
 }
 
 /*
@@ -301,7 +298,7 @@ function old_getdir_callback() {
     // Clues:
     //  images get name in meta_value_a, meta stuff in meta_value_b
     //  pdfs just get name in _a
-    //  _c is used when an image has been edited in WP -- it gets a name 
+    //  _c is used when an image has been edited in WP -- it gets a name
     //   suffix as '-e<timestamp>' and shows up as such in
     //   MFM listing (the original is then hidden)o/
     // when an edited image is restored to original, both lots are still
@@ -309,30 +306,30 @@ function old_getdir_callback() {
     //  (and currently MFM seems to lose both lots).
     // TODO would it be better to get stuff for each item separately,
     //   perhaps using wp_get_attachment_metadata for b,
-    //     (i.e. width, height, file, array of sizes, each with 
-    //   and 
+    //     (i.e. width, height, file, array of sizes, each with
+    //   and
     // because dir1 already has the full list, including different sizes.
 
-    // Plan: filter out the ones ending in '-ennnnnnnnnnnn' 
-    //   -- no, 
+    // Plan: filter out the ones ending in '-ennnnnnnnnnnn'
+    //   -- no,
     //  display edited names without -ennnnnnnnnnn
 
     // A single image can show up in the directory as
-    //  AussieCricket05-125x125.jpg               
-    //  AussieCricket05-150x150.jpg               
-    //  AussieCricket05-200x100.jpg               
-    //  AussieCricket05-200x150.jpg               
+    //  AussieCricket05-125x125.jpg
+    //  AussieCricket05-150x150.jpg
+    //  AussieCricket05-200x100.jpg
+    //  AussieCricket05-200x150.jpg
     //  AussieCricket05-e1477218030495-125x125.jpg
     //  AussieCricket05-e1477218030495-150x100.jpg
     //  AussieCricket05-e1477218030495-150x150.jpg
-    //  AussieCricket05-e1477218030495.jpg        
-    //  AussieCricket05.jpg                       
+    //  AussieCricket05-e1477218030495.jpg
+    //  AussieCricket05.jpg
     // (possibly with many sets of -e numbers)
 
     // Surprisingly, all sizes seem to get sent in the json
 
     // Another plan.
-    // Rewrite this to get all attachments from db where  file name starts with 
+    // Rewrite this to get all attachments from db where  file name starts with
     // the given directory (i.e. the whole path equals the dir)
     // rather than getting all the files in the directory including the variants.
     // And then display the proper name without any -ennnnn
@@ -340,12 +337,12 @@ function old_getdir_callback() {
 
 // select p.ID, p.post_title, p.post_type, m1.meta_value as attachment, m2.meta_value as metadata, m3.meta_value as backup_sizes from wp_posts p, wp_postmeta m1, wp_postmeta m2, wp_postmeta m3  where p.ID = 506 and p.ID = m1.post_id and p.ID = m2.post_id and p.ID = m3.post_id and m1.meta_key = '_wp_attached_file' and m2.meta_key = '_wp_attachment_metadata' and m3.meta_key = '_wp_attachment_backup_sizes'
     // THAT DOESN'T WORK e.g. if there is no backup sizes meta -- need explicit left join:
-    // select p.ID, p.post_title, p.post_type, m1.meta_value as attachment, m2.meta_value as metadata, m3.meta_value as backup_sizes from wp_posts p left join wp_postmeta m1 on p.ID = m1.post_id and m1.meta_key = '_wp_attached_file' left join wp_postmeta m2 on p.ID = m2.post_id and m2.meta_key = '_wp_attachment_metadata' left join  wp_postmeta m3 on p.ID = m3.post_id and m3.meta_key = '_wp_attachment_backup_sizes' where p.ID = 580 
+    // select p.ID, p.post_title, p.post_type, m1.meta_value as attachment, m2.meta_value as metadata, m3.meta_value as backup_sizes from wp_posts p left join wp_postmeta m1 on p.ID = m1.post_id and m1.meta_key = '_wp_attached_file' left join wp_postmeta m2 on p.ID = m2.post_id and m2.meta_key = '_wp_attachment_metadata' left join  wp_postmeta m3 on p.ID = m3.post_id and m3.meta_key = '_wp_attachment_backup_sizes' where p.ID = 580
 
     // THIS LOOKS WRONG -- see my sql above -- this isn't specific on _a
-    $sql = "select a.post_id, 
-                   a.meta_value as meta_value_a, 
-                   b.meta_value as meta_value_b, 
+    $sql = "select a.post_id,
+                   a.meta_value as meta_value_a,
+                   b.meta_value as meta_value_b,
                    c.meta_value as meta_value_c \n " .
 	         "from $wpdb->postmeta a \n" .
 		"left join $wpdb->postmeta b on a.post_id=b.post_id and b.meta_key='_wp_attachment_metadata' \n" .
@@ -499,29 +496,6 @@ function dircmp_r($a, $b) {
 	return strcasecmp($a['name'], $b['name']);
 }
 
-function mkdir_callback() {
-	if (!test_mfm_permission()) return 0;
-
-	global $wpdb;
-
-	$local_post_dir = stripslashes($_POST['dir']);
-	$local_post_newdir = stripslashes($_POST['newdir']);
-
-	ini_set("track_errors",true);
-
-	$dir = mrl_adjpath(UPLOAD_DIR."/".$local_post_dir, true);
-	$newdir = $local_post_newdir;
-
-	$res = chdir($dir);
-	if (!$res) die($php_errormsg);
-
-    // FIXME @
-	$res = @mkdir($newdir);
-	if (!$res) {die($php_errormsg);}
-
-	die('Success');
-}
-
 function udate($format, $utimestamp = null)
 {
     if (is_null($utimestamp))
@@ -534,7 +508,6 @@ function udate($format, $utimestamp = null)
 }
  */
 
-// RENAME is not MOVE!!
 function rename_callback() {
 	if (!test_mfm_permission()) return 0;
 
@@ -672,13 +645,266 @@ function rename_callback() {
 	}
 }
 
+// TODO put this in functions.php
+// Send an AJAX response back to javascript, in the form
+// [
+//   success => true or false
+//   message => 'blah',  // reason for the failure
+//   data => an array of stuff, e.g....
+// ]
+// TODO Or could use wp_send_json_success
+// or wp_send_json? no, I prefer mine
+function ajax_response ($success = false, $message = '', $data = []) {
+    $response = [
+        'success' => ($success ? true : false),  // convert truthy/falsy into proper booleans
+        'message' => $message,
+        'data'    => $data
+    ];
+    header('Content-Type: application/json;');
+    echo json_encode($response);
+    wp_die();
+}
+
+// New plan -- do them one at a time (JS does the loop).
+// Why?
+// - JS can show a progress bar
+// - reduces chances of PHP timeouts
+// - makes it more atomic  -- just rename one thing and do the associated db updates
+//
 // This gets called when a move arrow is clicked, with data:
 // action:    "move"
 // dir_from:  "/"
 // dir_to:    "/photos/"
-// items:     array of names e.g. ["AussieCricket03.jpg", "AussieCricket03-125x125.jpg"]
+// item:     single item e.g. "AussieCricket03.jpg"
+// Returns an array: 0 for failure, 1 for success, !! perhaps need a reason too, e.g. permissions, already exists, db failed etc.
+//  !!! Does renaming too.
 function new_move_callback () {
-    // AJAX handler
+    $response = [ 'result' => 'Fail' ];
+    if (!test_mfm_permission()) {
+        ajax_response(false, 'no permission');
+    }
+    // TODO these don't work for some reason
+    // -- because filter_input only sees the original contents of $_GET,
+    //    not the results of $_GET['foo']='bar' -- which is what the AJAX code does
+	#$dir_from = filter_input(FILTER_POST, 'dir_from', FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_from']);
+	#$dir_to   = filter_input(FILTER_POST, 'dir_to',   FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_to']);
+    #$item     = filter_input(FILTER_POST, 'item',     FILTER_SANITIZE_STRING); //stripslashes($_POST['item']);
+    // ...so use
+	$dir_from  = get_post('dir_from'); #stripslashes($_POST['dir_from']);  // e.g. '/' or '/photos/'
+	$dir_to    = get_post('dir_to');   #stripslashes($_POST['dir_to']);    //    ditto
+    $item_from = get_post('item_from');  #stripslashes($_POST['item_to']);  // e.g. 'foo.jpg' or 'images/foo.jpg'.  NOTE no leading '/'
+                                               //   and it's relative to $dir_from
+    $item_to   = get_post('item_to'); #stripslashes($_POST['item_from']);
+    if (!$item_to) {
+        $item_to = $item_from;
+    }
+    $post_id   = get_post('post_id'); #stripslashes($_POST['post_id']);
+    $isdir     = get_post('isdir');  #stripslashes($_POST['isdir']);
+    debug("nmc: dir_from='$dir_from' dir_to='$dir_to' item_from='$item_from' item_to='$item_to' post_id=$post_id isdir='$isdir'");
+
+    // TODO for renaming need item_from AND item_to -- in which case there's only one dir
+    // -- maybe renaming is too different
+
+    // TODO check if the expected inputs are present
+    if ($dir_from == $dir_to) {
+        ajax_response(false, 'same dir');
+    }
+    // dirs are e.g. '/' or '/private/' or '2015/10' relative to UPLOAD_DIR
+    $path_from = UPLOAD_DIR . $dir_from;
+    if (!file_exists($path_from)) {
+        ajax_response(false, "Folder '" . $dir_from . "' does not exist");
+    }
+    $path_to = UPLOAD_DIR . $dir_to;
+    if (!file_exists($path_to)) {
+        ajax_response(false, "Folder '" . $dir_to . "' does not exist");
+    }
+    // TODO ? need to check if item_from_path exists? == yes 
+    #echo "nmc: from='$dir_from' to='$dir_to' item='$item' isdir='$isdir' ";
+    $item_from_path     = UPLOAD_DIR . $dir_from . $item_from;       // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
+    $item_to_path       = UPLOAD_DIR . $dir_to   . $item_to;
+    $item_from_rel = UPLOAD_DIR_REL . $dir_from . $item_from;   // relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
+    $item_to_rel   = UPLOAD_DIR_REL . $dir_to   . $item_to;
+    debug('item paths: ', $item_from_path, $item_to_path);
+    debug('item rels: ', $item_from_rel, $item_to_rel);
+    // PHP rename will overwrite, so check first if it exists
+    if (file_exists($item_to_path)) {
+        debug('...exists');
+        ajax_response(false, 'exists');
+    }
+
+    // move, i.e. rename
+    debug("renaming $item_from_path to $item_to_path");
+    if (!rename($item_from_path, $item_to_path)) {  // puts a warning in the log on failure
+        debug('...rename failed');
+        ajax_response(false, 'rename failed');
+    }
+
+    // Update the databaseo
+    // ?? wp_check_post_lock(id) to see if any post is locked
+    // -- probably too much work.  maintenance mode?
+
+    // The codex at https://codex.wordpress.org/Changing_The_Site_URL#Important_GUID_Note says:
+    //    Never, ever, change the contents of the GUID column, under any circumstances.
+    //    If the default uploads folder needs to be changed to a different location,
+    //    then any media URLs will need to be changed in the post_content column of
+    //    the posts table. For example, if the default uploads folder is changing from wp-content/uploads to images:
+    //   UPDATE wp_posts SET post_content = REPLACE(post_content,'www.domain.com/wp-content/uploads','www.domain.com/images');
+
+    // Regex for matching an attachment url in a post's content...
+    // It will usually look like:
+    //   src="http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/photos/otherphotos/AussieCricket04.jpg"
+    // or
+    //   src="/wp-content/uploads/photos/otherphotos/AussieCricket04.jpg"
+    //
+    // The '/wp-content/uploads'  part is in UPLOAD_URL_REL
+    // If we're changing a directory, we'll be changing the bit between UPLOAD_URL_REL and the basename
+
+    // Match the basename with [^/]+\w*["'] (any chars not a slash, optional space, quote)
+    // (these are URLs, so the separator is always /)
+    // $item_from is something like /private/foo.jpg
+    // Match the bit befiore the item with src\w*=\w*["']\w* . UPLOAD_URL_REL
+    // ... no, that won't work for things using <source> etc.
+    // Hmmm, only MariaDB has regexp-replace , so manage withddout
+    #$prefix_reg = 'src\w*=\w*["\']\w*'; # . UPLOAD_URL_REL;
+    #$item_reg = $prefix_reg . $item_from;
+    #debug('prefix_reg', $prefix_reg);
+    #debug('item_reg', $item_reg);
+
+    global $wpdb;
+    $post_count = 0;
+	try {
+        if ($wpdb->query("start transaction") === false) {
+            throw new Exception('Failed to start transaction');
+        }
+
+        // FIXME isdir is on for a file
+        debug('==== isdir: ', ($isdir ? 'yes' : 'no'));
+        if (1) { #!$isdir) {
+            // Update the attachment itself -- the wp_posts entry is of type 'attachment',
+            // but does not have the filename, that's in wp_postmeta with key '_wp_attached_file'
+            // ('replace' replaces all occurrences in the string)
+            // The value is the file name relative to UPLOAD_DIR_REL (or is it an URL?? FIXME)
+            // with NO leading '/', e.g. 'foo.jpg' or 'photos/foo.jpg'
+            // e.g. from / to
+
+            $file_from_rel = ltrim($dir_from, '/') . $item_from;   // relative to upload dir
+            $file_to_rel   = ltrim($dir_to,   '/') . $item_to;
+            debug("updating attachment from $file_from_rel to $file_to_rel");
+            $sql = "update $wpdb->postmeta
+                       set meta_value = replace(meta_value, '$file_from_rel', '$file_to_rel')
+                     where post_id = $post_id
+                       and meta_key = '_wp_attached_file'
+
+                       and meta_value like '%$file_from_rel%'";
+            debug('>>> sql:', $sql);
+            $rc = $wpdb->query($sql);
+            debug('>>> rc', $rc);
+            if ($rc === false) {
+                throw new Exception('Failed to replace name in attachment');
+            }
+            if ($rc != 1) {
+                debug('!!!!!! unexpected number of attachments renamed: ', $rc);
+            }
+            $post_count += $rc;
+
+
+            // RENAME if we use the same code, renaming will need to update
+            // the _wp_attachment_backup_sizes record to change foo.jpg to bar.jpg,
+            //  and foo-nnnxnnn.jpg to bar-nnnxnnn.jpg
+            // -- that will need to item names passed in.
+
+            // attachment metadata has serialized data -- if changing strings,
+           // need to change the length!! so have to get it, unpack it, change it, pack it, update it
+            debug("updating attachment metadata...");
+            $sql = "select meta_id, post_id, meta_key, meta_value
+                      from $wpdb->postmeta
+                     where post_id = $post_id
+                       and meta_key = '_wp_attachment_metadata'";
+            $row = $wpdb->get_row($sql, ARRAY_A);
+            if (is_null($row)) {
+                throw new Exception('Failed to get attachment with post_id ' . $post_id);
+            }
+            debug('results: ', $row);
+            $metadata = unserialize($row['meta_value']);
+            debug('metadata: ', $metadata);
+            // Metadata is like:
+            //    [width] => 400
+            //    [height] => 600
+            //    [file] => photos/avonway-plate.jpg
+            //    [sizes] => Array
+            //    (
+            //        [thumbnail] => Array
+            //        (
+            //            [file] => avonway-plate-150x150.jpg
+            //            [width] => 150
+            //            [height] => 150
+            //            [mime-type] => image/jpeg
+            //        )
+            //   )
+            // Filenames for each size don't have the path, so only need the next bit
+            // if renaming
+            if ($item_to != $item_from) {
+                $metadata['file'] = $file_to_rel;
+                $parts = pathinfo($file_to_rel);
+                foreach ($metadata['sizes'] as $size) {
+                    // Convert 'newname.jpg' to 'newname-nnnxnnn.jpg' using size from old name
+                    if (preg_match('/-\d+x\d_\./', $size['file'], $matches)) {
+                        $nnnxnnn = $matches[0];
+                        debug('nnnxnnn: ', $nnnxnnn);
+                        $size['file'] = $parts['file'] . $nnnxnnn . $parts['extension'];
+                    }
+                }
+            }
+            debug('changed metadata: ', $metadata);
+            $serialized = serialize($metadata);
+            $sql = "update $wpdb->postmeta
+                       set meta_value = $serialized
+                     where post_id = $post_id
+                       and meta_key = '_wp_attachment_metadata'";
+            $rc = $wpdb->update($wpdb->postmeta,
+                                ['meta_value' => $serialized],
+                                ['post_id' => $post_id, 'meta_value' => '_wp_attachment_metadata']);
+            if ($rc === false) {
+                throw new Exception('Failed to update attachment metadata');
+            }
+            debug('nmc: update metadata got rc ', $rc);
+
+            // TODO _wp_attachment_backup_sizes
+        }
+
+
+        // Update the text of posts and pages -- for moving folders as well as files
+        #$sql = "select * from $wpdb->posts
+        $sql = "update $wpdb->posts
+                   set post_content = replace(post_content, '$item_from_rel', '$item_to_rel')
+                 where post_content like '%$item_from_rel%'";
+                 #where post_type in ('post', 'page',
+            #... what about post_status?
+
+        $rc = $wpdb->query($sql);
+        debug('>>> rc', $rc);
+        if ($rc === false) {
+            throw new Exception('Failed to replace name in post content');
+        }
+        $post_count += $rc;
+
+                #update $wpdb->posts
+                   #set post_content=replace(post_content, '" . $oldu . "','" . $newu . "')
+        #$wpdb->query("commit");
+        $wpdb->query("rollback");
+        debug('temp: rolling back and re-renaming');
+        rename($item_to_path, $item_from_path);   // TEMP !!
+        ajax_response(true, "Dunnit, but rolled back.  $item_from_rel to $item_to_rel");
+
+    } catch (Exception $e) {
+        // if that fails, rename it back...
+		$wpdb->query("rollback");
+        rename($item_to_path, $item_from_to);   // puts a warning in the log on failure
+		#die("Error ".$e->getMessage());
+        ajax_response(false, $e->getMessage());
+    }
+
+    ajax_response(false, 'went too far');
 }
 // This gets called when a move arrow is clicked, with data:
 // action:    "move"
@@ -686,6 +912,7 @@ function new_move_callback () {
 // dir_to:    "/photos/"
 // items:     "AussieCricket03.jpg/AussieCricket03-125x125.jpg/AussieCricket03-150x150.jpg/AussieCricket03-200x100.jpg/AussieCricket03-200x150.jpg"
 // FIXME this doesn't seem to return anything to the front end
+//  -- yes it does, in the die() message
 function move_callback() {
     #debug('-- called move');
 	if (!test_mfm_permission()) return 0;
@@ -731,6 +958,8 @@ function move_callback() {
 		die($msg . "\n" . $same);
 	}
 
+    // Aaaargh!  it tries to rename ALL  the files before doing any db updates.
+    //  -- another reason to do things one at a time
 	for ($i=0; $i<count($items); $i++) {
 		$res = @rename($dir_from . $items[$i] , $dir_to . $items[$i]);
 		if (!$res) {
@@ -782,6 +1011,10 @@ function move_callback() {
 
             // FIXME use wpdb->update
 			#if ($wpdb->query("update $wpdb->posts set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') where post_content like '%".$oldu."%'")===FALSE) {throw new Exception('1');}
+            // FIXME this is done if it's a directory or not
+
+            // OH, maybe changing directories is easy -- don't have to do each file separately
+
             $rc = $wpdb->query("
                 update $wpdb->posts
                    set post_content=replace(post_content, '" . $oldu . "','" . $newu . "')
@@ -799,7 +1032,12 @@ function move_callback() {
                 throw new Exception('2');
             }
 
-			if ($isdir) {
+            // !!! It's a directory
+            // '<prefix>' is  usually /wp-content/uploads
+            //   assuming dir is everything after <prefix>
+            //  TODO  change <prefix>/olddir/<something that matches a base name, e.g. foo.jpg>
+            if ($isdir) {
+                // !!!! Eeek!  updating the guid
                 if ($wpdb->query("
                         update $wpdb->posts
                            set guid=replace(guid, '" . $oldu . "','" . $newu . "')
@@ -829,7 +1067,7 @@ function move_callback() {
 					if ($wpdb->query("update $wpdb->postmeta set meta_value='".$meta['file']."' where post_id=".$ids[$j]->post_id." and meta_key='_wp_attached_file'")===FALSE) {throw new Exception('5');}
 				}
 				//$wpdb->query("update $wpdb->postmeta set meta_value=CONCAT('".$subdir_to.$items[$i]."/',substr(meta_value,".(strlen($subdir_from.$items[$i]."/")+1).")) where meta_value like '".$subdir_from.$items[$i]."/%'");
-			} else {
+			} else { // It's not a dir
 				if ($wpdb->query("update $wpdb->posts set guid='" . $newu . "' where guid = '".$oldu."'")===FALSE) {throw new Exception('6');}
 				$ids = $wpdb->get_results("select post_id from $wpdb->postmeta where meta_value = '".$subdir_from.$items[$i]."'");
 				for ($j=0; $j<count($ids); $j++) {

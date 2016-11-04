@@ -65,67 +65,145 @@ mocd.ajax_count_out = function () {
 	}
 }
 
-// TODO Get rid of right-click stuff
-//
-// function name: (none)
-// description :  initialization
-// argument : (void)
-jQuery(document).ready(function() {
-	mocd.right_click_menu = new MrlRightMenuClass();
-	mocd.input_text = new MrlInputTextClass();
+// FIXME where should this go?
+mocd.display_error = function display_error (msg) {
+    console.log('display_error msg:', msg);
+    alert(msg);
+    // TODO don't (just) alert
+}
 
-	mocd.pane_left = new MrlPaneClass('mocd_left');
-	mocd.pane_right = new MrlPaneClass('mocd_right');
+mocd.new_move_items = function nmi (pane_from, pane_to) {
+    // !! just one so far
+    //var flist = [];  // list of filenames to return
+    //var isdirs = []; // temp hack!!
+    for (var i = 0; i < pane_from.dir_list.length; i++) {
+        var id = '#' + pane_from.get_chkid(i);
+        //console.log(i, id);
+        if (jQuery(id).attr('checked')) {
+            //flist.push(pane_from.dir_list[i].name);
+            //isdirs.push(pane_from.dir_list[i].isdir);
+            //
+            // LOOP sending requests one at a time...
+            //console.log(flist);
+            var data = {
+                action: 'new_mocd_move',
+                dir_from: pane_from.cur_dir,
+                dir_to:   pane_to.cur_dir,
+                item_from:  pane_from.dir_list[i].name,
+                    // !! add item_to if renaming
+                post_id:  pane_from.dir_list[i].post_id,
+                isdir:    pane_from.dir_list[i].isdir 
+            };
+            //console.log('nmi sending data: ', data);
+            // TODO do we need to do them in batches?
+            mocd.ajax_count_in();
+            // ... and dealing with a series of responses   FIXME work TODO here
+            jQuery.post(ajaxurl, data, function (response) {
+                // FIXME standard way of handling responses and errors
+                //if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
+                mocd.display_error(response);
+                //if (mocd.move_continue) {
+                //	move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
+                //} else {
+                mocd.pane_left.refresh();
+                mocd.pane_right.refresh();
+                mocd.ajax_count_out();
+                //}
+            });
+        } 
+    }
+}
 
-	mocd.pane_left.opposite = mocd.pane_right;
-	mocd.pane_right.opposite = mocd.pane_left;
+// FIXME?  this isn't in the class as claimed
+// function name: MrlPaneClass::move
+// description : moving checked files/directories
+// argument : (pane_from)pane object; (pane_to)pane object 
+mocd.pane_from = "";
+mocd.pane_to = "";
+mocd.num_par_no = 0;
+mocd.move_no = 0;
+mocd.move_cnt = 0;
+mocd.move_continue=0;
 
-	//adjust_layout();
-
-	mocd.pane_left.setdir("/");
-	mocd.pane_right.setdir("/");
-
-	jQuery(document).keydown(function (e) {
-	  if(e.shiftKey) {
-	    mocd.shift_pressed = true;
-	  }
-	});
-   	jQuery(document).mousemove(function(e){
-		mocd.mouse_x = e.pageX;
-		mocd.mouse_y = e.pageY;
-	}); 
-	jQuery(document).keyup(function(event){
-	   mocd.shift_pressed = false;
-	});
-
-	jQuery('#mocd_btn_left2right').click(function() {
-		if (mocd.ajax_count) return;
-		mocd.new_move_items(mocd.pane_left, mocd.pane_right);
-	});
-	jQuery('#mocd_btn_right2left').click(function() {
-		if (mocd.ajax_count) return;
-		mocd.new_move_items(mocd.pane_right, mocd.pane_left);
-	});
-
-
-	jQuery('#mocd_test').click(function() {
-		var data = {
-			action: 'mocd_test'
-		};
-		jQuery.post(ajaxurl, data, function(response) {
-			alert("mocd_test: "+response);
-		});
-	});
-
-	jQuery(window).resize(function() {
-		//jQuery('#debug').html(jQuery('#wpbody').height());
-		mocd.adjust_layout();
-	});
-
+mocd.move_items = function move_items (pane_from, pane_to, no) {
+	no = typeof no !== 'undefined' ? no : 0;
+	var cnt = mocd.move_cnt;
 	
-	mocd.adjust_layout();
-});
+	if (no==0) {
+		mocd.pane_from = pane_from;
+		mocd.pane_to = pane_to;
+		mocd.move_cnt = 0;
+		move_items(pane_from, pane_to, 1);
+		return;
+	}
+	
+	var num_par_no = 50;
+	mocd.num_par_no = num_par_no;
+	mocd.move_continue = 0;
+	var no_from = (no-1)*num_par_no;
+	var no_to = no_from + num_par_no-1;
 
+	//alert(no+" "+mocd.pane_from.cur_dir+"-"+mocd.pane_to.cur_dir+"   "+no_from+"-"+no_to);
+
+	var i,j;
+	var flist="";
+
+	if (pane_from.cur_dir == pane_to.cur_dir) return;
+
+	var chk_no = -1;
+	// make list of checked item
+	for (i = 0; i < pane_from.dir_list.length; i++) {
+		var attr = jQuery('#'+pane_from.get_chkid(i)).attr('checked');
+		if (attr=='checked' || attr===true) {
+			chk_no ++;
+			if (chk_no<no_from) continue;
+			if (chk_no>no_to) {
+				mocd.move_continue = 1;
+				continue;
+			}
+			cnt++;
+			//flist += pane_from.dir_list[pane_from.dir_list[i]].name + "/";
+			flist += pane_from.dir_list[i].name + "/";
+			for (j=0; j<pane_from.dir_list.length; j++) {
+				if (pane_from.dir_list[j].isthumb && pane_from.dir_list[j].parent == pane_from.dir_list[i]) {
+					flist += pane_from.dir_list[j].name + "/";
+				}
+			}
+		}
+	}
+
+	if (flist=="") {
+		if (no == 1) {
+			return;
+		}
+	}
+	flist = flist.substr(0, flist.length-1);
+	//alert(flist);
+
+	var data = {
+		action: 'mocd_move',
+		dir_from: pane_from.cur_dir,
+		dir_to: pane_to.cur_dir,
+		items: flist
+	};
+	
+	mocd.move_no = no;
+	mocd.move_cnt = cnt;
+
+	if (no == 1) {
+		mocd.ajax_count_in();
+	}
+	jQuery.post(ajaxurl, data, function(response) {
+		if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
+		if (mocd.move_continue) {
+			move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
+		} else {
+			mocd.pane_left.refresh();
+			mocd.pane_right.refresh();
+			mocd.ajax_count_out();
+		}
+	});
+}
 
 
 
@@ -171,18 +249,17 @@ var MrlPaneClass = function(id_root) {
 				newdir: dir
 			};
 			mocd.ajax_count_in();
-			jQuery.post(ajaxurl, data, function(response) {
-				if (response.search(/Success/i) < 0) alert("mocd_mkdir: "+response);
-
-				if (that.cur_dir == that.opposite.cur_dir) {
-					that.refresh();
-					that.opposite.refresh();
-				} else {
-					that.refresh();
-				}
-
-				mocd.ajax_count_out();
-			});
+            jQuery.post(ajaxurl, data, function(response) {
+                if (response.success) {
+                    alert("mocd_mkdir: "+response.message);
+                } else {
+                    that.refresh();
+                    if (that.cur_dir == that.opposite.cur_dir) {
+                        that.opposite.refresh();
+                    }
+                }
+                mocd.ajax_count_out();
+            });
 		});
 	});
 
@@ -221,9 +298,13 @@ MrlPaneClass.prototype.setdir = function(dir) {
 	var that = this;
 	mocd.ajax_count_in();
 	jQuery.post(ajaxurl, data, function(response) {
-        // Process the json directory from ajax,
-        // create the html, and store the list
-		that.dir_list = that.dir_ajax(data.dir, response);
+        if (response.success) {
+            // Process the json directory from ajax,
+            // create the html, and store the list
+            that.dir_list = that.dir_ajax(data.dir, response.data);
+        } else {
+            alert(response.message);
+        }
 		mocd.ajax_count_out();
 	});
 }
@@ -231,52 +312,29 @@ MrlPaneClass.prototype.setdir = function(dir) {
 // function name: MrlPaneClass::dir_ajax
 // description : display directory list sent from server
 //               in response to mocd_getdir ajax request              
-// argument : (dir)target_dir: target directory; (response):list(JSON); 
-// response is the array of directory items
-//  -- elements used: name, isthumb, thumbnail_url
-//      (isdir and id no longer used here, but are passed back)
-// returns the dir array
-MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
-//    // Looking at response as a string is silly  
-//	if (response.search(/error/i) == 0) {	
-//		alert(response);
-//		jQuery('#'+this.id_wrapper).css('cursor:default');  // FIXME need a 'reset cursor' function'
-//		return;
-//	}
-//
-//	response = jQuery.trim(response);
-//	if (response=="") {
-//		jQuery('#'+this.id_pane).html("");
-//		return new Array();
-//	}
-	var dir;
+// FIXME rename this function
+MrlPaneClass.prototype.dir_ajax = function (target_dir, dir) {
+	//var dir;
     var thispane = this;
 
 	this.cur_dir = target_dir;
-	jQuery('#'+this.id_dir).text(target_dir);
+	jQuery('#' + this.id_dir).text(target_dir);
 	this.disp_num = 0;
-	
-    try {
-		//response = response.substr(0, response.length-1);
-		dir = JSON.parse(response);
-	} catch (err) {
-        display_error('Invalid response when getting directory listing');
-        return;
-		//alert(response + " : " + mocd_toHex(response));
-		//document.write('<table border="3"><tr><td width="200">');
-		//document.write("<pre>"+err+"\n"+response+"</pre>");
-		//document.write("</td></tr></table>");
-        // FIXME should skip the rest of the html-building stuff here.
-        // as done for response.search test above.
-	}
 
-    if (dir.error) {
-        display_error(dir.error);
-        return;
-    }
+    // it's already un-JSON'd    
+    //try {
+	//	dir = JSON.parse(data);
+	//} catch (err) {
+    //    mocd.display_error('Invalid response when parsing directory listing');
+    //    return;
+	//}
+
+    //if (dir.error) {
+    //    mocd.display_error(dir.error);
+    //    return;
+    //}
     
 	var html = "";
-	var that = this;
     var thumb_url = '';
 	this.last_chk_id = "";
 
@@ -290,7 +348,6 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
 
     // Display all items as a list
 	for (i = 0; i < dir.length; i++) {
-//        html += '<li>';
         // ignore 'thumbnails' -- the flag is on for everything that isn't a parent!
         // i.e. everything except 'real' items 
 		///if (dir[i].isthumb) continue;
@@ -306,7 +363,8 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
 		} else {
             thumb_url = 'notfound.jpg';
         }
-		html += '<img class=mocd_pane_img src="' + thumb_url + '">';
+        var dirclass = item.isdir ? ' mocd_isdir' : '';
+		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '">';
 		html += '</div><div class="mocd_filename">';
 		html += item.name; //mocd_ins8203(dir[i].name)/*+" --- " + dir[i].isdir+ (dir[i].id!=""?" "+dir[i].id:"")*/;
 		html += '</div>';
@@ -348,6 +406,8 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, response) {
     return dir;
 }
 
+// TODO a new 'set_checkboxes' function that disables checkboxes
+// for items that have items with the same name in the opposite pane
 
 // function name: MrlPaneClass::prepare_checkboxes
 // description : prepare event for checkboxes and right-click events(mkdir, rename)
@@ -528,147 +588,13 @@ MrlPaneClass.prototype.chdir = function(dir) {
 	this.setdir(new_dir);
 }
 
+// Handle the Action drop-down -- rename, move, or delete.
+MrlPaneClass.prototype.actions = function (action) {
+    console.log('action = ', action);
+}
+
 
 // ----------- End of class definition 
-
-// function name: mocd_ins8203
-// description : 
-// argument : (str)
-function mocd_ins8203 (str) {
-    return str;  // FIXME what's this for??   8203 is a zero-width space
-	var ret = "", i, str = str || '';
-	for (i = 0; i < str.length; i += 3) {
-		ret += str.substr(i, 3);
-		ret += '&#8203;'
-	}
-	return ret;
-}
-
-// FIXME where should this go?
-function display_error (text) {
-    // TODO don't (just) alert
-    alert(text);
-}
-
-mocd.new_move_items = function nmi (pane_from, pane_to) {
-    var flist = [];  // list of filenames to return
-    for (var i = 0; i < pane_from.dir_list.length; i++) {
-        if (jQuery('#' + pane_from.get_divid(i)).attr('checked')) {
-           flist.push(pane_from.dir_list[i].name);
-        } 
-    }
-	var data = {
-		action: 'new_mocd_move',
-		dir_from: pane_from.cur_dir,
-		dir_to: pane_to.cur_dir,
-		items: flist
-	};
-    console.log('nmi sending data: ', data);
-    // TODO do we need to do them in batches?
-    mocd.ajax_count_in();
-	jQuery.post(ajaxurl, data, function (response) {
-		if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
-		//if (mocd.move_continue) {
-		//	move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
-		//} else {
-			mocd.pane_left.refresh();
-			mocd.pane_right.refresh();
-			mocd.ajax_count_out();
-		//}
-	});
-}
-
-// FIXME?  this isn't in the class as claimed
-// function name: MrlPaneClass::move
-// description : moving checked files/directories
-// argument : (pane_from)pane object; (pane_to)pane object 
-mocd.pane_from = "";
-mocd.pane_to = "";
-mocd.num_par_no = 0;
-mocd.move_no = 0;
-mocd.move_cnt = 0;
-mocd.move_continue=0;
-
-mocd.move_items = function move_items (pane_from, pane_to, no) {
-	no = typeof no !== 'undefined' ? no : 0;
-	var cnt = mocd.move_cnt;
-	
-	if (no==0) {
-		mocd.pane_from = pane_from;
-		mocd.pane_to = pane_to;
-		mocd.move_cnt = 0;
-		move_items(pane_from, pane_to, 1);
-		return;
-	}
-	
-	var num_par_no = 50;
-	mocd.num_par_no = num_par_no;
-	mocd.move_continue = 0;
-	var no_from = (no-1)*num_par_no;
-	var no_to = no_from + num_par_no-1;
-
-	//alert(no+" "+mocd.pane_from.cur_dir+"-"+mocd.pane_to.cur_dir+"   "+no_from+"-"+no_to);
-
-	var i,j;
-	var flist="";
-
-	if (pane_from.cur_dir == pane_to.cur_dir) return;
-
-	var chk_no = -1;
-	// make list of checked item
-	for (i = 0; i < pane_from.dir_list.length; i++) {
-		var attr = jQuery('#'+pane_from.get_chkid(i)).attr('checked');
-		if (attr=='checked' || attr===true) {
-			chk_no ++;
-			if (chk_no<no_from) continue;
-			if (chk_no>no_to) {
-				mocd.move_continue = 1;
-				continue;
-			}
-			cnt++;
-			//flist += pane_from.dir_list[pane_from.dir_list[i]].name + "/";
-			flist += pane_from.dir_list[i].name + "/";
-			for (j=0; j<pane_from.dir_list.length; j++) {
-				if (pane_from.dir_list[j].isthumb && pane_from.dir_list[j].parent == pane_from.dir_list[i]) {
-					flist += pane_from.dir_list[j].name + "/";
-				}
-			}
-		}
-	}
-
-	if (flist=="") {
-		if (no == 1) {
-			return;
-		}
-	}
-	flist = flist.substr(0, flist.length-1);
-	//alert(flist);
-
-	var data = {
-		action: 'mocd_move',
-		dir_from: pane_from.cur_dir,
-		dir_to: pane_to.cur_dir,
-		items: flist
-	};
-	
-	mocd.move_no = no;
-	mocd.move_cnt = cnt;
-
-	if (no == 1) {
-		mocd.ajax_count_in();
-	}
-	jQuery.post(ajaxurl, data, function(response) {
-		if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
-		if (mocd.move_continue) {
-			move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
-		} else {
-			mocd.pane_left.refresh();
-			mocd.pane_right.refresh();
-			mocd.ajax_count_out();
-		}
-	});
-}
-
 
 //**** right-click menu class *******************************************************************
 var MrlRightMenuClass = function() {
@@ -726,13 +652,21 @@ MrlRightMenuClass.prototype.get_item_id = function(n) {
 
 //**** Text input form class *******************************************************************
 var MrlInputTextClass = function() {
-	var flgRegisterRemoveFunc = false;
-	var pos_left = 0;
-	var pos_right = 0;
-	var result = "";
-	var flgOK = false;
-	var callback;
-    var invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
+    // wtf?
+	//var flgRegisterRemoveFunc = false;
+	this.flgRegisterRemoveFunc = false;
+	//var pos_left = 0;
+	this.pos_left = 0;
+	//var pos_right = 0;
+	this.pos_right = 0;
+	//var result = "";
+	this.result = "";
+	//var flgOK = false;
+	this.flgOK = false;
+	//var callback;
+	this.callback;
+    //var invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
+    this.invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
 }
 
 // function name: MrlInputTextClass::make
@@ -829,6 +763,78 @@ MrlInputTextClass.prototype.invalid_chr_msg = function() {
 	}
 	return msg;
 }
+
+
+
+// TODO Get rid of right-click stuff
+//
+// function name: (none)
+// description :  initialization
+// argument : (void)
+jQuery(document).ready(function() {
+	mocd.right_click_menu = new MrlRightMenuClass();
+	mocd.input_text = new MrlInputTextClass();
+
+	mocd.pane_left = new MrlPaneClass('mocd_left');
+	mocd.pane_right = new MrlPaneClass('mocd_right');
+
+	mocd.pane_left.opposite = mocd.pane_right;
+	mocd.pane_right.opposite = mocd.pane_left;
+
+	//adjust_layout();
+
+	mocd.pane_left.setdir("/");
+	mocd.pane_right.setdir("/");
+
+	//jQuery(document).keydown(function (e) {
+	//  if(e.shiftKey) {
+	//    mocd.shift_pressed = true;
+	//  }
+	//});
+    // Track mouse position for dialogue boxes
+   	jQuery(document).mousemove(function(e){
+		mocd.mouse_x = e.pageX;
+		mocd.mouse_y = e.pageY;
+	}); 
+	//jQuery(document).keyup(function(event){
+	//   mocd.shift_pressed = false;
+	//});
+
+	jQuery('#mocd_btn_left2right').click(function() {
+		if (mocd.ajax_count) return;
+		mocd.new_move_items(mocd.pane_left, mocd.pane_right);
+	});
+	jQuery('#mocd_btn_right2left').click(function() {
+		if (mocd.ajax_count) return;
+		mocd.new_move_items(mocd.pane_right, mocd.pane_left);
+	});
+
+    jQuery('#mocd_left_button_go').on('click', function () {
+        var action = jQuery('#mocd_left_action select').val();
+        mocd.pane_left.actions(action);
+    });
+    jQuery('#mocd_right_button_go').on('click', function () {
+        var action = jQuery('#mocd_right_action select').val();
+        mocd.pane_right.actions(action);
+    });
+
+	jQuery('#mocd_test').click(function() {
+		var data = {
+			action: 'mocd_test'
+		};
+		jQuery.post(ajaxurl, data, function(response) {
+			alert("mocd_test: "+response);
+		});
+	});
+
+	jQuery(window).resize(function() {
+		//jQuery('#debug').html(jQuery('#wpbody').height());
+		mocd.adjust_layout();
+	});
+
+	
+	mocd.adjust_layout();
+});
 
 
 
