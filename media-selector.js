@@ -1,21 +1,21 @@
 /**
  */
 
-var MrlMediaSelector = function() {
+var MOCDMediaSelector = function() {
 
 	// this function is called when the insert button is pressed.
 	this.onClickSubmitButton = function(html)
 	{
-		self.parent.onMrlMediaSelector_ShortCode( html );
+		self.parent.onMOCDMediaSelector_ShortCode( html );
 	};
 };
 
-//唯一の MrlMediaSelector インスタンスを生成
-var MrlMediaSelector = new MrlMediaSelector();
+//唯一の MOCDMediaSelector インスタンスを生成
+var MOCDMediaSelector = new MOCDMediaSelector();
 
 window.onload = function()
 {
-	//MrlMediaSelector.initialize();
+	//MOCDMediaSelector.initialize();
 };
 
 
@@ -354,7 +354,7 @@ function mocd_open_selector_insert_dialog_main(dat)
 			}
 		}
 
-		MrlMediaSelector.onClickSubmitButton(html);
+		MOCDMediaSelector.onClickSubmitButton(html);
 
 	});
 }

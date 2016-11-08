@@ -48,8 +48,8 @@ function plugin_menu () {
 		/*  add a configuration screen  */
         add_submenu_page(
             'upload.php',
-            'Media File Manager',
-            'Media File Manager',
+            'Media File Manager CD',
+            'Media File Manager CD',
             $role,
             'mrelocator-submenu-handle',
             NS . 'display_config');
@@ -568,7 +568,7 @@ function rename_callback() {
 	$subdir = get_subdir($dir);
 
 	try {
-		if ($wpdb->query("START TRANSACTION")===false) {throw new Exception('1');}
+		if ($wpdb->query("START TRANSACTION")===false) {throw new \Exception('1');}
 
 		for ($i=0; $i<count($old); $i++) {
 			$oldp = $dir . $old[$i];	//old path
@@ -591,17 +591,17 @@ function rename_callback() {
                               set post_content = replace(post_content, '" . $oldu . "','" . $newu . "')
                               where post_content like '%".$oldu."%'")
                 === FALSE) {
-                throw new Exception('2');
+                throw new \Exception('2');
             }
             if ($wpdb->query("update $wpdb->postmeta
                              set meta_value=replace(meta_value, '" . $oldu . "','" . $newu . "')
                              where meta_value like '%".$oldu."%'")
                 === FALSE) {
-                throw new Exception('3');
+                throw new \Exception('3');
             }
 
 			if (is_dir($newp)) {
-				if ($wpdb->query("update $wpdb->posts set guid=replace(guid, '" . $oldu . "','" . $newu . "') where guid like '".$oldu."%'")===FALSE)  {throw new Exception('4');}
+				if ($wpdb->query("update $wpdb->posts set guid=replace(guid, '" . $oldu . "','" . $newu . "') where guid like '".$oldu."%'")===FALSE)  {throw new \Exception('4');}
 				//$wpdb->query("update $wpdb->postmeta set meta_value=CONCAT('".$subdir.$new[$i]."/',substr(meta_value,".(strlen($subdir.$old[$i]."/")+1).")) where meta_value like '".$subdir.$old[$i]."/%'");
 
 				$ids = $wpdb->get_results("select post_id from $wpdb->postmeta where meta_value like '".$subdir.$old[$i]."/%'");
@@ -609,33 +609,33 @@ function rename_callback() {
 					$meta = wp_get_attachment_metadata($ids[$j]->post_id);
 					//CONCAT('".$subdir.$new[$i]."/',substr(meta_value,".(strlen($subdir.$old[$i]."/")+1)."))
 					$meta['file'] = $subdir.$new[$i]."/".substr($meta['file'], strlen($subdir.$old[$i]."/"));
-					if (!wp_update_attachment_metadata($ids[$j]->post_id, $meta))  {throw new Exception('5');}
+					if (!wp_update_attachment_metadata($ids[$j]->post_id, $meta))  {throw new \Exception('5');}
 					$wpdb->query("update $wpdb->postmeta set meta_value='".$meta['file']."' where post_id=".$ids[$j]->post_id." and meta_key='_wp_attached_file'");
 				}
 			} else {
 				if ($i==0) {
 					$res = $wpdb->get_results("select post_id from $wpdb->postmeta where meta_key='_wp_attached_file' and meta_value='".$olda."'");
 					if (count($res)) {
-						if ($wpdb->query("update $wpdb->postmeta set meta_value='" . $newa . "' where meta_value = '".$olda."'")===FALSE)  {throw new Exception('6');}
+						if ($wpdb->query("update $wpdb->postmeta set meta_value='" . $newa . "' where meta_value = '".$olda."'")===FALSE)  {throw new \Exception('6');}
 						$id = $res[0]->post_id;
 						$pt=pathinfo($newa);
-						if ($wpdb->query("update $wpdb->posts set guid='".$newu."', post_title='".$pt['filename']."' where ID = '".$id."'")===FALSE)  {throw new Exception('7');}
+						if ($wpdb->query("update $wpdb->posts set guid='".$newu."', post_title='".$pt['filename']."' where ID = '".$id."'")===FALSE)  {throw new \Exception('7');}
 
 						$meta = wp_get_attachment_metadata($id);
 						foreach ($smallimgs as $key => $value) {
 							$meta['sizes'][$key]['file'] = $smallimgs[$key]['new'];
 						}
 						$meta['file'] = $subdir . $new[$i];
-						if (wp_update_attachment_metadata($id, $meta)===FALSE)  {throw new Exception('8');}
+						if (wp_update_attachment_metadata($id, $meta)===FALSE)  {throw new \Exception('8');}
 					}
 				}
 			}
 		}
 
-		if ($rc=$wpdb->query("COMMIT") === FALSE) {throw new Exception('9');}
+		if ($rc=$wpdb->query("COMMIT") === FALSE) {throw new \Exception('9');}
 
 		die("Success");
-	} catch (Exception $e) {
+	} catch (\Exception $e) {
 		$wpdb->query("ROLLBACK");
 		for ($j=0; $j<count($new); $j++) {
             // FIXME @
@@ -665,11 +665,51 @@ function ajax_response ($success = false, $message = '', $data = []) {
     wp_die();
 }
 
+// Create a new secondary filename, given the old
+// and new names.
+// e.g. changing main filename from foo.jpg to bar.png
+// when the old secondary name is foo-123x456.jpg,
+// the new secondary name will be bar-123x456.png
+function new_secondary_name ($new, $oldsec) {
+    $newparts = pathinfo($new);
+    print_r($newparts);
+    $newsec = $oldsec;
+    if (preg_match('/-\d+x\d+\./', $oldsec, $matches)) {
+        $nnnxnnn = $matches[0];
+        echo 'nnnxnnn: ', $nnnxnnn, "\n";
+        $newsec = $newparts['filename'] . $nnnxnnn . $newparts['extension'];
+    }
+    return $newsec;
+}
+
+// Update the content of all posts with replacement text
+// Throws on error.
+// Returns the number of updates
+function update_posts_content ($old, $new, $source = '') {
+    if ($old == $new) {
+        debug('old = new, doing nothing: ', $old);
+        return 0;
+    }
+    debug("updating posts from '$old' to '$new' $source");
+    global $wpdb;
+    $sql = "update $wpdb->posts
+               set post_content = replace(post_content, '$old', '$new')
+             where post_content like '%$old%'";
+    $rc = $wpdb->query($sql);
+    if ($rc === false) {
+        throw new \Exception('Failed to update post content');
+    }
+    return $rc;
+}
+
 // New plan -- do them one at a time (JS does the loop).
 // Why?
 // - JS can show a progress bar
 // - reduces chances of PHP timeouts
 // - makes it more atomic  -- just rename one thing and do the associated db updates
+
+// FIXME moving e.g. /test/ into /private/ fails to update posts 
+//  with /test/img.jpg to /private/test/img.jpg
 //
 // This gets called when a move arrow is clicked, with data:
 // action:    "move"
@@ -678,35 +718,41 @@ function ajax_response ($success = false, $message = '', $data = []) {
 // item:     single item e.g. "AussieCricket03.jpg"
 // Returns an array: 0 for failure, 1 for success, !! perhaps need a reason too, e.g. permissions, already exists, db failed etc.
 //  !!! Does renaming too.
+
+
+// FIXME oh no!  permalinks like http://dev.fordingbridge-rotary.org.uk/post-with-thumbnail-and-link-to-fullsize/p1040025/
+//  get broken when it's moved
 function new_move_callback () {
-    $response = [ 'result' => 'Fail' ];
+    global $wpdb;
+    // Keep a list of renamed files in case we need to rollback
+    $renamed = [];
+
     if (!test_mfm_permission()) {
         ajax_response(false, 'no permission');
     }
+
     // TODO these don't work for some reason
     // -- because filter_input only sees the original contents of $_GET,
     //    not the results of $_GET['foo']='bar' -- which is what the AJAX code does
-	#$dir_from = filter_input(FILTER_POST, 'dir_from', FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_from']);
-	#$dir_to   = filter_input(FILTER_POST, 'dir_to',   FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_to']);
+    #$dir_from = filter_input(FILTER_POST, 'dir_from', FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_from']);
+    #$dir_to   = filter_input(FILTER_POST, 'dir_to',   FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_to']);
     #$item     = filter_input(FILTER_POST, 'item',     FILTER_SANITIZE_STRING); //stripslashes($_POST['item']);
     // ...so use
-	$dir_from  = get_post('dir_from'); #stripslashes($_POST['dir_from']);  // e.g. '/' or '/photos/'
-	$dir_to    = get_post('dir_to');   #stripslashes($_POST['dir_to']);    //    ditto
+    $dir_from  = get_post('dir_from'); #stripslashes($_POST['dir_from']);  // e.g. '/' or '/photos/'
+    $dir_to    = get_post('dir_to');   #stripslashes($_POST['dir_to']);    //    ditto
     $item_from = get_post('item_from');  #stripslashes($_POST['item_to']);  // e.g. 'foo.jpg' or 'images/foo.jpg'.  NOTE no leading '/'
-                                               //   and it's relative to $dir_from
+    //   and it's relative to $dir_from
     $item_to   = get_post('item_to'); #stripslashes($_POST['item_from']);
     if (!$item_to) {
         $item_to = $item_from;
     }
     $post_id   = get_post('post_id'); #stripslashes($_POST['post_id']);
-    $isdir     = get_post('isdir');  #stripslashes($_POST['isdir']);
+    $isdir     = get_post('isdir') == 'true';  #stripslashes($_POST['isdir']);
     debug("nmc: dir_from='$dir_from' dir_to='$dir_to' item_from='$item_from' item_to='$item_to' post_id=$post_id isdir='$isdir'");
-
-    // TODO for renaming need item_from AND item_to -- in which case there's only one dir
-    // -- maybe renaming is too different
 
     // TODO check if the expected inputs are present
     if ($dir_from == $dir_to) {
+        // TODO is this success or fail?
         ajax_response(false, 'same dir');
     }
     // dirs are e.g. '/' or '/private/' or '2015/10' relative to UPLOAD_DIR
@@ -718,8 +764,7 @@ function new_move_callback () {
     if (!file_exists($path_to)) {
         ajax_response(false, "Folder '" . $dir_to . "' does not exist");
     }
-    // TODO ? need to check if item_from_path exists? == yes 
-    #echo "nmc: from='$dir_from' to='$dir_to' item='$item' isdir='$isdir' ";
+    // TODO ? need to check if item_from_path exists? == yes
     $item_from_path     = UPLOAD_DIR . $dir_from . $item_from;       // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
     $item_to_path       = UPLOAD_DIR . $dir_to   . $item_to;
     $item_from_rel = UPLOAD_DIR_REL . $dir_from . $item_from;   // relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
@@ -732,54 +777,66 @@ function new_move_callback () {
         ajax_response(false, 'exists');
     }
 
-    // move, i.e. rename
+    // Keep a list of renamed files in case we need to rollback
+    $renamed = [];
+
     debug("renaming $item_from_path to $item_to_path");
     if (!rename($item_from_path, $item_to_path)) {  // puts a warning in the log on failure
         debug('...rename failed');
         ajax_response(false, 'rename failed');
     }
+    $renamed[] = ['from' => $item_from_path, 'to' => $item_to_path];
 
     // Update the databaseo
     // ?? wp_check_post_lock(id) to see if any post is locked
     // -- probably too much work.  maintenance mode?
 
-    // The codex at https://codex.wordpress.org/Changing_The_Site_URL#Important_GUID_Note says:
-    //    Never, ever, change the contents of the GUID column, under any circumstances.
-    //    If the default uploads folder needs to be changed to a different location,
-    //    then any media URLs will need to be changed in the post_content column of
-    //    the posts table. For example, if the default uploads folder is changing from wp-content/uploads to images:
-    //   UPDATE wp_posts SET post_content = REPLACE(post_content,'www.domain.com/wp-content/uploads','www.domain.com/images');
+    try {
 
-    // Regex for matching an attachment url in a post's content...
-    // It will usually look like:
-    //   src="http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/photos/otherphotos/AussieCricket04.jpg"
-    // or
-    //   src="/wp-content/uploads/photos/otherphotos/AussieCricket04.jpg"
-    //
-    // The '/wp-content/uploads'  part is in UPLOAD_URL_REL
-    // If we're changing a directory, we'll be changing the bit between UPLOAD_URL_REL and the basename
+        // The codex at https://codex.wordpress.org/Changing_The_Site_URL#Important_GUID_Note says:
+        //    Never, ever, change the contents of the GUID column, under any circumstances.
+        //    If the default uploads folder needs to be changed to a different location,
+        //    then any media URLs will need to be changed in the post_content column of
+        //    the posts table. For example, if the default uploads folder is changing from wp-content/uploads to images:
+        //   UPDATE wp_posts SET post_content = REPLACE(post_content,'www.domain.com/wp-content/uploads','www.domain.com/images');
 
-    // Match the basename with [^/]+\w*["'] (any chars not a slash, optional space, quote)
-    // (these are URLs, so the separator is always /)
-    // $item_from is something like /private/foo.jpg
-    // Match the bit befiore the item with src\w*=\w*["']\w* . UPLOAD_URL_REL
-    // ... no, that won't work for things using <source> etc.
-    // Hmmm, only MariaDB has regexp-replace , so manage withddout
-    #$prefix_reg = 'src\w*=\w*["\']\w*'; # . UPLOAD_URL_REL;
-    #$item_reg = $prefix_reg . $item_from;
-    #debug('prefix_reg', $prefix_reg);
-    #debug('item_reg', $item_reg);
+        // Regex for matching an attachment url in a post's content...
+        // It will usually look like:
+        //   src="http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/photos/otherphotos/AussieCricket04.jpg"
+        // or
+        //   src="/wp-content/uploads/photos/otherphotos/AussieCricket04.jpg"
+        //
+        // The '/wp-content/uploads'  part is in UPLOAD_URL_REL
+        // If we're changing a directory, we'll be changing the bit between UPLOAD_URL_REL and the basename
 
-    global $wpdb;
-    $post_count = 0;
-	try {
+        // Match the basename with [^/]+\w*["'] (any chars not a slash, optional space, quote)
+        // (these are URLs, so the separator is always /)
+        // $item_from is something like /private/foo.jpg
+        // Match the bit befiore the item with src\w*=\w*["']\w* . UPLOAD_URL_REL
+        // ... no, that won't work for things using <source> etc.
+        // Hmmm, only MariaDB has regexp-replace , so manage withddout
+        #$prefix_reg = 'src\w*=\w*["\']\w*'; # . UPLOAD_URL_REL;
+        #$item_reg = $prefix_reg . $item_from;
+        #debug('prefix_reg', $prefix_reg);
+        #debug('item_reg', $item_reg);
+
+        $post_count = 0;
         if ($wpdb->query("start transaction") === false) {
-            throw new Exception('Failed to start transaction');
+            throw new \Exception('Failed to start transaction');
         }
 
-        // FIXME isdir is on for a file
-        debug('==== isdir: ', ($isdir ? 'yes' : 'no'));
-        if (1) { #!$isdir) {
+        // Accumulate list of edits...
+        $edits = [];
+
+        if ($isdir) {
+
+            // Directory -- just rename it in every post it appears in
+            $edits[] = ['a' => 'dir', 'from' => $item_from_rel, 'to' => $item_to_rel];
+
+        } else {
+
+            // Not a directory
+
             // Update the attachment itself -- the wp_posts entry is of type 'attachment',
             // but does not have the filename, that's in wp_postmeta with key '_wp_attached_file'
             // ('replace' replaces all occurrences in the string)
@@ -787,25 +844,25 @@ function new_move_callback () {
             // with NO leading '/', e.g. 'foo.jpg' or 'photos/foo.jpg'
             // e.g. from / to
 
-            $file_from_rel = ltrim($dir_from, '/') . $item_from;   // relative to upload dir
+            $file_from_rel = ltrim($dir_from, '/') . $item_from;   // relative to upload dir e.g. photos/thing.jpg
             $file_to_rel   = ltrim($dir_to,   '/') . $item_to;
-            debug("updating attachment from $file_from_rel to $file_to_rel");
+            debug("updating attachment with $file_to_rel");
             $sql = "update $wpdb->postmeta
-                       set meta_value = replace(meta_value, '$file_from_rel', '$file_to_rel')
-                     where post_id = $post_id
-                       and meta_key = '_wp_attached_file'
-
-                       and meta_value like '%$file_from_rel%'";
+                set meta_value = '$file_to_rel'  -- replace(meta_value, '$file_from_rel', '$file_to_rel')
+                where post_id = $post_id
+                and meta_key = '_wp_attached_file'";
             debug('>>> sql:', $sql);
             $rc = $wpdb->query($sql);
             debug('>>> rc', $rc);
             if ($rc === false) {
-                throw new Exception('Failed to replace name in attachment');
+                throw new \Exception('Failed to replace name in attachment');
             }
             if ($rc != 1) {
                 debug('!!!!!! unexpected number of attachments renamed: ', $rc);
             }
-            $post_count += $rc;
+            // Note the edit
+            #??$edits[] = ['a' => 'main', 'from' => $file_from_rel, 'to' => $file_to_rel];
+            $edits[] = ['a' => 'main', 'from' => $item_from_rel, 'to' => $item_to_rel];
 
 
             // RENAME if we use the same code, renaming will need to update
@@ -814,98 +871,233 @@ function new_move_callback () {
             // -- that will need to item names passed in.
 
             // attachment metadata has serialized data -- if changing strings,
-           // need to change the length!! so have to get it, unpack it, change it, pack it, update it
+            // need to change the length!! so have to get it, unpack it, change it, pack it, update it
             debug("updating attachment metadata...");
+            $metadata = wp_get_attachment_metadata($post_id, true); // true for no filtering
+            /*
             $sql = "select meta_id, post_id, meta_key, meta_value
-                      from $wpdb->postmeta
-                     where post_id = $post_id
-                       and meta_key = '_wp_attachment_metadata'";
+                from $wpdb->postmeta
+                where post_id = $post_id
+                and meta_key = '_wp_attachment_metadata'";
             $row = $wpdb->get_row($sql, ARRAY_A);
+             
             if (is_null($row)) {
-                throw new Exception('Failed to get attachment with post_id ' . $post_id);
-            }
-            debug('results: ', $row);
-            $metadata = unserialize($row['meta_value']);
-            debug('metadata: ', $metadata);
-            // Metadata is like:
-            //    [width] => 400
-            //    [height] => 600
-            //    [file] => photos/avonway-plate.jpg
-            //    [sizes] => Array
-            //    (
-            //        [thumbnail] => Array
-            //        (
-            //            [file] => avonway-plate-150x150.jpg
-            //            [width] => 150
-            //            [height] => 150
-            //            [mime-type] => image/jpeg
-            //        )
-            //   )
-            // Filenames for each size don't have the path, so only need the next bit
-            // if renaming
-            if ($item_to != $item_from) {
+             */
+            if ($metadata === false) {
+                debug('nmc: theres no metadata, thats ok');
+                #throw new \Exception('Failed to get attachment with post_id ' . $post_id);
+            } else {
+                #debug('results: ', $row);
+                #$metadata = unserialize($row['meta_value']);
+                debug('metadata: ', $metadata);
+                // Metadata is like:
+                //    [width] => 400
+                //    [height] => 600
+                //    [file] => photos/avonway-plate.jpg
+                //    [sizes] => Array
+                //    (
+                //        [thumbnail] => Array
+                //        (
+                //            [file] => avonway-plate-150x150.jpg
+                //            [width] => 150
+                //            [height] => 150
+                //            [mime-type] => image/jpeg
+                //        )
+                //   )
                 $metadata['file'] = $file_to_rel;
-                $parts = pathinfo($file_to_rel);
-                foreach ($metadata['sizes'] as $size) {
-                    // Convert 'newname.jpg' to 'newname-nnnxnnn.jpg' using size from old name
-                    if (preg_match('/-\d+x\d_\./', $size['file'], $matches)) {
-                        $nnnxnnn = $matches[0];
-                        debug('nnnxnnn: ', $nnnxnnn);
-                        $size['file'] = $parts['file'] . $nnnxnnn . $parts['extension'];
-                    }
-                }
-            }
-            debug('changed metadata: ', $metadata);
-            $serialized = serialize($metadata);
-            $sql = "update $wpdb->postmeta
-                       set meta_value = $serialized
-                     where post_id = $post_id
-                       and meta_key = '_wp_attachment_metadata'";
-            $rc = $wpdb->update($wpdb->postmeta,
-                                ['meta_value' => $serialized],
-                                ['post_id' => $post_id, 'meta_value' => '_wp_attachment_metadata']);
-            if ($rc === false) {
-                throw new Exception('Failed to update attachment metadata');
-            }
-            debug('nmc: update metadata got rc ', $rc);
 
-            // TODO _wp_attachment_backup_sizes
+                // Move secondary files, renaming if required
+                foreach ($metadata['sizes'] as $sizename => $size) {
+                    $oldsec = $size['file'];
+                    $newsec = '';
+                    if ($item_to == $item_from) {
+                        $newsec = $oldsec;
+                    } else {
+                        $newsec = new_secondary_name($item_to, $oldsec);
+                        // Change it in the metadata
+                        $metadata['sizes'][$sizename]['file'] = $newsec;
+                    }
+                    $path_from = UPLOAD_DIR . $dir_from . $oldsec;
+                    $path_to   = UPLOAD_DIR . $dir_to   . $newsec;
+                    debug("renaming $path_from to $path_to");
+                    if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
+                        throw new \Exception("Failed to rename $path_from to $path_to");
+                    }
+                    $renamed[] = ['from' => $path_from, 'to' => $path_to];
+                    // Note the edit
+                    #$edits[] = ['a' => 'metadata', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
+                    $edits[] = ['a' => 'metadata', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
+                    #'P1040025.jpg' to '/wp-content/uploadsP1040025.jpgP1040025-150x150.jpg'
+                    // TODO edit posts containing the secondary name too!
+                    // TODO ?? optimization -- posts often have e.g. the thumbnail and a link to the full size one,
+                    //      so need two edits.
+                }
+
+                debug('changed metadata: ', $metadata);
+                /*
+                $serialized = serialize($metadata);
+                $rc = $wpdb->update($wpdb->postmeta,
+                    ['meta_value' => $serialized],
+                    ['post_id' => $post_id, 'meta_value' => '_wp_attachment_metadata']);
+                if ($rc === false) {
+                */
+                if (wp_update_attachment_metadata($post_id, $metadata) === false) {
+                    throw new \Exception('Failed to update attachment metadata');
+                }
+                #debug('nmc: update metadata got rc ', $rc);
+
+                // Then do much the same for backup sizes (created by WP when the image is edited)
+
+                // TODO _wp_attachment_backup_sizes
+                // Typical data:
+                // (
+                //    [full-orig] => Array
+                //    (
+                //        [width] => 2160
+                //        [height] => 1440
+                //        [file] => P1040028.jpg
+                //    )
+                //    [thumbnail-orig] => Array
+                //    (
+                //        [file] => P1040028-150x150.jpg
+                //        [width] => 150
+                //        [height] => 150
+                //        [mime-type] => image/jpeg
+                //    )
+                //    [medium-orig] => Array
+                //    (
+                //        [file] => P1040028-300x200.jpg
+                //        [width] => 300
+                //        [height] => 200
+                //        [mime-type] => image/jpeg
+                //    )
+                //    [medium_large-orig] => Array (
+                //        [file] => P1040028-768x512.jpg
+                //        [width] => 768
+                //        [height] => 512
+                //        [mime-type] => image/jpeg
+                //    )
+                //    [post-thumbnail-orig] => Array
+                //    (
+                //        [file] => P1040028-125x125.jpg
+                //        [width] => 125
+                //        [height] => 125
+                //        [mime-type] => image/jpeg
+                //    )
+                // ... and if there are subsequent edits, entries like
+                //    [full-1478377069693] => Array
+                // (
+                //    [width] => 1000
+                //    [height] => 667
+                //    [file] => P1040028-e1478376924462.jpg
+                // )
+                //)
+                //  but it's all in the one metadata record.
+                //TODO ?? will there be backup_sizes if no metadata?
+                debug("updating attachment backup sizes...");
+                $sql = "select meta_id, post_id, meta_key, meta_value
+                    from $wpdb->postmeta
+                    where post_id = $post_id
+                    and meta_key = '_wp_attachment_backup_sizes'";
+                $row = $wpdb->get_row($sql, ARRAY_A);
+                if (is_null($row)) {
+                    debug('nmc: therere no backup sizes, thats ok');
+                    #throw new \Exception('Failed to get attachment with post_id ' . $post_id);
+                } else {
+                    #debug('results: ', $row);
+                    $metadata = unserialize($row['meta_value']);
+                    debug('backup sizes: ', $metadata);
+
+                    // Move backup files, renaming if required
+                    foreach ($metadata as $sizename => $size) {
+                        $oldsec = $size['file'];
+                        $newsec = '';
+                        if ($item_to == $item_from) {
+                            $newsec = $oldsec;
+                        } else {
+                            $newsec = new_secondary_name($item_to, $oldsec);
+                            // Change it in the metadata
+                            $metadata[$sizename]['file'] = $newsec;
+                        }
+                        $path_from = UPLOAD_DIR . $dir_from . $oldsec;
+                        $path_to   = UPLOAD_DIR . $dir_to   . $newsec;
+                        debug("renaming $path_from to $path_to");
+                        if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
+                            #throw new \Exception("Failed to rename $path_from to $path_to");
+                            // TODO should we throw here?
+                            debug("Failed to rename $path_from to $path_to, but carrying on regardless");
+                        } else {
+                            $renamed[] = ['from' => $path_from, 'to' => $path_to];
+                        }
+                        // Note the edit (although in theory posts shouldn't refer to backup files)
+                        #??$edits[] = ['a' => 'backup', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
+                        $edits[] = ['a' => 'backup', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
+                    }
+
+                    debug('changed backup metadata: ', $metadata);
+                    // TODO consider using wp_update_attachment_metadata as below
+                    $serialized = serialize($metadata);
+                    $rc = $wpdb->update($wpdb->postmeta,
+                        ['meta_value' => $serialized],
+                        ['post_id' => $post_id, 'meta_value' => '_wp_attachment_backup_sizes']);
+                    if ($rc === false) {
+                        throw new \Exception('Failed to update attachment backups');
+                    }
+                    debug('nmc: update backup metadata got rc ', $rc);
+                }
+
+            } // else, no metadata
         }
 
+        // TODO ?? need to catch moving a dir into its child? -- rename will fail anyway
+        // TODO can we catch the rename failure message to display?
+        // TODO posts seem to have alt="foo.jpg"
 
         // Update the text of posts and pages -- for moving folders as well as files
+        // ?? Could this be optimised by doing all the edits on a post at once? -- not easily
+        debug('edits: ', $edits);
         #$sql = "select * from $wpdb->posts
-        $sql = "update $wpdb->posts
-                   set post_content = replace(post_content, '$item_from_rel', '$item_to_rel')
-                 where post_content like '%$item_from_rel%'";
-                 #where post_type in ('post', 'page',
-            #... what about post_status?
+        foreach ($edits as $edit) {
+            $post_count += update_posts_content($edit['from'], $edit['to'], $edit['a']);
+            /*debug("updating posts from {$edit['from']} to {$edit['to']}");
+            $sql = "update $wpdb->posts
+                       set post_content = replace(post_content, '{$edit['from']}', '{$edit['to']}')
+                     where post_content like '%{$edit['from']}%'";
+                     #where post_type in ('post', 'page',
+                #... what about post_status?
 
-        $rc = $wpdb->query($sql);
-        debug('>>> rc', $rc);
-        if ($rc === false) {
-            throw new Exception('Failed to replace name in post content');
+            $rc = $wpdb->query($sql);
+            debug('>>> rc', $rc);
+            if ($rc === false) {
+                throw new \Exception('Failed to replace name in post content');
+            }
+            $post_count += $rc; */
         }
-        $post_count += $rc;
 
-                #update $wpdb->posts
-                   #set post_content=replace(post_content, '" . $oldu . "','" . $newu . "')
-        #$wpdb->query("commit");
-        $wpdb->query("rollback");
-        debug('temp: rolling back and re-renaming');
-        rename($item_to_path, $item_from_path);   // TEMP !!
-        ajax_response(true, "Dunnit, but rolled back.  $item_from_rel to $item_to_rel");
+        // TEMP -- rollback for testing
+        # throw new \Exception('test error');
 
-    } catch (Exception $e) {
+        $wpdb->query("commit");
+        ajax_response('true', 'Successful');
+
+    } catch (\Exception $e) {
         // if that fails, rename it back...
-		$wpdb->query("rollback");
-        rename($item_to_path, $item_from_to);   // puts a warning in the log on failure
-		#die("Error ".$e->getMessage());
+        debug('nmc: caught exception: ', $e);
+        debug('... rolling back and re-renaming');
+        $wpdb->query("rollback");
+        // FIXME duplicated code
+        foreach ($renamed as $r) {
+            debug("nmc: unrenaming " . $r['to'] . ' back to' . $r['from']);
+            rename($r['to'], $r['from']);
+        }
+        rename($item_to_path, $item_from_path);   // puts a warning in the log on failure
+        #die("Error ".$e->getMessage());
         ajax_response(false, $e->getMessage());
     }
 
     ajax_response(false, 'went too far');
 }
+/*
 // This gets called when a move arrow is clicked, with data:
 // action:    "move"
 // dir_from:  "/"
@@ -972,7 +1164,7 @@ function move_callback() {
 //die("OK");
 
 	try {
-		if ($wpdb->query("START TRANSACTION") === FALSE) {throw new Exception('0');}
+		if ($wpdb->query("START TRANSACTION") === FALSE) {throw new \Exception('0');}
 
 		$subdir_from = get_subdir($dir_from);
 		$subdir_to = get_subdir($dir_to);
@@ -1010,7 +1202,7 @@ function move_callback() {
             //      oldu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/AussieCricket04.jpg newu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/photos/AussieCricket04.jpg
 
             // FIXME use wpdb->update
-			#if ($wpdb->query("update $wpdb->posts set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') where post_content like '%".$oldu."%'")===FALSE) {throw new Exception('1');}
+			#if ($wpdb->query("update $wpdb->posts set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') where post_content like '%".$oldu."%'")===FALSE) {throw new \Exception('1');}
             // FIXME this is done if it's a directory or not
 
             // OH, maybe changing directories is easy -- don't have to do each file separately
@@ -1021,7 +1213,7 @@ function move_callback() {
                  where post_content like '%".$oldu."%'
                 ");
             if ($rc === FALSE) {
-                throw new Exception('1');
+                throw new \Exception('1');
             }
             #debug("update posts affected $rc rows");
             if ($wpdb->query("
@@ -1029,7 +1221,7 @@ function move_callback() {
                        set meta_value = replace(meta_value, '" . $oldu . "','" . $newu . "')
                      where meta_value like '%".$oldu."%'
                 ") === FALSE) {
-                throw new Exception('2');
+                throw new \Exception('2');
             }
 
             // !!! It's a directory
@@ -1044,14 +1236,14 @@ function move_callback() {
                          where guid like '".$oldu."%'
                     ")
                     === FALSE) {
-                    throw new Exception('3');
+                    throw new \Exception('3');
                 }
                 if ($wpdb->query("
                         update $wpdb->postmeta
                            set meta_value=replace(meta_value, '" . $oldu . "','" . $newu . "')
                         where meta_value like '".$oldu."%'
                     ") === FALSE) {
-                    throw new Exception('4');
+                    throw new \Exception('4');
                 }
 
                 $ids = $wpdb->get_results("
@@ -1064,25 +1256,25 @@ function move_callback() {
 					//$meta->file = CONCAT('".$subdir_to.$items[$i]."/',substr(meta_value,".(strlen($subdir_from.$items[$i]."/")+1)."))
 					$meta['file'] = $subdir_to.$items[$i]."/" . substr($meta['file'], strlen($subdir_from.$items[$i]."/"));
 					wp_update_attachment_metadata($ids[$j]->post_id, $meta);
-					if ($wpdb->query("update $wpdb->postmeta set meta_value='".$meta['file']."' where post_id=".$ids[$j]->post_id." and meta_key='_wp_attached_file'")===FALSE) {throw new Exception('5');}
+					if ($wpdb->query("update $wpdb->postmeta set meta_value='".$meta['file']."' where post_id=".$ids[$j]->post_id." and meta_key='_wp_attached_file'")===FALSE) {throw new \Exception('5');}
 				}
 				//$wpdb->query("update $wpdb->postmeta set meta_value=CONCAT('".$subdir_to.$items[$i]."/',substr(meta_value,".(strlen($subdir_from.$items[$i]."/")+1).")) where meta_value like '".$subdir_from.$items[$i]."/%'");
 			} else { // It's not a dir
-				if ($wpdb->query("update $wpdb->posts set guid='" . $newu . "' where guid = '".$oldu."'")===FALSE) {throw new Exception('6');}
+				if ($wpdb->query("update $wpdb->posts set guid='" . $newu . "' where guid = '".$oldu."'")===FALSE) {throw new \Exception('6');}
 				$ids = $wpdb->get_results("select post_id from $wpdb->postmeta where meta_value = '".$subdir_from.$items[$i]."'");
 				for ($j=0; $j<count($ids); $j++) {
 					$meta = wp_get_attachment_metadata($ids[$j]->post_id);
 					$meta['file'] = $subdir_to.$items[$i];
 					wp_update_attachment_metadata($ids[$j]->post_id, $meta);
 				}
-				if ($wpdb->query("update $wpdb->postmeta set meta_value='" . $subdir_to.$items[$i] . "'where meta_value = '".$subdir_from.$items[$i]."'")===FALSE) {throw new Exception('7');}
+				if ($wpdb->query("update $wpdb->postmeta set meta_value='" . $subdir_to.$items[$i] . "'where meta_value = '".$subdir_from.$items[$i]."'")===FALSE) {throw new \Exception('7');}
 			}
 		}
 
-		if ($wpdb->query("COMMIT") === FALSE) {throw new Exception('8');}
+		if ($wpdb->query("COMMIT") === FALSE) {throw new \Exception('8');}
 
 		die("Success");
-	} catch (Exception $e) {
+	} catch (\Exception $e) {
 		$wpdb->query("ROLLBACK");
 		for ($j=0; $j<count($items); $j++) {
 			$res = @rename($dir_to . $items[$j] , $dir_from . $items[$j]);
@@ -1090,7 +1282,7 @@ function move_callback() {
 		die("Error ".$e->getMessage());
 	}
 }
-
+ */
 
 
 function delete_empty_dir_callback() {
@@ -1149,8 +1341,8 @@ function get_urlroot() {
 function admin_plugin_menu() {
 	/*  Add a setting page  */
 	add_submenu_page('options-general.php',
-		'Media File Manager plugin Configuration',
-		'Media File Manager',
+		'Media File Manager CD plugin Configuration',
+		'Media File Manager CD',
 		'manage_options',
 		'submenu-handle',
 		NS . 'admin_display_config'
@@ -1200,7 +1392,7 @@ function admin_display_config() {
 
 	?>
 	<div class="wrap">
-		<h2>Media File Manager plugin configurations</h2>
+		<h2>Media File Manager CD plugin configurations</h2>
 
 		<form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
 		<?php

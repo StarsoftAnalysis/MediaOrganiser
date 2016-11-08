@@ -65,15 +65,20 @@ mocd.ajax_count_out = function () {
 	}
 }
 
-// FIXME where should this go?
 mocd.display_error = function display_error (msg) {
     console.log('display_error msg:', msg);
     alert(msg);
     // TODO don't (just) alert
 }
+// This is the new improved version
+mocd.display_response = function (response) {
+    // TODO something better than alert
+    console.log('display_response: ', response);
+    alert(response.message);
+}
 
 mocd.new_move_items = function nmi (pane_from, pane_to) {
-    // !! just one so far
+    //// FIXME collect results and put up progress bar
     //var flist = [];  // list of filenames to return
     //var isdirs = []; // temp hack!!
     for (var i = 0; i < pane_from.dir_list.length; i++) {
@@ -101,7 +106,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
             jQuery.post(ajaxurl, data, function (response) {
                 // FIXME standard way of handling responses and errors
                 //if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
-                mocd.display_error(response);
+                mocd.display_response(response);
                 //if (mocd.move_continue) {
                 //	move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
                 //} else {
@@ -115,7 +120,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
 }
 
 // FIXME?  this isn't in the class as claimed
-// function name: MrlPaneClass::move
+// function name: MOCDPaneClass::move
 // description : moving checked files/directories
 // argument : (pane_from)pane object; (pane_to)pane object 
 mocd.pane_from = "";
@@ -208,7 +213,7 @@ mocd.move_items = function move_items (pane_from, pane_to, no) {
 
 
 //**** Pane class *******************************************************************
-var MrlPaneClass = function(id_root) {
+var MOCDPaneClass = function(id_root) {
 	this.cur_dir = "";
 	this.dir_list = new Array();
 	//this.dir_disp_list = new Array();   // NOT NEEDED -- now they're all displayed
@@ -281,15 +286,21 @@ var MrlPaneClass = function(id_root) {
 //	});
 }
 
-MrlPaneClass.prototype.get_chkid = function (n) {return this.id_pane+'_ck_'+n;}
-MrlPaneClass.prototype.get_divid = function (n) {return this.id_pane+'_'+n;}
-MrlPaneClass.prototype.refresh = function () {this.setdir(this.cur_dir);}
+MOCDPaneClass.prototype.get_chkid = function (n) {
+    return this.id_pane + '_ck_' + n;
+}
+MOCDPaneClass.prototype.get_divid = function (n) {
+    return this.id_pane + '_' + n;
+}
+MOCDPaneClass.prototype.refresh = function () {
+    this.setdir(this.cur_dir);
+}
 
-// function name: MrlPaneClass::setdir
+// function name: MOCDPaneClass::setdir
 // description : move to the directory and display directory listing
 // argument : (dir)absolute path name of the target directory
-MrlPaneClass.prototype.setdir = function(dir) {
-	jQuery('#'+this.id_wrapper).css('cursor:wait');
+MOCDPaneClass.prototype.setdir = function(dir) {
+	jQuery('#'+this.id_wrapper).css('cursor:wait'); // TODO move this into count_in
 	var data = {
 		action: 'mocd_getdir',
 		dir: dir
@@ -309,11 +320,11 @@ MrlPaneClass.prototype.setdir = function(dir) {
 	});
 }
 
-// function name: MrlPaneClass::dir_ajax
+// function name: MOCDPaneClass::dir_ajax
 // description : display directory list sent from server
 //               in response to mocd_getdir ajax request              
 // FIXME rename this function
-MrlPaneClass.prototype.dir_ajax = function (target_dir, dir) {
+MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
 	//var dir;
     var thispane = this;
 
@@ -409,11 +420,11 @@ MrlPaneClass.prototype.dir_ajax = function (target_dir, dir) {
 // TODO a new 'set_checkboxes' function that disables checkboxes
 // for items that have items with the same name in the opposite pane
 
-// function name: MrlPaneClass::prepare_checkboxes
+// function name: MOCDPaneClass::prepare_checkboxes
 // description : prepare event for checkboxes and right-click events(mkdir, rename)
 // argument : (void)
 // OH FIXME -- this does the right click stuff as well as checkboxes
-MrlPaneClass.prototype.prepare_checkboxes = function() {
+MOCDPaneClass.prototype.prepare_checkboxes = function() {
     var that = this; // FIXME ?? needed!?
 
     if (jQuery('#'+this.last_div_id).length>0) {
@@ -553,7 +564,7 @@ MrlPaneClass.prototype.prepare_checkboxes = function() {
     }
     }
 
-MrlPaneClass.prototype.check_same_name = function(str) {
+MOCDPaneClass.prototype.check_same_name = function(str) {
 	for (var i=0; i<this.dir_list.length; i++) {
 		if (this.dir_list[i]['name'] == str) {
 			return true;
@@ -562,10 +573,10 @@ MrlPaneClass.prototype.check_same_name = function(str) {
 	return false;
 }
 
-// function name: MrlPaneClass::chdir
+// function name: MOCDPaneClass::chdir
 // description : move directory and display its list
 // argument : (dir)target directory
-MrlPaneClass.prototype.chdir = function(dir) {
+MOCDPaneClass.prototype.chdir = function(dir) {
 	var last_chr = this.cur_dir.substr(this.cur_dir.length-1,1);
 	var new_dir = this.cur_dir;
 
@@ -589,7 +600,7 @@ MrlPaneClass.prototype.chdir = function(dir) {
 }
 
 // Handle the Action drop-down -- rename, move, or delete.
-MrlPaneClass.prototype.actions = function (action) {
+MOCDPaneClass.prototype.actions = function (action) {
     console.log('action = ', action);
 }
 
@@ -597,7 +608,7 @@ MrlPaneClass.prototype.actions = function (action) {
 // ----------- End of class definition 
 
 //**** right-click menu class *******************************************************************
-var MrlRightMenuClass = function() {
+var MOCDRightMenuClass = function() {
 	var num=0;
 	var flgRegisterRemoveFunc = false;
 	var pos_left = 0;
@@ -605,10 +616,10 @@ var MrlRightMenuClass = function() {
 }
 
 
-// function name: MrlRightMenuClass::make
+// function name: MOCDRightMenuClass::make
 // description : make and display right-click menu
 // argument : (items)array of menu items 
-MrlRightMenuClass.prototype.make = function(items) {
+MOCDRightMenuClass.prototype.make = function(items) {
 	var html="";
 	var i;
 	jQuery('body').append('<div id="mocd_right_menu"></div>');
@@ -641,17 +652,17 @@ MrlRightMenuClass.prototype.make = function(items) {
 	}
 }
 
-// function name: MrlRightMenuClass::get_item_id
+// function name: MOCDRightMenuClass::get_item_id
 // description : get the id of the specified item
 // argument : (n)index of item (starting from 0)
-MrlRightMenuClass.prototype.get_item_id = function(n) {
+MOCDRightMenuClass.prototype.get_item_id = function(n) {
 	return 'mocd_right_menu_item_' + n;
 }
 
 
 
 //**** Text input form class *******************************************************************
-var MrlInputTextClass = function() {
+var MOCDInputTextClass = function() {
     // wtf?
 	//var flgRegisterRemoveFunc = false;
 	this.flgRegisterRemoveFunc = false;
@@ -669,10 +680,10 @@ var MrlInputTextClass = function() {
     this.invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
 }
 
-// function name: MrlInputTextClass::make
+// function name: MOCDInputTextClass::make
 // description : make and display a text input form
 // argument : (title)title; (init_text)initial text; (textbox_width)width of textbox
-MrlInputTextClass.prototype.make = function(title, init_text, textbox_width, is_dirname) {
+MOCDInputTextClass.prototype.make = function(title, init_text, textbox_width, is_dirname) {
 	this.is_dirname = is_dirname;
 	var html="";
 	jQuery('body').append('<div id="mocd_input_text"></div>');
@@ -715,18 +726,18 @@ MrlInputTextClass.prototype.make = function(title, init_text, textbox_width, is_
 	jQuery('#mocd_input_textbox').focus();
 }
 
-// function name: MrlInputTextClass::set_callback
+// function name: MOCDInputTextClass::set_callback
 // description : register callback function called when OK is pressed
 // argument : (c)callback function
-MrlInputTextClass.prototype.set_callback = function(c) {
+MOCDInputTextClass.prototype.set_callback = function(c) {
 	this.callback = c;
 }
 
-// function name: MrlInputTextClass::check_dotext
+// function name: MOCDInputTextClass::check_dotext
 // description : check if '.+file extension' pattern exists in the name (ex)abc.jpgdef
 // argument : (str: target string, isdir: the name is of a directory)
 // return : true(exists), false(not exists)
-MrlInputTextClass.prototype.check_dotext = function(str, isdir) {
+MOCDInputTextClass.prototype.check_dotext = function(str, isdir) {
 	var ext = 
 		['.jpg', '.jpeg', '.gif', '.png', '.mp3','.m4a','.ogg','.wav',
 		 '.mp4v', '.mp4', '.mov', '.wmv', '.avi', '.mpg', '.ogv', '.3gp', '.3g2',  
@@ -742,11 +753,11 @@ MrlInputTextClass.prototype.check_dotext = function(str, isdir) {
 
 
 
-// function name: MrlInputTextClass::invalid_chr
+// function name: MOCDInputTextClass::invalid_chr
 // description : check if invalid character exists in the name.
 // argument : (str: target string)
 // return : true(exists), false(not exists)
-MrlInputTextClass.prototype.check_invalid_chr = function(str) {
+MOCDInputTextClass.prototype.check_invalid_chr = function(str) {
 	var i;
 	for (i = 0; i < this.invalid_chr.length; i++) {
 		if (str.indexOf(this.invalid_chr[i]) >= 0) {
@@ -756,7 +767,7 @@ MrlInputTextClass.prototype.check_invalid_chr = function(str) {
 	return false;
 }
 
-MrlInputTextClass.prototype.invalid_chr_msg = function() {
+MOCDInputTextClass.prototype.invalid_chr_msg = function() {
 	var msg = "";
 	for (i = 0; i < this.invalid_chr.length; i++) {
 		msg += this.invalid_chr[i] + " ";
@@ -772,11 +783,11 @@ MrlInputTextClass.prototype.invalid_chr_msg = function() {
 // description :  initialization
 // argument : (void)
 jQuery(document).ready(function() {
-	mocd.right_click_menu = new MrlRightMenuClass();
-	mocd.input_text = new MrlInputTextClass();
+	mocd.right_click_menu = new MOCDRightMenuClass();
+	mocd.input_text = new MOCDInputTextClass();
 
-	mocd.pane_left = new MrlPaneClass('mocd_left');
-	mocd.pane_right = new MrlPaneClass('mocd_right');
+	mocd.pane_left = new MOCDPaneClass('mocd_left');
+	mocd.pane_right = new MOCDPaneClass('mocd_right');
 
 	mocd.pane_left.opposite = mocd.pane_right;
 	mocd.pane_right.opposite = mocd.pane_left;
