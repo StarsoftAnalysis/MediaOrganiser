@@ -2,11 +2,8 @@
 namespace media_file_manager_cd;
 
 // TODO for my version
-// * get rid of the 'preview' feature (?)
 
 if (!defined('ABSPATH')) exit; // Exit if accessed directly
-
-
 
 function init() {
 	wp_enqueue_script('jquery');
@@ -195,7 +192,7 @@ function getdir_callback () {
             'norename' => false, // TODO
             'parent'   => false, // always false now
             // TODO if it's an image, get a nice small version of it (then it will be square)
-            'thumbnail_url' => thumbnail_url($item['meta_value'], $item['post_mime_type'])
+            'thumbnail_url' => thumbnail_url($item['meta_value'], $item['post_mime_type'], $item['ID'])
             ];
     }
     debug('gc dirlist: ', $dirlist);
@@ -720,8 +717,6 @@ function update_posts_content ($old, $new, $source = '') {
 //  !!! Does renaming too.
 
 
-// FIXME oh no!  permalinks like http://dev.fordingbridge-rotary.org.uk/post-with-thumbnail-and-link-to-fullsize/p1040025/
-//  get broken when it's moved
 function new_move_callback () {
     global $wpdb;
     // Keep a list of renamed files in case we need to rollback

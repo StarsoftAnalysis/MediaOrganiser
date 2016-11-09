@@ -195,7 +195,7 @@ function getdir_callback () {
             'norename' => false, // TODO
             'parent'   => false, // always false now
             // TODO if it's an image, get a nice small version of it (then it will be square)
-            'thumbnail_url' => thumbnail_url($item['meta_value'], $item['post_mime_type'])
+            'thumbnail_url' => thumbnail_url($item['meta_value'], $item['post_mime_type'], $item['ID'])
             ];
     }
     debug('gc dirlist: ', $dirlist);
@@ -720,8 +720,6 @@ function update_posts_content ($old, $new, $source = '') {
 //  !!! Does renaming too.
 
 
-// FIXME oh no!  permalinks like http://dev.fordingbridge-rotary.org.uk/post-with-thumbnail-and-link-to-fullsize/p1040025/
-//  get broken when it's moved
 function new_move_callback () {
     global $wpdb;
     // Keep a list of renamed files in case we need to rollback
@@ -873,17 +871,22 @@ function new_move_callback () {
             // attachment metadata has serialized data -- if changing strings,
             // need to change the length!! so have to get it, unpack it, change it, pack it, update it
             debug("updating attachment metadata...");
+            $metadata = wp_get_attachment_metadata($post_id, true); // true for no filtering
+            /*
             $sql = "select meta_id, post_id, meta_key, meta_value
                 from $wpdb->postmeta
                 where post_id = $post_id
                 and meta_key = '_wp_attachment_metadata'";
             $row = $wpdb->get_row($sql, ARRAY_A);
+             
             if (is_null($row)) {
+             */
+            if ($metadata === false) {
                 debug('nmc: theres no metadata, thats ok');
                 #throw new \Exception('Failed to get attachment with post_id ' . $post_id);
             } else {
                 #debug('results: ', $row);
-                $metadata = unserialize($row['meta_value']);
+                #$metadata = unserialize($row['meta_value']);
                 debug('metadata: ', $metadata);
                 // Metadata is like:
                 //    [width] => 400
@@ -929,14 +932,17 @@ function new_move_callback () {
                 }
 
                 debug('changed metadata: ', $metadata);
+                /*
                 $serialized = serialize($metadata);
                 $rc = $wpdb->update($wpdb->postmeta,
                     ['meta_value' => $serialized],
                     ['post_id' => $post_id, 'meta_value' => '_wp_attachment_metadata']);
                 if ($rc === false) {
+                */
+                if (wp_update_attachment_metadata($post_id, $metadata) === false) {
                     throw new \Exception('Failed to update attachment metadata');
                 }
-                debug('nmc: update metadata got rc ', $rc);
+                #debug('nmc: update metadata got rc ', $rc);
 
                 // Then do much the same for backup sizes (created by WP when the image is edited)
 

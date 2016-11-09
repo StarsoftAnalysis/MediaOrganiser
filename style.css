@@ -5,8 +5,14 @@
 	bborder: solid 1px #f00;
 }
 
-.mocd_pane_list {
+ul.mocd_pane_list {
     list-style-type: none;
+    display: table-row;
+    white-space: no-wrap;
+}
+
+li.mocd_pane_item {
+    xdisplay: inline-block; /* table-cell; doesn't work */
 }
 
 #mocd_wrapper_all {
@@ -44,13 +50,6 @@
     vertical-align: middle;
 }
 
-.mocd_pane_item {
-    xvertical-align: middle;
-    xdisplay: block;
-    xheight: 55px;
-    xclear: both; 
-    xposition: relative;
-}
 
 .mocd_isdir {
 	cursor: pointer;
@@ -152,3 +151,7 @@
 	margin-right: 4px;
 }
 
+.mocd_filename {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}

@@ -49,6 +49,9 @@ Since the fork, various changes have been made including:
 * better error handling
 * ...
 
+
+Icons adapted from https://github.com/iconic/open-iconic
+
 == Installation ==
 
 Install the plugin like usual ones. Then activate it.

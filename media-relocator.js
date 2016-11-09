@@ -34,7 +34,7 @@ mocd.adjust_layout = function () {
 	jQuery('.mocd_path').width(pane_w);
 	jQuery('.mocd_pane').width(pane_w);
 //	// TODO does this help? -- seems better without this line:  jQuery('.mocd_pane').height(height_all - height_mocd_box);	
-	jQuery('.mocd_filename').width(pane_w - 32);
+	//jQuery('.mocd_filename').width(pane_w - 32);
 }
 
 
@@ -289,6 +289,8 @@ var MOCDPaneClass = function(id_root) {
 MOCDPaneClass.prototype.get_chkid = function (n) {
     return this.id_pane + '_ck_' + n;
 }
+// 'divid' is the div containing the whole item?? or just the thumbnail?
+// // -- we'll try the latter, i.e. the <li>
 MOCDPaneClass.prototype.get_divid = function (n) {
     return this.id_pane + '_' + n;
 }
@@ -364,10 +366,11 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
 		///if (dir[i].isthumb) continue;
         var item = dir[i];
 		//this.dir_disp_list[this.disp_num] = i;
-        html += '<li class="mocd_pane_item">'; //style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
+        var divid = this.get_divid(i);
+		this.last_div_id = divid;
+        html += '<li class="mocd_pane_item" id="' + divid + '">'; //style="vertical-align:middle;display:block;height:55px;clear:both; position:relative;">';
         html += '<div><input type="checkbox" class="' + this.id_pane + '_ck' + '" id="' + this.get_chkid(i) + '"></div>';
-		html += '<div id="' + this.get_divid(i) + '">';
-		this.last_div_id = this.get_divid(i);
+		html += '<div>'; // id="' + this.get_divid(i) + '">';
         // Thumbnail img URL should always be supplied by backend
 		if (item.thumbnail_url && item.thumbnail_url != "") {
             thumb_url = item.thumbnail_url;
@@ -377,7 +380,11 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
         var dirclass = item.isdir ? ' mocd_isdir' : '';
 		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '">';
 		html += '</div><div class="mocd_filename">';
-		html += item.name; //mocd_ins8203(dir[i].name)/*+" --- " + dir[i].isdir+ (dir[i].id!=""?" "+dir[i].id:"")*/;
+		html += item.name; 
+        if (item.isdir) {
+            html += ' <button type="button" class="mocd_pane_rename">Rename</button>';
+            html += ' <button type="button" class="mocd_pane_delete">Delete</button>';
+        }
 		html += '</div>';
         //html += '</div>'
 
@@ -391,22 +398,39 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
     // go through the list again and set folders as clickable.
     // Note cunning use of bind to avoid having to re-extract
     // the index from the item's id or data.
-    // TODO set cursor shape -- maybe set a class on the folder ones
     for (i = 0; i < dir.length; i++) {
         if (dir[i].isdir) {
-            jQuery('#'+this.get_divid(i)).on('click', function (newdir, e) {
+            // Make folder clickable
+            var divid = this.get_divid(i);  // e.g. 'mocd_left_pane_1'
+            var name = dir[i].name;
+            jQuery('#'+divid).on('click', 'img', function (newdir, e) {
                 if (mocd.ajax_count > 0) {
                     return;
                 }
                 thispane.chdir(newdir);
-            }.bind(this, dir[i].name));  // dir[i].name gets passed in as newdir
+            }.bind(this, name));  // name gets passed in as newdir
+            // Make folder's rename button clickable
+            jQuery('#'+divid).on('click', 'button.mocd_pane_rename', function (dirname, e) {
+                if (mocd.ajax_count > 0) {
+                    return;
+                }
+                alert('rename ' + dirname);
+            }.bind(this, name));  // name gets passed in as dirname
+            // Make folder's delete button clickable
+            jQuery('#'+divid).on('click', 'button.mocd_pane_delete', function (dirname, e) {
+                if (mocd.ajax_count > 0) {
+                    return;
+                }
+                alert('delete ' + dirname);
+            }.bind(this, name));  // dir[i].name gets passed in as dirname
+
         }
     }
 
     // FIXME this looks very silly
     // // but it also sets up the directories as left-click buttons
     //    so we'll just call it once
-    this.prepare_checkboxes();
+//    this.prepare_checkboxes();
     //function callMethod_chkprepare() {
     //    that.prepare_checkboxes();
    // }
@@ -424,7 +448,7 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
 // description : prepare event for checkboxes and right-click events(mkdir, rename)
 // argument : (void)
 // OH FIXME -- this does the right click stuff as well as checkboxes
-MOCDPaneClass.prototype.prepare_checkboxes = function() {
+MOCDPaneClass.prototype.prepare_checkboxes_NOT_USED = function() {
     var that = this; // FIXME ?? needed!?
 
     if (jQuery('#'+this.last_div_id).length>0) {

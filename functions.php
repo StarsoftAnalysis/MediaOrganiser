@@ -119,8 +119,14 @@ function request_data ($field) {
 
 // Provide icons for those without thumbnails
 // TODO: pdfs?
-function thumbnail_url ($fname, $mimetype = '') {
+function thumbnail_url ($fname, $mimetype = '', $id = null) {
+    #debug("turl: '$fname' '$mimetype' '$id'");
     if (isimage($fname, $mimetype)) {
+        if ($id && $url = wp_get_attachment_thumb_url($id)) {
+            #debug('turl returning: ', $url);
+            return $url;
+        } 
+        #debug('turl returning: ', UPLOAD_URL . '/' . $fname);
         return UPLOAD_URL . '/' . $fname;
     } elseif (isaudio($fname, $mimetype)) {
         return PLUGIN_URL . "/images/audio.png";
