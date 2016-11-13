@@ -1,11 +1,7 @@
 <?php
 namespace media_file_manager_cd;
 
-// NOTE This is just included at the end of media-relocator.php
-
-
-function get_media_list_callback()
-{
+function get_media_list_callback() {
 	global $wpdb;
 
 	$res = $wpdb->get_results(
@@ -37,8 +33,7 @@ function get_media_list_callback()
 }
 
 
-function get_media_subdir_callback()
-{
+function get_media_subdir_callback() {
 	global $wpdb;
 	$res = $wpdb->get_results(
 		"SELECT  ".
@@ -52,9 +47,7 @@ function get_media_subdir_callback()
 	die();
 }
 
-
-function get_image_info_callback()
-{
+function get_image_info_callback() {
 	global $wpdb;
 	$id = $_POST['id'];
 	if (!is_numeric($id)) {
@@ -90,8 +83,7 @@ function get_image_info_callback()
 
 
 
-function get_image_insert_screen_callback()
-{
+function get_image_insert_screen_callback() {
 	global $wpdb;
 
 	$id = $_POST['id'];
@@ -390,7 +382,7 @@ function media_upload_mrlMS() {
 function media_upload_mrlMS_form() {
     #global $MrlMediaSelector;
 
-    wp_enqueue_script('jquery');
+    #wp_enqueue_script('jquery');
 
     add_filter("media_upload_tabs", NS . "onModifyMediaTab");
 

@@ -132,10 +132,13 @@ li.mocd_pane_item {
 	background-color:#111;
 }
 
+/* Mini dialogue */
 #mocd_input_text {
-	position: absolute;
+	position: fixed; /*absolute;*/
+    z-index: 999;
     top: 50%;
     left: 50%;
+    transform: translate(-50%, -50%); /* centre it on the given point */
 	border: 1px solid #777;
 	background-color: #eee;
 	padding: 4px;
@@ -147,11 +150,25 @@ li.mocd_pane_item {
 
 .mocd_input_text_button {
 	display: inline;
-	border: 1px solid #555;
-	margin-right: 4px;
+	/*border: 1px solid #555;
+	margin-right: 4px;*/
 }
 
 .mocd_filename {
     overflow-wrap: break-word;
     word-wrap: break-word;
 }
+
+
+/* Adjust CSS for JQuery UI stuff */
+/* Our version only affects #mocd_wrapper_all,   */
+/* but other plugins (e.g. rotary meetings!)     */
+/* allow their UI CSS to leak all over the place */
+
+/*
+#mocd_wrapper_all .ui-widget-header {
+	background: grey;
+	color: black;
+	border: 1px solid black;
+}
+*/

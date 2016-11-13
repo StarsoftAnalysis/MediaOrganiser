@@ -11,6 +11,14 @@ function init() {
 
 function admin_register_head() {
 	wp_enqueue_style("mocd-style", plugins_url('style.css', __FILE__));
+	wp_enqueue_script("media-relocator", plugins_url('media-relocator.js', __FILE__));
+
+    wp_enqueue_script('mocd_jqueryui', 
+        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
+        ['jquery']);
+    wp_enqueue_style('mocd_jqueryui', 
+        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
+        []);
 }
 
 // test permission for accessing media file manager
@@ -75,15 +83,30 @@ function pane_html ($side) {
     // This is the div that gets filled in with the dir listing in JS
 	echo '<div class="mocd_pane" id="mocd_', $side, '_pane"></div>';
 	echo '</div>';
+    
+    // ... I think I've gone off the idea of jQuery dialogs.  Or notV
+    // HTML for renaming dialog -- initially hidden
+    echo '<div id="mocd_', $side, '_rename_dialog" title="Rename File or Folder" style="display: none;">';
+    #echo '<p class="validateTips">Enter the new item name:</p>';
+    echo '<form><fieldset>';
+    echo '<label for="mocd_"', $side, '_rename">New name: </label>';
+    echo '<input type="text" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
+    echo '<input type="hidden" name="mocd_', $side, '_rename_i" id="mocd_', $side, '_rename_i" value="">';
+    echo '</fieldset></form></div>';
+
+    // HTML for new folder dialog -- initially hidden
+    echo '<div id="mocd_', $side, '_newdir_dialog" title="Create a New Folder" style="display: none;">';
+    echo '<form><fieldset>';
+    echo '<label for="mocd_', $side, '_newdir">Name: </label>';
+    echo '<input type="text" name="mocd_', $side, '_newdir" id="mocd_', $side, '_newdir" value="">';
+    echo '<div id="mocd_', $side, '_newdir_error"></div>';
+    echo '</fieldset></form></div>';
 }
 
 /*  show a configuration screen  */
 function display_config () {
-	wp_enqueue_script("media-relocator", plugins_url('media-relocator.js', __FILE__));
-	# FIXME do the proper thing for this:
-	echo "<script type='text/javascript'>mrloc_url_root='", UPLOAD_URL, "'</script>";
 
-	echo '<div class="wrap">';
+	echo '<div class="wrap" id="mocd_wrap">';
 	echo '<h2>Media Organizer</h2>';
 
 	echo '<div id="mocd_wrapper_all">';
@@ -97,8 +120,8 @@ function display_config () {
 
     pane_html('right');
 
-	echo '</div>';
-	echo '</div>';
+	echo '</div>'; // div mocd_wrapper_all
+	echo '</div>'; // div mocd_wrap
 }
 
 function mkdir_callback() {
@@ -505,6 +528,7 @@ function udate($format, $utimestamp = null)
 }
  */
 
+/*
 function rename_callback() {
 	if (!test_mfm_permission()) return 0;
 
@@ -641,6 +665,7 @@ function rename_callback() {
 		die("Error ".$e->getMessage());
 	}
 }
+ */
 
 // TODO put this in functions.php
 // Send an AJAX response back to javascript, in the form
@@ -746,9 +771,9 @@ function new_move_callback () {
     debug("nmc: dir_from='$dir_from' dir_to='$dir_to' item_from='$item_from' item_to='$item_to' post_id=$post_id isdir='$isdir'");
 
     // TODO check if the expected inputs are present
-    if ($dir_from == $dir_to) {
+    if ($dir_from == $dir_to and $item_from == $item_to) {
         // TODO is this success or fail?
-        ajax_response(false, 'same dir');
+        ajax_response(false, 'same dir and item');
     }
     // dirs are e.g. '/' or '/private/' or '2015/10' relative to UPLOAD_DIR
     $path_from = UPLOAD_DIR . $dir_from;
@@ -774,6 +799,9 @@ function new_move_callback () {
 
     // Keep a list of renamed files in case we need to rollback
     $renamed = [];
+
+    // FIXME need a sanity check on what we're trying to rename!!!!  !!!!!!!!
+    // -- i.e. check that UPLOAD_DIR etc. are sensible
 
     debug("renaming $item_from_path to $item_to_path");
     if (!rename($item_from_path, $item_to_path)) {  // puts a warning in the log on failure
@@ -1092,212 +1120,23 @@ function new_move_callback () {
 
     ajax_response(false, 'went too far');
 }
-/*
-// This gets called when a move arrow is clicked, with data:
-// action:    "move"
-// dir_from:  "/"
-// dir_to:    "/photos/"
-// items:     "AussieCricket03.jpg/AussieCricket03-125x125.jpg/AussieCricket03-150x150.jpg/AussieCricket03-200x100.jpg/AussieCricket03-200x150.jpg"
-// FIXME this doesn't seem to return anything to the front end
-//  -- yes it does, in the die() message
-function move_callback() {
-    #debug('-- called move');
-	if (!test_mfm_permission()) return 0;
-
-	global $wpdb;
-    $wpdb->show_errors();
-
-	ignore_user_abort(true);
-	_set_time_limit(900);
-	ini_set("track_errors",true);
-
-	$local_post_dir_from = stripslashes($_POST['dir_from']);
-	$local_post_dir_to = stripslashes($_POST['dir_to']);
-	$local_post_items = stripslashes($_POST['items']);
-    // These are relative to upload_dir e.g. '/' or '/photos'
-    #debug('local_post_dir_from:', $local_post_dir_from);
-    #debug('local_post_dir_to:', $local_post_dir_to);
-    #debug('local_post_items:', $local_post_items);
-
-	$dir_from = mrl_adjpath(UPLOAD_DIR."/".$local_post_dir_from, true);
-	$dir_to = mrl_adjpath(UPLOAD_DIR."/".$local_post_dir_to, true);
-	$dir_to_list = array();
-	getdir($dir_to, $dir_to_list);
-
-	$items = explode("/", $local_post_items);
-
-	$same = "";
-	$samecnt=0;
-	for ($i=0; $i<count($items); $i++) {
-		for ($j=0; $j<count($dir_to_list); $j++) {
-			if ($items[$i] == $dir_to_list[$j]) {
-				if ($same != "") $same .= ", ";
-				$same .= $items[$i];
-				$samecnt++;
-			}
-		}
-	}
-	if ($samecnt) {
-        $msg = (($samecnt==1) ?
-            "A file with the same name is" :
-            "Files with the same names are already"
-        ) . " in the destination directory:\n";
-		die($msg . "\n" . $same);
-	}
-
-    // Aaaargh!  it tries to rename ALL  the files before doing any db updates.
-    //  -- another reason to do things one at a time
-	for ($i=0; $i<count($items); $i++) {
-		$res = @rename($dir_from . $items[$i] , $dir_to . $items[$i]);
-		if (!$res) {
-			for ($j=0; $j<$i; $j++) {
-				$res = @rename($dir_to . $items[$j] , $dir_from . $items[$j]);
-			}
-			die($php_errormsg);
-		}
-	}
-//die("OK");
-
-	try {
-		if ($wpdb->query("START TRANSACTION") === FALSE) {throw new \Exception('0');}
-
-		$subdir_from = get_subdir($dir_from);
-		$subdir_to = get_subdir($dir_to);
-        #debug('items: ', $items);  // no slashes
-
-		for ($i=0; $i<count($items); $i++) {
-			$old = $dir_from . $items[$i];  // FIXME are these used?
-			$new = $dir_to . $items[$i];
-			$isdir=false;
-			if (is_dir($new)) {
-				$old .= "/";
-				$new .= "/";
-				$isdir=true;
-			}
-			#$oldu = mrl_adjpath(UPLOAD_URL."/".$local_post_dir_from."/".$items[$i]);	//old url
-			#$newu = mrl_adjpath(UPLOAD_URL."/".$local_post_dir_to."/".$items[$i]);	//new url
-            // CD -- make the URLS relative
-            $upload = wp_upload_dir(null, false, false);
-            $upload_dir_rel = _wp_relative_upload_path($upload['basedir']);
-            #debug('upload', $upload);
-            #debug('ldr', $upload_dir_rel);
-            $siteurl = get_site_url();
-            #debug('siteurl', $siteurl);
-            // FIXME calc this outside the loop
-            $rel_uploads = str_replace($siteurl, '', UPLOAD_URL);  // !! this might make a path that matches in too many places
-            // rel_uploads ends in a slash, so do the local_post_dirs
-            // $local_post_dir... start with a slash.
-            $rel_uploads = rtrim($rel_uploads, '/');  // remove all trailins slashes
-            #debug('rel_uploads', $rel_uploads);
-            $oldu = $rel_uploads . $local_post_dir_from . $items[$i];
-            $newu = $rel_uploads . $local_post_dir_to   . $items[$i];
-            #debug("old=$old    new=$new");
-            #debug("oldu=$oldu    newu=$newu");
-            // e.g. old=/var/www/rotarywp-dev/wp-content/uploads/AussieCricket04.jpg new=/var/www/rotarywp-dev/wp-content/uploads/photos/AussieCricket04.jpg
-            //      oldu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/AussieCricket04.jpg newu=http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/photos/AussieCricket04.jpg
-
-            // FIXME use wpdb->update
-			#if ($wpdb->query("update $wpdb->posts set post_content=replace(post_content, '" . $oldu . "','" . $newu . "') where post_content like '%".$oldu."%'")===FALSE) {throw new \Exception('1');}
-            // FIXME this is done if it's a directory or not
-
-            // OH, maybe changing directories is easy -- don't have to do each file separately
-
-            $rc = $wpdb->query("
-                update $wpdb->posts
-                   set post_content=replace(post_content, '" . $oldu . "','" . $newu . "')
-                 where post_content like '%".$oldu."%'
-                ");
-            if ($rc === FALSE) {
-                throw new \Exception('1');
-            }
-            #debug("update posts affected $rc rows");
-            if ($wpdb->query("
-                    update $wpdb->postmeta
-                       set meta_value = replace(meta_value, '" . $oldu . "','" . $newu . "')
-                     where meta_value like '%".$oldu."%'
-                ") === FALSE) {
-                throw new \Exception('2');
-            }
-
-            // !!! It's a directory
-            // '<prefix>' is  usually /wp-content/uploads
-            //   assuming dir is everything after <prefix>
-            //  TODO  change <prefix>/olddir/<something that matches a base name, e.g. foo.jpg>
-            if ($isdir) {
-                // !!!! Eeek!  updating the guid
-                if ($wpdb->query("
-                        update $wpdb->posts
-                           set guid=replace(guid, '" . $oldu . "','" . $newu . "')
-                         where guid like '".$oldu."%'
-                    ")
-                    === FALSE) {
-                    throw new \Exception('3');
-                }
-                if ($wpdb->query("
-                        update $wpdb->postmeta
-                           set meta_value=replace(meta_value, '" . $oldu . "','" . $newu . "')
-                        where meta_value like '".$oldu."%'
-                    ") === FALSE) {
-                    throw new \Exception('4');
-                }
-
-                $ids = $wpdb->get_results("
-                    select post_id
-                      from $wpdb->postmeta
-                     where meta_value like '".$subdir_from.$items[$i]."/%'
-                ");
-				for ($j=0; $j<count($ids); $j++) {
-					$meta = wp_get_attachment_metadata($ids[$j]->post_id);
-					//$meta->file = CONCAT('".$subdir_to.$items[$i]."/',substr(meta_value,".(strlen($subdir_from.$items[$i]."/")+1)."))
-					$meta['file'] = $subdir_to.$items[$i]."/" . substr($meta['file'], strlen($subdir_from.$items[$i]."/"));
-					wp_update_attachment_metadata($ids[$j]->post_id, $meta);
-					if ($wpdb->query("update $wpdb->postmeta set meta_value='".$meta['file']."' where post_id=".$ids[$j]->post_id." and meta_key='_wp_attached_file'")===FALSE) {throw new \Exception('5');}
-				}
-				//$wpdb->query("update $wpdb->postmeta set meta_value=CONCAT('".$subdir_to.$items[$i]."/',substr(meta_value,".(strlen($subdir_from.$items[$i]."/")+1).")) where meta_value like '".$subdir_from.$items[$i]."/%'");
-			} else { // It's not a dir
-				if ($wpdb->query("update $wpdb->posts set guid='" . $newu . "' where guid = '".$oldu."'")===FALSE) {throw new \Exception('6');}
-				$ids = $wpdb->get_results("select post_id from $wpdb->postmeta where meta_value = '".$subdir_from.$items[$i]."'");
-				for ($j=0; $j<count($ids); $j++) {
-					$meta = wp_get_attachment_metadata($ids[$j]->post_id);
-					$meta['file'] = $subdir_to.$items[$i];
-					wp_update_attachment_metadata($ids[$j]->post_id, $meta);
-				}
-				if ($wpdb->query("update $wpdb->postmeta set meta_value='" . $subdir_to.$items[$i] . "'where meta_value = '".$subdir_from.$items[$i]."'")===FALSE) {throw new \Exception('7');}
-			}
-		}
-
-		if ($wpdb->query("COMMIT") === FALSE) {throw new \Exception('8');}
-
-		die("Success");
-	} catch (\Exception $e) {
-		$wpdb->query("ROLLBACK");
-		for ($j=0; $j<count($items); $j++) {
-			$res = @rename($dir_to . $items[$j] , $dir_from . $items[$j]);
-		}
-		die("Error ".$e->getMessage());
-	}
-}
- */
-
 
 function delete_empty_dir_callback() {
-	if (!test_mfm_permission()) return 0;
 
+    if (!test_mfm_permission()) {
+        ajax_response(false, 'no permission');
+    }
 
-	$local_post_dir = stripslashes($_POST['dir']);
-	$local_post_name = stripslashes($_POST['name']);
+    $dir  = get_post('dir');   // e.g. '/' or '/photos/'
+	$name = get_post('name');  // e.g. 'dir_to_be_deleted'
 
-	$dir = mrl_adjpath(UPLOAD_DIR."/".$local_post_dir."/".$local_post_name, true);
+    // FIXME need a sanity check on what we're trying to delete!!!!  !!!!!!!!
+    $full_dir = UPLOAD_DIR . $dir . $name;
 
-	if (strstr($local_post_name,"\\")) {
-		$dir = substr($dir,0,strlen($dir)-strlen($local_post_name)-1).$local_post_name."/";
+	if (!rmdir($full_dir)) {
+        ajax_response(false, 'Unable to delete ' . $dir . $name);
 	}
-
-	if (!@rmdir($dir)) {
-		$error = error_get_last();
-		die($error['message']);
-	}
-	die("Success");
+    ajax_response(true, 'Deleted OK');
 }
 
 

@@ -7,10 +7,10 @@
 
 // -- put them in a namespace
 var mocd = mocd || {};
-mocd.shift_pressed = false;	// Flag indicates shift key is pressed or not
 mocd.ajax_count = 0;
 mocd.right_click_menu = {};	// Right-click menu class object
-mocd.input_text = {};	// Text-input form class object
+mocd.input_text = {};	// Text-input form class object -- just one, shared between panes
+
 mocd.mouse_x = 0; 
 mocd.mouse_y = 0;
 mocd.pane_right = {};	// Pane class objects
@@ -90,6 +90,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
             //
             // LOOP sending requests one at a time...
             //console.log(flist);
+            // FIXME this is duplicated
             var data = {
                 action: 'new_mocd_move',
                 dir_from: pane_from.cur_dir,
@@ -213,77 +214,178 @@ mocd.move_items = function move_items (pane_from, pane_to, no) {
 
 
 //**** Pane class *******************************************************************
-var MOCDPaneClass = function(id_root) {
+var MOCDPaneClass = function (id_root) {
 	this.cur_dir = "";
 	this.dir_list = new Array();
 	//this.dir_disp_list = new Array();   // NOT NEEDED -- now they're all displayed
-	this.id_root = id_root;
-	this.id_wrapper = id_root + "_wrapper";
-	this.id_pane = id_root + "_pane";
-	this.id_dir = id_root + "_path";
-	this.id_dir_new = id_root + "_dir_new";
-	this.id_dir_up = id_root + "_dir_up";
+	this.id_root      = id_root;
+	this.wrapper   = jQuery('#' + id_root + "_wrapper");  // TODO store the jQuery thing, not just the id (?)
+	this.id_pane      = id_root + "_pane";
+    this.pane      = jQuery('#' + this.id_pane);
+	this.id_dir       = id_root + "_path";
+	this.id_dir_new   = id_root + "_dir_new";
+	this.id_dir_up    = id_root + "_dir_up";
+    this.id_rename_dialog  = id_root + '_rename_dialog';
+    this.id_rename   = id_root + '_newname';
+    this.id_rename_i = id_root + '_newname_i';
+    this.id_newdir_dialog = id_root + '_newdir_dialog';
+    this.id_newdir   = id_root + '_newdir';
+    this.id_newdir_error   = id_root + '_newdir_error';
 	this.checked_loc = -1;
 	this.last_div_id = "";
 	this.chk_prepare_id = -1;
 	this.opposite  = this; // WTF
 	//this.disp_num = 0;
 
-	var that = this;
+	var thispane = this;
 
 	jQuery('#'+this.id_dir_up).click(function(ev) {
 		if (mocd.ajax_count) return;
-		if ("/" == that.cur_dir) return;
-		that.chdir("..");
+		if ("/" == thispane.cur_dir) return;
+		thispane.chdir("..");
 	});
 
-	jQuery('#'+this.id_dir_new).click(function(ev) {
-		if (mocd.ajax_count) return;
-		mocd.input_text.make("Make Directory","",300, true);
-		mocd.input_text.set_callback(function(){
-			var dir  =  mocd.input_text.result;
-			if (dir=="") return;
-			if (that.check_same_name(dir)) {
-				alert("The same name exists.");
-				return;
-			}
-			var res = "";
-			var data = {
-				action: 'mocd_mkdir',
-				dir: that.cur_dir,
-				newdir: dir
-			};
-			mocd.ajax_count_in();
-            jQuery.post(ajaxurl, data, function(response) {
-                if (response.success) {
-                    alert("mocd_mkdir: "+response.message);
-                } else {
-                    that.refresh();
-                    if (that.cur_dir == that.opposite.cur_dir) {
-                        that.opposite.refresh();
-                    }
-                }
-                mocd.ajax_count_out();
-            });
-		});
-	});
+//	jQuery('#'+this.id_dir_new).click(function(ev) {
+//		if (mocd.ajax_count) return;
+//		mocd.input_text.make("Make Directory","",300, true);
+//		mocd.input_text.set_callback(function(){
+//			var dir  =  mocd.input_text.result;
+//			if (dir=="") return;
+//			if (thispane.check_same_name(dir)) {
+//				alert("The same name exists.");
+//				return;
+//			}
+//			var res = "";
+//			var data = {
+//				action: 'mocd_mkdir',
+//				dir: thispane.cur_dir,
+//				newdir: dir
+//			};
+//			mocd.ajax_count_in();
+//            jQuery.post(ajaxurl, data, function(response) {
+//                if (!response.success) {
+//                    alert("mocd_mkdir: "+response.message);
+//                } else {
+//                    thispane.refresh();
+//                    if (thispane.cur_dir == thispane.opposite.cur_dir) {
+//                        thispane.opposite.refresh();
+//                    }
+//                }
+//                mocd.ajax_count_out();
+//            });
+//		});
+//    });
 
     // 'Select All' box affects all boxes on this pane
 	jQuery('div.mocd_pane').on('click', '#' + this.id_pane + '_ck_all', function(ev) {
-        jQuery('.' + that.id_pane + '_ck').attr('checked', this.checked);
+        jQuery('.' + thispane.id_pane + '_ck').attr('checked', this.checked);
 	});
 
 //	jQuery('#'+this.id_select_all).click(function(ev) {
-//		//for (i=0; i<that.disp_num; i++) {
-//		for (i = 0; i < that.dir_list.length; i++) {
-//			jQuery('#'+that.get_chkid(i)).attr('checked',true);
+//		//for (i=0; i<thispane.disp_num; i++) {
+//		for (i = 0; i < thispane.dir_list.length; i++) {
+//			jQuery('#'+thispane.get_chkid(i)).attr('checked',true);
 //		}
 //	});
 //	jQuery('#'+this.id_deselect_all).click(function(ev) {
-//		for (i=0; i<that.dir_list.length; i++) {
-//			jQuery('#'+that.get_chkid(i)).attr('checked',false);
+//		for (i=0; i<thispane.dir_list.length; i++) {
+//			jQuery('#'+thispane.get_chkid(i)).attr('checked',false);
 //		}
 //	});
+
+    // Set up rename dialog
+    this.rename_field = jQuery('#' + this.id_rename);
+    this.rename_dialog = jQuery("#" + this.id_rename_dialog).dialog({
+        appendTo: '#mocd_wrap',
+        autoOpen: false,
+        //height: 400,
+        //width: 350,
+        resizable: false,
+
+        modal: true,
+        buttons: {
+            "Rename": thispane.rename_dialog_callback.bind(thispane, 'x42'),
+            Cancel: function() {
+                thispane.rename_dialog.dialog("close");
+            }
+        },
+        open: function (event, ui) {
+            //console.log('opening dialog');
+        },
+        close: function() {
+            // ??form[0].reset();
+            //allFields.removeClass("ui-state-error");
+        }
+    });
+    
+    // TODO validation, either in dialog or callback
+    // Set up new dir dialog
+	jQuery('#' + this.id_dir_new).click(function () {
+        thispane.newdir_dialog.dialog("open");
+    });
+    this.newdir_field = jQuery('#' + this.id_newdir);
+    this.newdir_dialog = jQuery("#" + this.id_newdir_dialog).dialog({
+        appendTo: '#mocd_wrap',
+        autoOpen: false,
+        //height: 400,
+        //width: 350,
+        resizable: false,
+
+        modal: true,
+        buttons: {
+            "Create": thispane.newdir_dialog_callback.bind(thispane, 'x42'),
+            Cancel: function() {
+                thispane.newdir_dialog.dialog("close");
+            }
+        },
+        open: function (event, ui) {
+            //console.log('opening dialog');
+        },
+        close: function() {
+            // ??form[0].reset();
+            //allFields.removeClass("ui-state-error");
+        }
+    });
+
+//?    var form = this.dialog.find("form").on("submit", function(event) {
+//        event.preventDefault();
+//        thispane.rename_dialog_callback().bind(thispane, 'ff');
+//    });
+    // Button click is done later
+    //jQuery("#create-user").button().on( "click", function() {
+    //    thispane.rename_dialog.dialog("open");
+    //});
+
+}
+
+// TEMP?
+MOCDPaneClass.prototype.rename_dialog_callback = function (x) {
+    // 'this' is the pane object, thanks to the bind on the call
+    // (otherwise it would be the div containing the form element)
+    var newname = this.rename_field.val();
+    if (this.name_exists(newname)) {
+        jQuery('#' + this.id_newname_error).html("<span class=error>There is already a file or folder called '" + newname + "'</span>");
+        jQuery(this.newname_field).addClass('error');
+        return false;
+    }
+    this.rename_dialog.dialog('close');
+    //alert('newname: ' + newname);
+    this.ajax_rename_item(jQuery('#' + this.id_rename_i).val(), newname);
+    return true;
+}
+
+MOCDPaneClass.prototype.newdir_dialog_callback = function () {
+    // 'this' is the pane object, thanks to the bind on the call
+    // (otherwise it would be the div containing the form element)
+    var newdir = this.newdir_field.val();
+    if (this.name_exists(newdir)) {
+        jQuery('#' + this.id_newdir_error).html("<span class=error>There is already a file or folder called '" + newdir + "'</span>");
+        jQuery(this.newdir_field).addClass('error');
+        return false;
+    }
+    this.newdir_dialog.dialog('close');
+    this.ajax_newdir(newdir);
+    return true;
 }
 
 MOCDPaneClass.prototype.get_chkid = function (n) {
@@ -302,7 +404,7 @@ MOCDPaneClass.prototype.refresh = function () {
 // description : move to the directory and display directory listing
 // argument : (dir)absolute path name of the target directory
 MOCDPaneClass.prototype.setdir = function(dir) {
-	jQuery('#'+this.id_wrapper).css('cursor:wait'); // TODO move this into count_in
+	this.wrapper.css('cursor:wait'); // TODO move this into count_in
 	var data = {
 		action: 'mocd_getdir',
 		dir: dir
@@ -314,7 +416,7 @@ MOCDPaneClass.prototype.setdir = function(dir) {
         if (response.success) {
             // Process the json directory from ajax,
             // create the html, and store the list
-            that.dir_list = that.dir_ajax(data.dir, response.data);
+            that.dir_list = that.set_dir(data.dir, response.data);
         } else {
             alert(response.message);
         }
@@ -322,11 +424,10 @@ MOCDPaneClass.prototype.setdir = function(dir) {
 	});
 }
 
-// function name: MOCDPaneClass::dir_ajax
+// function name: MOCDPaneClass::set_dir
 // description : display directory list sent from server
 //               in response to mocd_getdir ajax request              
-// FIXME rename this function
-MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
+MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
 	//var dir;
     var thispane = this;
 
@@ -350,6 +451,9 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
 	var html = "";
     var thumb_url = '';
 	this.last_chk_id = "";
+
+    //html += '<h2><span class="dashicons dashicons-smiley"></span> A Cheerful Headline</h2>';
+    //html += '<span class="dashicons dashicons-portfolio"></span>';
 
     html += '<ul class=mocd_pane_list>';
 
@@ -383,7 +487,9 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
 		html += item.name; 
         if (item.isdir) {
             html += ' <button type="button" class="mocd_pane_rename">Rename</button>';
-            html += ' <button type="button" class="mocd_pane_delete">Delete</button>';
+            if (item.isemptydir) {
+                html += ' <button type="button" class="mocd_pane_delete">Delete</button>';
+            }
         }
 		html += '</div>';
         //html += '</div>'
@@ -392,7 +498,7 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
         html += '</li>';
 	}
     html += '</ul>';
-    jQuery('#'+this.id_pane).html(html);
+    this.id_pane).html(html);
 
     // Now that the items are in the DOM,
     // go through the list again and set folders as clickable.
@@ -410,20 +516,27 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
                 thispane.chdir(newdir);
             }.bind(this, name));  // name gets passed in as newdir
             // Make folder's rename button clickable
-            jQuery('#'+divid).on('click', 'button.mocd_pane_rename', function (dirname, e) {
+            jQuery('#'+divid).on('click', 'button.mocd_pane_rename', function (i, e) {
                 if (mocd.ajax_count > 0) {
                     return;
                 }
-                alert('rename ' + dirname);
-            }.bind(this, name));  // name gets passed in as dirname
-            // Make folder's delete button clickable
-            jQuery('#'+divid).on('click', 'button.mocd_pane_delete', function (dirname, e) {
-                if (mocd.ajax_count > 0) {
-                    return;
-                }
-                alert('delete ' + dirname);
-            }.bind(this, name));  // dir[i].name gets passed in as dirname
-
+                alert('rename ' + thispane.dir_list[i].name);
+                //thispane.ajax_rename_item(i);
+                // Set the current value before opening the form
+                jQuery('#' + thispane.id_rename).val(thispane.dir_list[i].name);
+                jQuery('#' + thispane.id_rename_i).val(i);
+                thispane.rename_dialog.dialog("open");
+            }.bind(this, i));  // index gets passed in as i
+            if (dir[i].isemptydir) {
+                // Make folder's delete button clickable 
+                jQuery('#'+divid).on('click', 'button.mocd_pane_delete', function (i, e) {
+                    if (mocd.ajax_count > 0) {
+                        return;
+                    }
+                    alert('deleting ' + thispane.dir_list[i].name);
+                    thispane.ajax_delete_empty_dir(i);
+                }.bind(this, i));  // index gets passed in as i
+            }
         }
     }
 
@@ -437,188 +550,121 @@ MOCDPaneClass.prototype.dir_ajax = function (target_dir, dir) {
     //if (this.chk_prepare_id == -1) {
     //    this.chk_prepare_id = setInterval(callMethod_chkprepare, 20);
     //}
-    jQuery('#'+this.id_wrapper).css('cursor:default');
+    this.wrapper.css('cursor:default');
     return dir;
+}
+
+// Send AJAX request to rename an item, given its index in the dir_list
+MOCDPaneClass.prototype.ajax_rename_item = function (i, newname) {
+    var thispane = this;
+    if (!thispane.dir_list[i].name) {
+        console.log('ajax_rename_item -- now item for i=', i);
+        return;
+    }
+    var oldname = thispane.dir_list[i].name;
+
+    var data = {
+        action:    'new_mocd_move',
+        dir_from:  thispane.cur_dir,
+        dir_to:    thispane.cur_dir,
+        item_from: oldname,
+        item_to:   newname,
+        post_id:   thispane.dir_list[i].post_id,
+        isdir:     thispane.dir_list[i].isdir 
+    };
+    //console.log('nmi sending data: ', data);
+    mocd.ajax_count_in();
+    jQuery.post(ajaxurl, data, function (response) {
+        mocd.display_response(response);
+        thispane.refresh();
+        // Refresh opposite pane if it's showing the same directory
+        if (thispane.cur_dir == thispane.opposite.cur_dir) {
+            thispane.opposite.refresh();
+        }
+        // Update opposite pane if it's showing the directory we've just renamed
+        if (thispane.opposite.cur_dir == thispane.cur_dir + oldname + "/") {
+            thispane.opposite.setdir(thispane.cur_dir + newname + '/'); // Linux only
+        }
+        mocd.ajax_count_out();
+        //}
+    });
+} 
+
+// Send AJAX request to create a new directory
+MOCDPaneClass.prototype.ajax_newdir = function (newdir) {
+    var thispane = this;
+    var data = {
+        action: 'mocd_mkdir',
+        dir: thispane.cur_dir,
+        newdir: newdir
+    };
+    mocd.ajax_count_in();
+    jQuery.post(ajaxurl, data, function(response) {
+        if (!response.success) {
+            alert("mocd_mkdir: " + response.message);
+        } else {
+            thispane.refresh();
+            if (thispane.cur_dir == thispane.opposite.cur_dir) {
+                thispane.opposite.refresh();
+            }
+        }
+        mocd.ajax_count_out();
+    });
+} 
+
+// Send AJAX request to delete an empty directory, given its index in the dir_list
+MOCDPaneClass.prototype.ajax_delete_empty_dir = function (i) {
+    var thispane = this;
+    var dirname = thispane.dir_list[i].name;
+    var data = {
+        action: 'mocd_delete_empty_dir',
+        dir:    this.cur_dir,
+        name:   this.dir_list[i].name
+    };
+    mocd.ajax_count_in();
+    jQuery.post(ajaxurl, data, function(response) {
+        mocd.display_response(response);
+        thispane.refresh();
+        // Refresh opposite pane if it's showing the same directory
+        if (thispane.cur_dir == thispane.opposite.cur_dir) {
+            thispane.opposite.refresh();
+        }
+        // Update the opposite pane if it's showing the dir we've just deleted
+        if (thispane.opposite.cur_dir == thispane.cur_dir + dirname + "/") {
+            thispane.opposite.setdir(thispane.cur_dir);
+        }
+        mocd.ajax_count_out();
+    });
 }
 
 // TODO a new 'set_checkboxes' function that disables checkboxes
 // for items that have items with the same name in the opposite pane
 
-// function name: MOCDPaneClass::prepare_checkboxes
-// description : prepare event for checkboxes and right-click events(mkdir, rename)
-// argument : (void)
-// OH FIXME -- this does the right click stuff as well as checkboxes
-MOCDPaneClass.prototype.prepare_checkboxes_NOT_USED = function() {
-    var that = this; // FIXME ?? needed!?
-
-    if (jQuery('#'+this.last_div_id).length>0) {
-        clearInterval(this.chk_prepare_id);
-        this.chk_prepare_id = -1;
-
-        //for (i=0; i<this.dir_disp_list.length; i++) {
-        //	var idx = this.dir_disp_list[i];
-        for (i = 0; i < this.dir_list.length; i++) {
-            var idx = i; //this.dir_disp_list[i];
-            //if (this.dir_list[idx].isthumb) continue; hmm this ref to isthumb was already commented out
-
-            jQuery('#'+this.get_divid(i)).data('order', i);
-            jQuery('#'+this.get_divid(i)).data('data', idx);
-
-            jQuery('#'+this.get_chkid(i)).data('order', i);
-            jQuery('#'+this.get_chkid(i)).data('data', idx);
-            jQuery('#'+this.get_chkid(i)).change(function() {
-                if (mocd.shift_pressed && that.checked_loc >= 0) {
-                    var loc1 = jQuery(this).data('order');
-                    var loc2 = that.checked_loc;
-                    var checked = jQuery('#'+that.get_chkid(loc1)).attr('checked');
-                    for (n=Math.min(loc1,loc2); n<=Math.max(loc1,loc2); n++) {
-                        if (checked == 'checked') {
-                            jQuery('#'+that.get_chkid(n)).attr('checked','checked');
-                        } else if (checked === true) {
-                            jQuery('#'+that.get_chkid(n)).attr('checked',true);
-                        } else if (checked === false) { 
-                            jQuery('#'+that.get_chkid(n)).attr('checked',false);
-                        } else {
-                            jQuery('#'+that.get_chkid(n)).removeAttr('checked');
-                        }
-                    }
-                }
-                that.checked_loc = jQuery(this).data('order');
-            });
-            /* Don't steal r-click
-               jQuery(document).bind("contextmenu",function(e){
-               return false;
-               }); 
-               */
-            // NOTE we only reference things in dir_list that are already on the 
-            // screen, so all the isthumb ones are still not needed.
-            jQuery('#'+this.get_divid(i)).mousedown(function(ev) {
-                if (ev.which == 3) {
-                    ev.preventDefault();
-                    var isDir = that.dir_list[jQuery(this).data('data')]['isdir'];
-                    var arrMenu = new Array("Preview","Rename");
-                    if (isDir) {
-                        arrMenu.push("Delete");
-                    }
-                    mocd.right_click_menu.make(arrMenu);
-                    var that2 = this;
-                    if (isDir) {
-                        jQuery('#'+mocd.right_click_menu.get_item_id(2)).click(function(){ //delete
-                            var target = that.dir_list[jQuery(that2).data('data')];
-                            var isEmptyDir = target['isemptydir'];
-                            if (!isEmptyDir) {alert('Directory not empty.');return;}
-                            var target = that.dir_list[jQuery(that2).data('data')];
-                            var dirname = target['name'];
-                            var data = {
-                                action: 'mocd_delete_empty_dir',
-                                dir: that.cur_dir,
-                                name: dirname
-                            };
-                            mocd.ajax_count_in();
-                            jQuery.post(ajaxurl, data, function(response) {
-                                if (response.search(/Success/i) < 0) {alert("mocd_delete_empty_dir: "+response);}
-                                that.refresh();
-                                if (that.cur_dir == that.opposite.cur_dir) {
-                                    that.opposite.refresh();
-                                }
-                                if (that.cur_dir+dirname+"/" == that.opposite.cur_dir) {
-                                    that.opposite.setdir(that.cur_dir);
-                                }
-                                mocd.ajax_count_out();
-                            });
-                        });
-                    }
-                    jQuery('#'+mocd.right_click_menu.get_item_id(0)).click(function(){ //preview
-                        var url = mrloc_url_root + (that.cur_dir+that.dir_list[jQuery(that2).data('data')]['name'])/*.substr(mrloc_document_root.length)*/;
-                        window.open(url, 'mrlocpreview', 'toolbar=0,location=0,menubar=0')
-                    });
-                    jQuery('#'+mocd.right_click_menu.get_item_id(1)).click(function(){ //rename
-                        if (mocd.ajax_count) return;
-                        var target = that.dir_list[jQuery(that2).data('data')];
-                        if (target['norename']) {
-                            alert("Sorry, you cannot rename this item.");
-                            return;
-                        }
-                        var old_name = target['name'];
-                        mocd.input_text.make("Rename ("+old_name+")",old_name,300, target['isdir'] );
-                        mocd.input_text.set_callback(function(){
-                            if (old_name == mocd.input_text.result || mocd.input_text.result=="") {
-                                return;
-                            }
-                            if (that.check_same_name(mocd.input_text.result)) {
-                                alert("The same name exists.");
-                                return;
-                            }
-                            var data = {
-                                action: 'mocd_rename',
-                                dir: that.cur_dir,
-                                from: old_name,
-                                to: mocd.input_text.result
-                            };
-                            mocd.ajax_count_in();
-
-                            jQuery.post(ajaxurl, data, function(response) {
-                                if (response.search(/Success/i) < 0) alert("mocd_rename: "+response);
-                                if (that.opposite.cur_dir.indexOf(that.cur_dir+old_name+"/")===0) {
-                                    that.opposite.setdir(that.cur_dir+mocd.input_text.result+"/"+that.opposite.cur_dir.substr((that.cur_dir+old_name+"/").length));
-                                }
-                                if (that.cur_dir == that.opposite.cur_dir) {
-                                    that.refresh();
-                                    that.opposite.refresh();
-                                } else {
-                                    that.refresh();
-                                }
-                                mocd.ajax_count_out();
-                            });
-                        });
-                    });
-                }
-                // WHAT? why a new var here!?
-                var dir = that.dir_list[jQuery(this).data('data')];
-            });
-
-            jQuery('#'+this.get_divid(i)).click(function() {
-                if (mocd.ajax_count) return;
-                var dir = that.dir_list[jQuery(this).data('data')];
-                if (dir.isdir) {
-                    that.chdir(dir.path);
-                }
-            });
-        }
-    }
-    }
-
-MOCDPaneClass.prototype.check_same_name = function(str) {
-	for (var i=0; i<this.dir_list.length; i++) {
-		if (this.dir_list[i]['name'] == str) {
+MOCDPaneClass.prototype.name_exists = function (str) {
+	for (var i = 0; i < this.dir_list.length; i++) {
+		if (this.dir_list[i]['name'] === str) {
 			return true;
 		}
 	}
 	return false;
 }
 
-// function name: MOCDPaneClass::chdir
-// description : move directory and display its list
-// argument : (dir)target directory
-MOCDPaneClass.prototype.chdir = function(dir) {
-	var last_chr = this.cur_dir.substr(this.cur_dir.length-1,1);
+// Assumes 'dir' has no slashes; this.cur_dir has start and end slashes.
+// If not changing directory, runs set_dir anyway to refresh the pane.
+MOCDPaneClass.prototype.chdir = function (dir) {
+	//var last_chr = this.cur_dir.substr(this.cur_dir.length-1,1);
 	var new_dir = this.cur_dir;
-
-	if (dir == "..") {
-		if (last_chr == "/") {
-			new_dir = new_dir.substr(0, new_dir.length-1);
-		}
-		var i=0;
-		for (i=new_dir.length-1; i>=0; i--) {
-			if (new_dir.substr(i, 1)=="/") {
-				new_dir = new_dir.substr(0, i+1);
-				break;
-			}
+    if (dir == '.') {
+        // nothing to do
+    } else if (dir == "..") {
+        if (new_dir == '/') {
+            // already at the top
+        } else {
+            // convert e.g. /photos/big/ to /photos/
+            new_dir = new_folder.split('/').slice(0, -2).join('/') + '/'; // FIXME Linux only
 		}
 	} else {
-		if (last_chr != "/") new_dir += "/";
-		new_dir += dir;
-		if (last_chr == "/") new_dir += "/";
+        new_dir += dir + '/';
 	}
 	this.setdir(new_dir);
 }
@@ -630,60 +676,6 @@ MOCDPaneClass.prototype.actions = function (action) {
 
 
 // ----------- End of class definition 
-
-//**** right-click menu class *******************************************************************
-var MOCDRightMenuClass = function() {
-	var num=0;
-	var flgRegisterRemoveFunc = false;
-	var pos_left = 0;
-	var pos_right = 0;
-}
-
-
-// function name: MOCDRightMenuClass::make
-// description : make and display right-click menu
-// argument : (items)array of menu items 
-MOCDRightMenuClass.prototype.make = function(items) {
-	var html="";
-	var i;
-	jQuery('body').append('<div id="mocd_right_menu"></div>');
-
-	this.num = items.length;
-	for (i=0; i<items.length; i++) {
-		html += '<div class="mocd_right_menu_item" id="mocd_right_menu_item_' + i + '">';
-		html += items[i];
-		html += '</div>';
-	}
-
-	this.pos_left = mocd.mouse_x;
-	this.pos_top = mocd.mouse_y;
-
-	jQuery('#mocd_right_menu').html(html);
-	jQuery('#mocd_right_menu').css('top',this.pos_top+"px");
-	jQuery('#mocd_right_menu').css('left',this.pos_left+"px");
-
-	for (i=0; i<items.length; i++) {
-		var id = 'mocd_right_menu_item_' + i;
-		jQuery('#'+id).hover(
-                // FIXME this.removeClass does not exist!!
-			//function(){this.removeClass('mocd_right_menu_item');this.addClass('mocd_right_menu_item_hover');},
-			//function(){this.removeClass('mocd_right_menu_item_hover');this.addClass('mocd_right_menu_item');}
-		);
-	}
-	if (!this.flgRegisterRemoveFunc) {
-		jQuery(document).click(function(){jQuery('#mocd_right_menu').remove();});
-		this.flgRegisterRemoveFunc = true;
-	}
-}
-
-// function name: MOCDRightMenuClass::get_item_id
-// description : get the id of the specified item
-// argument : (n)index of item (starting from 0)
-MOCDRightMenuClass.prototype.get_item_id = function(n) {
-	return 'mocd_right_menu_item_' + n;
-}
-
-
 
 //**** Text input form class *******************************************************************
 var MOCDInputTextClass = function() {
@@ -701,7 +693,8 @@ var MOCDInputTextClass = function() {
 	//var callback;
 	this.callback;
     //var invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
-    this.invalid_chr = ["\\", "/", ":", "*", "?", "+", "\"", "<", ">", "|", "%", "&", "'", " ", "!", "#", "$", "(", ")", "{", "}"];
+    this.invalid_chr = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "&", "'", " ", "`"];
+
 }
 
 // function name: MOCDInputTextClass::make
@@ -714,19 +707,33 @@ MOCDInputTextClass.prototype.make = function(title, init_text, textbox_width, is
 	html = '<div class="title">'+title+'</div>';
 	html += '<input type="textbox" id="mocd_input_textbox" style="width:'+textbox_width+'px"/>';
 	html += '<div class="mocd_input_text_button_wrapper">';
-	html += '<div class="mocd_input_text_button" id="mocd_input_text_ok">&nbsp;OK&nbsp;</div>';
-	html += '<div class="mocd_input_text_button" id="mocd_input_text_cancel">&nbsp;Cancel&nbsp;</div>';
+	//html += '<div class="mocd_input_text_button" id="mocd_input_text_ok">&nbsp;OK&nbsp;</div>';
+	//html += '<div class="mocd_input_text_button" id="mocd_input_text_cancel">&nbsp;Cancel&nbsp;</div>';
+	html += '<button type=button class="mocd_input_text_button" id="mocd_input_text_ok">OK</button> ';
+	html += '<button type=button class="mocd_input_text_button" id="mocd_input_text_cancel">Cancel</button>';
 	html += '</div>';
 
 	this.pos_left = mocd.mouse_x;
 	this.pos_top = mocd.mouse_y;
 
 	jQuery('#mocd_input_text').html(html);
-	jQuery('#mocd_input_text').css('top',this.pos_top+"px");
-	jQuery('#mocd_input_text').css('left',this.pos_left+"px");
+	jQuery('#mocd_input_text').css('margin', '0 auto'); //'top',this.pos_top+"px");
+	//jQuery('#mocd_input_text').css('left',this.pos_left+"px");
 	jQuery('#mocd_input_textbox').val(init_text);
 
 	var that = this;
+
+    // CD Hack
+    jQuery('#mocd_input_text').keypress(function (e) {
+        // Filter out invalid characters
+        var key = String.fromCharCode(e.which);
+        console.log('--- key=', key);
+        if (that.invalid_chr.indexOf(key) >= 0) {
+            return false;
+        }
+        //return 'a'; //?? 
+    });
+
 	jQuery('#mocd_input_text_ok').click(function(){
 		var result = jQuery('#mocd_input_textbox').val();
 		if (that.check_dotext(result, that.is_dirname)) {
@@ -801,13 +808,10 @@ MOCDInputTextClass.prototype.invalid_chr_msg = function() {
 
 
 
-// TODO Get rid of right-click stuff
-//
 // function name: (none)
 // description :  initialization
 // argument : (void)
 jQuery(document).ready(function() {
-	mocd.right_click_menu = new MOCDRightMenuClass();
 	mocd.input_text = new MOCDInputTextClass();
 
 	mocd.pane_left = new MOCDPaneClass('mocd_left');
@@ -821,19 +825,11 @@ jQuery(document).ready(function() {
 	mocd.pane_left.setdir("/");
 	mocd.pane_right.setdir("/");
 
-	//jQuery(document).keydown(function (e) {
-	//  if(e.shiftKey) {
-	//    mocd.shift_pressed = true;
-	//  }
-	//});
     // Track mouse position for dialogue boxes
    	jQuery(document).mousemove(function(e){
 		mocd.mouse_x = e.pageX;
 		mocd.mouse_y = e.pageY;
 	}); 
-	//jQuery(document).keyup(function(event){
-	//   mocd.shift_pressed = false;
-	//});
 
 	jQuery('#mocd_btn_left2right').click(function() {
 		if (mocd.ajax_count) return;

@@ -49,6 +49,10 @@ Since the fork, various changes have been made including:
 * better error handling
 * ...
 
+Known issues
+
+* may not work on Windows servers -- haven't checked the use of directory separators yet
+* something
 
 Icons adapted from https://github.com/iconic/open-iconic
 
