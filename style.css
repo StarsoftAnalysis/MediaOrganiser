@@ -1,7 +1,7 @@
 .mocd_pane {
 	/*width:300px;
 	height:450px;*/
-	overflow:scroll;
+	/* overflow:scroll; FIXME??? */
 	bborder: solid 1px #f00;
 }
 
@@ -32,10 +32,11 @@ li.mocd_pane_item {
 	/*float:left;
 	width:auto;
 	height:18px;*/
-	/*background-color:#ddd;*/
+	background-color:#ddd;
 	/*border: 1px solid #888;*/
 	font-size: 14px;
-	/*padding: 0px; */
+    font-weight: bold;
+	padding: 3px; 
 }
 
 .mocd_wrapper_pane {
@@ -51,7 +52,7 @@ li.mocd_pane_item {
 }
 
 
-.mocd_isdir {
+.mocd_clickable {
 	cursor: pointer;
 }
 /* Folder icon or thumbnail image in pane */
@@ -71,19 +72,14 @@ li.mocd_pane_item {
 	border: solid 0px #f00;
 }
 
-#mocd_btn_left2right {
-	padding:10px 5px 0 5px;
-}
-#mocd_btn_right2left {
-	padding:10px 5px 0 5px;
-}
-
 .mocd_dir_up {
 	xfloat:left;
-	padding:3px;
+	xpadding:3px;
+    padding-right: 8px;
 }
 .mocd_dir_new {
 	xfloat:left;
+    padding-right: 8px;
 }
 /*.mocd_select_all {
 	float:left;
@@ -108,9 +104,19 @@ li.mocd_pane_item {
 */
 
 #mocd_center_wrapper {
-	width: 34px;
+	xwidth: 34px;
 	xfloat:left;
 	border: solid 1px #00f;
+    padding-top: 10em;
+}
+
+div#mocd_btn_left2right {
+	xpadding:10px 5px 0 5px;
+    display: block;
+}
+div#mocd_btn_right2left {
+	xpadding:10px 5px 0 5px;
+    display: block;
 }
 
 
@@ -157,6 +163,26 @@ li.mocd_pane_item {
 .mocd_filename {
     overflow-wrap: break-word;
     word-wrap: break-word;
+}
+
+/* Progress bar */
+#mocd_progressbar {
+	position: fixed; /*absolute;*/
+    z-index: 999;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    transform: translate(-50%, -50%); /* centre it on the given point */
+	border: 1px solid #777;
+	background-color: #eee;
+	padding: 4px;
+}
+#mocd_progresslabel {
+    position: absolute;
+    /*left: 50%;*/
+    top: 4px;
+    font-weight: bold;
+    text-shadow: 1px 1px 0 #fff;
 }
 
 

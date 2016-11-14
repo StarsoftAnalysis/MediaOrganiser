@@ -1,5 +1,5 @@
 <?php
-namespace media_file_manager_cd;
+namespace media_organiser_cd;
 
 function get_media_list_callback() {
 	global $wpdb;

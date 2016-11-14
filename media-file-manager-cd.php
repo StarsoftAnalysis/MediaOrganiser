@@ -1,12 +1,12 @@
 <?php
-namespace media_file_manager_cd;
+namespace media_organiser_cd;
 define(__NAMESPACE__ . '\NS', __NAMESPACE__ . '\\'); // (need to escape \ before ')
 
 /*
-Plugin Name: Media File Manager CD
+Plugin Name: Media Organiser
 Plugin URI: https://example.com
 Description: You can make sub-directories in the upload directory, and move files into them. At the same time, this plugin modifies the URLs/path names in the database. Also an alternative file-selector is added in the editing post/page screen, so you can pick up media files from the subfolders easily.  (CD's version)
-Version: 1.4.2-CD
+Version: 1.4.2-mocd
 Author: Atsushi Ueda, Chris Dennis
 Author URI:
 License: GPL2

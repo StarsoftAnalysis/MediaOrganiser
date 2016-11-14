@@ -1,5 +1,5 @@
 <?php
-namespace media_file_manager_cd;
+namespace media_organiser_cd;
 
 // TODO for my version
 
@@ -53,8 +53,8 @@ function plugin_menu () {
 		/*  add a configuration screen  */
         add_submenu_page(
             'upload.php',
-            'Media File Manager CD',
-            'Media File Manager CD',
+            'Media File Organiser',
+            'Media File Organiser',
             $role,
             'mrelocator-submenu-handle',
             NS . 'display_config');
@@ -66,31 +66,31 @@ function pane_html ($side) {
 	echo '<div class="mocd_wrapper_pane" id="mocd_', $side, '_wrapper">';
 	echo '<div class="mocd_box1">';
     echo '<p class=mocd_path id=mocd_', $side, '_path>';
-	echo '<div style="clear:both;"></div>';
-    echo '<div class="mocd_action" id="mocd_', $side, '_action">Action: ';
-    echo '<select name="mocd_', $side, '_select">';
-    echo '<option value="rename">Rename</option>';
-    echo '<option value="move">Move</option>';
-    echo '<option value="delete">Delete</option>';
-    echo '</select>';
-    echo '<button id="mocd_', $side, '_button_go" type="button">Go</button>';
-    echo '</div>';
+	#echo '<div style="clear:both;"></div>';
+    #echo '<div class="mocd_action" id="mocd_', $side, '_action">Action: ';
+    #echo '<select name="mocd_', $side, '_select">';
+    #echo '<option value="rename">Rename</option>';
+    #echo '<option value="move">Move</option>';
+    #echo '<option value="delete">Delete</option>';
+    #echo '</select>';
+    #echo '<button id="mocd_', $side, '_button_go" type="button">Go</button>';
+    #echo '</div>';
     // FIXME class should just be mocd_dir
-	echo '<div class="mocd_dir_up" id="mocd_', $side, '_dir_up"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
-    echo '<div class="mocd_dir_up" id="mocd_', $side, '_dir_new"><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
+	echo '<div class="mocd_dir_up  mocd_clickable" id="mocd_', $side, '_dir_up"  title="Show parent folder"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
+    echo '<div class="mocd_dir_new mocd_clickable" id="mocd_', $side, '_dir_new" title="Create new folder" ><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
 	echo '</div>';
 	echo '<div style="clear:both;"></div>';
     // This is the div that gets filled in with the dir listing in JS
 	echo '<div class="mocd_pane" id="mocd_', $side, '_pane"></div>';
 	echo '</div>';
     
-    // ... I think I've gone off the idea of jQuery dialogs.  Or notV
     // HTML for renaming dialog -- initially hidden
     echo '<div id="mocd_', $side, '_rename_dialog" title="Rename File or Folder" style="display: none;">';
     #echo '<p class="validateTips">Enter the new item name:</p>';
     echo '<form><fieldset>';
     echo '<label for="mocd_"', $side, '_rename">New name: </label>';
     echo '<input type="text" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
+    echo '<div id="mocd_', $side, '_rename_error"></div>';
     echo '<input type="hidden" name="mocd_', $side, '_rename_i" id="mocd_', $side, '_rename_i" value="">';
     echo '</fieldset></form></div>';
 
@@ -107,16 +107,18 @@ function pane_html ($side) {
 function display_config () {
 
 	echo '<div class="wrap" id="mocd_wrap">';
-	echo '<h2>Media Organizer</h2>';
+	echo '<h2>Media Organiser</h2>';
 
 	echo '<div id="mocd_wrapper_all">';
 
     pane_html('left');
 
 	echo '<div id="mocd_center_wrapper">';
-	echo '<div id="mocd_btn_left2right"><img src="', PLUGIN_URL, '/images/right.png"></div>';
-	echo '<div id="mocd_btn_right2left"><img src="', PLUGIN_URL, '/images/left.png"></div>';
+	echo '<div id="mocd_btn_left2right" class="mocd_clickable" title="Move selected items to the folder on the right"><img src="', PLUGIN_URL, '/images/right.png"></div>';
+    echo '<div id="mocd_btn_right2left" class="mocd_clickable" title="Move selected items to the folder on the left"><img src="', PLUGIN_URL, '/images/left.png"></div>';
     echo '</div>';
+    // Progress bar -- initially hidden
+    echo '<div id="mocd_progressbar" style="display: none;"><div id="mocd_progresslabel">Moving: </div></div>';
 
     pane_html('right');
 
@@ -741,7 +743,7 @@ function update_posts_content ($old, $new, $source = '') {
 // Returns an array: 0 for failure, 1 for success, !! perhaps need a reason too, e.g. permissions, already exists, db failed etc.
 //  !!! Does renaming too.
 
-
+// FIXME this function is too big
 function new_move_callback () {
     global $wpdb;
     // Keep a list of renamed files in case we need to rollback
@@ -944,7 +946,7 @@ function new_move_callback () {
                     $path_to   = UPLOAD_DIR . $dir_to   . $newsec;
                     debug("renaming $path_from to $path_to");
                     if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
-                        throw new \Exception("Failed to rename $path_from to $path_to");
+                        throw new \Exception("Failed to rename $path_from to $path_to - " . last_error_msg());
                     }
                     $renamed[] = ['from' => $path_from, 'to' => $path_to];
                     // Note the edit
@@ -1046,8 +1048,8 @@ function new_move_callback () {
                         $path_to   = UPLOAD_DIR . $dir_to   . $newsec;
                         debug("renaming $path_from to $path_to");
                         if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
-                            #throw new \Exception("Failed to rename $path_from to $path_to");
-                            // TODO should we throw here?
+                            //throw new \Exception("Failed to rename $path_from to $path_to");
+                            // Not throwing the error, because backup files aren't so important, are they??
                             debug("Failed to rename $path_from to $path_to, but carrying on regardless");
                         } else {
                             $renamed[] = ['from' => $path_from, 'to' => $path_to];
@@ -1122,24 +1124,19 @@ function new_move_callback () {
 }
 
 function delete_empty_dir_callback() {
-
     if (!test_mfm_permission()) {
         ajax_response(false, 'no permission');
     }
-
     $dir  = get_post('dir');   // e.g. '/' or '/photos/'
 	$name = get_post('name');  // e.g. 'dir_to_be_deleted'
-
     // FIXME need a sanity check on what we're trying to delete!!!!  !!!!!!!!
+    // (open_basedir PHP setting will help)
     $full_dir = UPLOAD_DIR . $dir . $name;
-
 	if (!rmdir($full_dir)) {
-        ajax_response(false, 'Unable to delete ' . $dir . $name);
+        ajax_response(false, 'Unable to delete ' . $dir . $name . ' - ' . last_error_msg());
 	}
     ajax_response(true, 'Deleted OK');
 }
-
-
 
 function url2path($url) {
 	$urlroot = get_urlroot();
@@ -1175,8 +1172,8 @@ function get_urlroot() {
 function admin_plugin_menu() {
 	/*  Add a setting page  */
 	add_submenu_page('options-general.php',
-		'Media File Manager CD plugin Configuration',
-		'Media File Manager CD',
+		'Media File Organiser Configuration',
+		'Media File Organiser',
 		'manage_options',
 		'submenu-handle',
 		NS . 'admin_display_config'
@@ -1226,7 +1223,7 @@ function admin_display_config() {
 
 	?>
 	<div class="wrap">
-		<h2>Media File Manager CD plugin configurations</h2>
+		<h2>Media File Organiser Configuration</h2>
 
 		<form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
 		<?php

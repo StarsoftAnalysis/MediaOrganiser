@@ -1,10 +1,10 @@
-=== Plugin Name ===
+=== Media Organiser ===
 Contributors: aueda
 Donate link: http://tempspace.net/plugins/
 Tags: media,file,manager,explorer,relocate,folder,folders,files,rename,make directory,directories,organize,organizer,select,selector,database
 Requires at least: 4.3.0
 Tested up to: 4.5.3
-Stable tag: 1.4.2
+Stable tag: 1.4.2_mocd
 
 You can make sub-directories in the upload directory, and move files into them.
 
@@ -41,7 +41,7 @@ Before try this plugin, I recommend you to backup your contents(files, database)
 
 *Click an icon of media file you'll insert. Then the media insert dialog similar as usual appears. Edit information of the media and click insert button.
 
-Media Organizer was forked from version 1.4.2 of Media File Manager by Atsushi Ueda.
+Media Organiser was forked from version 1.4.2 of Media File Manager by Atsushi Ueda.
 
 Since the fork, various changes have been made including:
 
@@ -49,10 +49,17 @@ Since the fork, various changes have been made including:
 * better error handling
 * ...
 
+== Requirements ==
+
+* jQuery
+* Includes jQuery UI -- just the Dialog and ProgressBar modules.
+* HTML5 (for data attributes, )
+
 Known issues
 
 * may not work on Windows servers -- haven't checked the use of directory separators yet
 * something
+* no internationalization (yet)
 
 Icons adapted from https://github.com/iconic/open-iconic
 

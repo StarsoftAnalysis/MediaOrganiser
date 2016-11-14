@@ -1,5 +1,5 @@
 <?php
-namespace media_file_manager_cd;
+namespace media_organiser_cd;
 
 function define_constants () {
     // Directories and URLs -- none of these will end in '/'
@@ -205,6 +205,14 @@ function get_subdir($dir) {
 	$subdir = mrl_adjpath($subdir, true);
 	if ($subdir=="/") $subdir="";
 	return $subdir;
+}
+
+function last_error_msg () {
+    $details = error_get_last();
+    if ($details) {
+        return $details['message'];
+    }
+    return '';
 }
 
 function get_post ($key) {
