@@ -5,15 +5,16 @@
 // - don't use right-click
 // - nicer buttons and icons
 
-// -- put them in a namespace
+// namespace:
 var mocd = mocd || {};
-mocd.ajax_count = 0;
-mocd.right_click_menu = {};	// Right-click menu class object
-mocd.input_text = {};	// Text-input form class object -- just one, shared between panes
+
+mocd.ajax_count = 0;    // no. of outstanding ajax calls
 
 mocd.pane_right = {};	// Pane class objects
 mocd.pane_left = {};
 
+// General-purpose message dialog
+mocd.message = jQuery('#mocd_message');
 
 mocd.adjust_layout = function () {
 	var width_all = jQuery('#mocd_wrapper_all').width();
@@ -24,7 +25,7 @@ mocd.adjust_layout = function () {
 	//var position = jQuery('#wpbody').offset();
 	//height_all = jQuery(window).height() - position.top - 100;
 
-	var pane_w = (width_all - width_center)/2 - 8;  // seems to need a bit of wiggle room
+	var pane_w = (width_all - width_center)/2 - 16;  // seems to need a bit of wiggle room -- sometimes more, sometimes less...
 	jQuery('.mocd_wrapper_pane').width(pane_w);
 	jQuery('.mocd_path').width(pane_w);
 	jQuery('.mocd_pane').width(pane_w);
@@ -61,7 +62,23 @@ mocd.ajax_count_out = function () {
 mocd.display_response = function (response) {
     // TODO something better than alert
     console.log('display_response: ', response);
-    alert(response.message);
+    //alert(response.message);
+    mocd.message.html(response.message);
+    var dialog = mocd.message.dialog({
+        autoOpen: true,
+        appendTo: '#mocd_wrap',
+        modal: false,
+        title: (response.success ? 'Success' : 'Failure'),
+        buttons: {
+            OK: function() {
+                dialog.dialog("close");
+            }
+        }
+    });
+    // Auto-close if it's just for information
+    setTimeout(function () {
+        dialog.dialog('close');
+    }, 3000);
 }
 
 mocd.progress = function progress() {
@@ -371,12 +388,17 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
     html += '<ul class=mocd_pane_list>';
 
     // First item is the 'de/select all' box
-    html += '<li class=mocd_pane_item>';
-    html += '<div><input type="checkbox" id="' + this.id_pane + '_ck_all' + '"></div>';
+    html += '<li class=mocd_pane_item id="mocd_pane_select_all">';
+    html += '<div class="mocd_pane_cell"></div>'; // ditto
+    html += '<div style="mocd_pane_cell">';
+    html += '<div class="mocd_pane_img"></div>'; // just as spacing
+    html += '<div><input type="checkbox" id="' + this.id_pane + '_ck_all' + '"></div>'; // TODO shift this right by about 50px
     html += '<div>&nbsp;Select All</div>';
+    html += '</div>';
     html += '</li>';
 
     // Display all items as a list
+    // On each row, use CSS table properties to arrange the bits.
 	for (i = 0; i < dir.length; i++) {
         // ignore 'thumbnails' -- the flag is on for everything that isn't a parent!
         // i.e. everything except 'real' items 
@@ -385,8 +407,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
 		//this.dir_disp_list[this.disp_num] = i;
         var divid = this.get_divid(i);
         html += '<li class="mocd_pane_item" id="' + divid + '">'; 
-        html += '<div><input type="checkbox" class="' + this.id_pane + '_ck' + '" id="' + this.get_chkid(i) + '"></div>';
-		html += '<div>'; // id="' + this.get_divid(i) + '">';
+//?        html += '<div style="display: table-row;">';
         // Thumbnail img URL should always be supplied by backend
 		if (item.thumbnail_url && item.thumbnail_url != "") {
             thumb_url = item.thumbnail_url;
@@ -394,17 +415,23 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
             thumb_url = 'notfound.jpg';
         }
         var dirclass = item.isdir ? ' mocd_clickable' : '';
+        // 1st cell contains the image
+		html += '<div class="mocd_pane_cell">';
 		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '">';
-		html += '</div><div class="mocd_filename">';
-		html += item.name; 
-        html += ' <button type="button" class="mocd_pane_rename_btn" id="' + this.get_renameid(i) + '">Rename</button>';
-        if (item.isemptydir) {
-            html += ' <button type="button" class="mocd_pane_delete_btn" id="' + this.get_deleteid(i) + '">Delete</button>';
-        }
 		html += '</div>';
-        //html += '</div>'
+        // 2nd cell contains: text <br> box button button
+        html += '<div class="mocd_pane_cell">'; // b
+        html += '<div class="mocd_filename">' + item.name + '</div>';
+        html += '<br><div><input type="checkbox" class="' + this.id_pane + '_ck' + '" id="' + 
+            this.get_chkid(i) + '" title="Select to move this item to the opposite folder"></div>';
+        html += ' <div><button type="button" class="mocd_pane_rename_btn" id="' + 
+            this.get_renameid(i) + '">Rename</button></div>';
+        if (item.isemptydir) {
+            html += ' <div><button type="button" class="mocd_pane_delete_btn" id="' + 
+                this.get_deleteid(i) + '">Delete</button></div>';
+        }
+        html += '</div>' // b
 
-		//this.disp_num ++;
         html += '</li>';
 	}
     html += '</ul>';

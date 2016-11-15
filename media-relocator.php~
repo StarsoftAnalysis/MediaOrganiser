@@ -53,8 +53,8 @@ function plugin_menu () {
 		/*  add a configuration screen  */
         add_submenu_page(
             'upload.php',
-            'Media File Organiser',
-            'Media File Organiser',
+            'Media Organiser',
+            'Media Organiser',
             $role,
             'mrelocator-submenu-handle',
             NS . 'display_config');
@@ -1143,6 +1143,7 @@ function delete_empty_dir_callback() {
     ajax_response(true, 'Deleted OK');
 }
 
+/*
 function url2path($url) {
 	$urlroot = get_urlroot();
 	if (stripos($url, $urlroot) != 0) {
@@ -1172,6 +1173,7 @@ function get_urlroot() {
 	}
 	return $urlroot;
 }
+ */
 
 // Add a link to the config page on the setting menu of wordpress
 function admin_plugin_menu() {

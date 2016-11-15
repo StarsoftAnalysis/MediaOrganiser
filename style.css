@@ -11,8 +11,25 @@ ul.mocd_pane_list {
     white-space: no-wrap;
 }
 
+li#mocd_pane_select_all {
+}
 li.mocd_pane_item {
-    xdisplay: inline-block; /* table-cell; doesn't work */
+    display: table-row; /* doesn't allow margin or padding */
+}
+
+/* table-cells can't have margins, so apply margins  */
+/* to the things IN the cell                         */
+/* (but not the checkboxes -- they're on the 2nd row */
+.mocd_pane_cell div,
+.mocd_pane_cell img {
+    margin-top: 0.5em;
+}
+
+/* Folder icon or thumbnail image in pane */
+.mocd_pane_img {
+    width: 50px;
+    max-width: 8vw;
+    margin: 0 0.8em 0 0;
 }
 
 #mocd_wrapper_all {
@@ -20,7 +37,7 @@ li.mocd_pane_item {
 	/*width:800px;*/
 	width:auto;
 	/*height:655px;*/
-	border: solid 1px #0ff;
+	xborder: solid 1px #0ff;
 }
 
 #mocd_wrapper_all div {
@@ -44,7 +61,7 @@ li.mocd_pane_item {
     display: inline-block;
 	xwidth:303px;
 	xheight:540px;
-	border: solid 1px #ff0;
+	xborder: solid 1px #ff0;
 }
 
 .mocd_pane_list div {
@@ -55,12 +72,6 @@ li.mocd_pane_item {
 .mocd_clickable {
 	cursor: pointer;
 }
-/* Folder icon or thumbnail image in pane */
-.mocd_pane_img {
-    width: 50px;
-    max-width: 8vw;
-    margin: 0 5px 0 5px;
-}
 
 .mocd_box1{
 	xposition:relative;
@@ -70,7 +81,7 @@ li.mocd_pane_item {
 }
 
 .mocd_filename {
-	border: solid 0px #f00;
+	xborder: solid 0px #f00;
 }
 
 .mocd_dir_up {
@@ -107,7 +118,7 @@ li.mocd_pane_item {
 #mocd_center_wrapper {
 	xwidth: 34px;
 	xfloat:left;
-	border: solid 1px #00f;
+	xborder: solid 1px #00f;
     padding-top: 10em;
 }
 
@@ -124,7 +135,7 @@ div#mocd_btn_right2left img {
     max-width: 5vw;
 }
 
-
+/*
 #mocd_right_menu {
 	position:absolute;
 	border: 1px solid #555;
@@ -142,8 +153,9 @@ div#mocd_btn_right2left img {
 	color:#fff;
 	background-color:#111;
 }
+*/
 
-/* Mini dialogue */
+/* Mini dialogue  obsolete */
 #mocd_input_text {
 	position: fixed; /*absolute;*/
     z-index: 999;
@@ -166,6 +178,8 @@ div#mocd_btn_right2left img {
 }
 
 .mocd_filename {
+    font-size: 110%;
+    font-weight: bold;
     overflow-wrap: break-word;
     word-wrap: break-word;
 }

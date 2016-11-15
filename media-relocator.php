@@ -53,8 +53,8 @@ function plugin_menu () {
 		/*  add a configuration screen  */
         add_submenu_page(
             'upload.php',
-            'Media File Organiser',
-            'Media File Organiser',
+            'Media Organiser',
+            'Media Organiser',
             $role,
             'mrelocator-submenu-handle',
             NS . 'display_config');
@@ -125,6 +125,9 @@ function display_config () {
     echo '<div id="mocd_progressbar" style="display: none;"><div id="mocd_progresslabel">Moving: </div></div>';
 
     pane_html('right');
+
+    // General purpose message dialogue
+    echo '<div id="mocd_message" style="display: none;"></div>';
 
 	echo '</div>'; // div mocd_wrapper_all
 	echo '</div>'; // div mocd_wrap
