@@ -213,9 +213,19 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
 		thispane.chdir("..");
 	});
 
+
+    // FIXME sometimes a few files get left begind
+
     // 'Select All' box affects all boxes on this pane
+    // (but only for files, not folders)
 	jQuery('div.mocd_pane').on('click', '#' + this.id_pane + '_ck_all', function(ev) {
-        jQuery('.' + thispane.id_pane + '_ck').attr('checked', this.checked);
+        var all_checked = this.checked;
+        jQuery('.' + thispane.id_pane + '_ck').each(function () {
+            var idx = thispane.get_idx_from_id(this.id);
+            if (!thispane.dir_list[idx].isdir) {
+                this.checked = all_checked;
+            }
+        });
 	});
 
     // Set up rename dialog
@@ -387,23 +397,27 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
 
     html += '<ul class=mocd_pane_list>';
 
-    // First item is the 'de/select all' box
-    html += '<li class=mocd_pane_item id="mocd_pane_select_all">';
-    html += '<div class="mocd_pane_cell"></div>'; // ditto
-    html += '<div style="mocd_pane_cell">';
-    html += '<div class="mocd_pane_img"></div>'; // just as spacing
-    html += '<div><input type="checkbox" id="' + this.id_pane + '_ck_all' + '"></div>'; // TODO shift this right by about 50px
-    html += '<div>&nbsp;Select All</div>';
-    html += '</div>';
-    html += '</li>';
+
+    var select_all_done = false; // first-time flag for adding the 'select all files' tick box
 
     // Display all items as a list
     // On each row, use CSS table properties to arrange the bits.
 	for (i = 0; i < dir.length; i++) {
-        // ignore 'thumbnails' -- the flag is on for everything that isn't a parent!
-        // i.e. everything except 'real' items 
-		///if (dir[i].isthumb) continue;
         var item = dir[i];
+
+        // Add the 'select all' box before the first non-directory
+        if (!item.isdir && !select_all_done) {
+            html += '<li class=mocd_pane_item id="mocd_pane_select_all">';
+            html += '<div class="mocd_pane_cell"></div>'; // just for spacing
+            html += '<div style="mocd_pane_cell">';
+            html += '<div class="mocd_pane_img"></div>'; // just as spacing
+            html += '<div><input type="checkbox" id="' + this.id_pane + '_ck_all' + '"></div>';
+            html += '<div>&nbsp;Select All Files</div>';
+            html += '</div>';
+            html += '</li>';
+            select_all_done = true;
+        }
+
 		//this.dir_disp_list[this.disp_num] = i;
         var divid = this.get_divid(i);
         html += '<li class="mocd_pane_item" id="' + divid + '">'; 

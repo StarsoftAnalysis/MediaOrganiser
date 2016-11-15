@@ -126,6 +126,9 @@ function display_config () {
 
     pane_html('right');
 
+    // General purpose message dialogue
+    echo '<div id="mocd_message" style="display: none;"></div>';
+
 	echo '</div>'; // div mocd_wrapper_all
 	echo '</div>'; // div mocd_wrap
 }
