@@ -48,6 +48,8 @@ Since the fork, various changes have been made including:
 * restructuring and simplifying the code
 * better error handling
 * ...
+* dialogs instead of alerts
+* no logging to custom table
 
 == Requirements ==
 

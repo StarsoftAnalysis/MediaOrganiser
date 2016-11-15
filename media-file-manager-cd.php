@@ -30,7 +30,7 @@ if (is_admin()) {
     add_action('admin_head', NS . 'admin_register_head');
     add_action('admin_menu', NS . 'plugin_menu');
     add_action('admin_menu', NS . 'admin_plugin_menu');
-    register_activation_hook(WP_PLUGIN_DIR . '/media-file-manager/media-relocator.php', 'media_file_manager_install');
+    #register_activation_hook(WP_PLUGIN_DIR . '/media-file-manager/media-relocator.php', 'media_file_manager_install');
     #add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
     add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
     add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');

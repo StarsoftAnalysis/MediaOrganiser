@@ -58,6 +58,7 @@ li.mocd_pane_item {
 /* Folder icon or thumbnail image in pane */
 .mocd_pane_img {
     width: 50px;
+    max-width: 8vw;
     margin: 0 5px 0 5px;
 }
 
@@ -118,6 +119,10 @@ div#mocd_btn_right2left {
 	xpadding:10px 5px 0 5px;
     display: block;
 }
+div#mocd_btn_left2right img,
+div#mocd_btn_right2left img {
+    max-width: 5vw;
+}
 
 
 #mocd_right_menu {
@@ -166,7 +171,7 @@ div#mocd_btn_right2left {
 }
 
 /* Progress bar */
-#mocd_progressbar {
+#xmocd_progressbar {
 	position: fixed; /*absolute;*/
     z-index: 999;
     top: 50%;
@@ -177,12 +182,21 @@ div#mocd_btn_right2left {
 	background-color: #eee;
 	padding: 4px;
 }
-#mocd_progresslabel {
+#xmocd_progresslabel {
     position: absolute;
     /*left: 50%;*/
     top: 4px;
     font-weight: bold;
     text-shadow: 1px 1px 0 #fff;
+}
+
+#mocd_wrap .ui-progressbar-value {
+    height: 1.5em;
+}
+
+/* Hide close [X] on dialogue */
+#mocd_wrap .mocd_dialog_no_close .ui-dialog-titlebar-close {
+    display: none;
 }
 
 

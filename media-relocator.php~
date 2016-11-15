@@ -76,8 +76,10 @@ function pane_html ($side) {
     #echo '<button id="mocd_', $side, '_button_go" type="button">Go</button>';
     #echo '</div>';
     // FIXME class should just be mocd_dir
-	echo '<div class="mocd_dir_up  mocd_clickable" id="mocd_', $side, '_dir_up"  title="Show parent folder"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
-    echo '<div class="mocd_dir_new mocd_clickable" id="mocd_', $side, '_dir_new" title="Create new folder" ><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
+    echo '<div class="mocd_dir_up  mocd_clickable" id="mocd_', $side, 
+        '_dir_up"  title="Show parent folder"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
+    echo '<div class="mocd_dir_new mocd_clickable" id="mocd_', $side, 
+        '_dir_new" title="Create new folder" ><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
 	echo '</div>';
 	echo '<div style="clear:both;"></div>';
     // This is the div that gets filled in with the dir listing in JS
@@ -114,8 +116,10 @@ function display_config () {
     pane_html('left');
 
 	echo '<div id="mocd_center_wrapper">';
-	echo '<div id="mocd_btn_left2right" class="mocd_clickable" title="Move selected items to the folder on the right"><img src="', PLUGIN_URL, '/images/right.png"></div>';
-    echo '<div id="mocd_btn_right2left" class="mocd_clickable" title="Move selected items to the folder on the left"><img src="', PLUGIN_URL, '/images/left.png"></div>';
+    echo '<div id="mocd_btn_left2right" class="mocd_clickable" title="Move selected items to the folder on the right">';
+    echo '<img src="', PLUGIN_URL, '/images/right.png"></div>';
+    echo '<div id="mocd_btn_right2left" class="mocd_clickable" title="Move selected items to the folder on the left">';
+    echo '<img src="', PLUGIN_URL, '/images/left.png"></div>';
     echo '</div>';
     // Progress bar -- initially hidden
     echo '<div id="mocd_progressbar" style="display: none;"><div id="mocd_progresslabel">Moving: </div></div>';
@@ -684,6 +688,7 @@ function ajax_response ($success = false, $message = '', $data = []) {
         'message' => $message,
         'data'    => $data
     ];
+    #sleep(5); // TEMP slow it down
     header('Content-Type: application/json;');
     echo json_encode($response);
     wp_die();
@@ -1172,8 +1177,8 @@ function get_urlroot() {
 function admin_plugin_menu() {
 	/*  Add a setting page  */
 	add_submenu_page('options-general.php',
-		'Media File Organiser Configuration',
-		'Media File Organiser',
+		'Media Organiser Configuration',
+		'Media Organiser',
 		'manage_options',
 		'submenu-handle',
 		NS . 'admin_display_config'
@@ -1223,7 +1228,7 @@ function admin_display_config() {
 
 	?>
 	<div class="wrap">
-		<h2>Media File Organiser Configurations</h2>
+		<h2>Media Organiser Configuration</h2>
 
 		<form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
 		<?php
@@ -1234,7 +1239,7 @@ function admin_display_config() {
 		?>
 		<table class="form-table">
 		<tr>
-		<th>File Manager can be used by </th>
+		<th>Media Organiser can be used by </th>
 		<td style="text-align: left;">
 <?php
 	$accepted = explode(",", $accepted_roles);
@@ -1331,22 +1336,24 @@ function admin_display_config() {
 		});
 	}
 	</script>
-
 	<?php
+
+ */
+// FIXME is this needed:?
 	if (isset($_POST['update_th_linklist_Setting'])) {
 		//echo '<script type="text/javascript">alert("Options Saved.");</script>';
     }
- */
 }
 
 
 function media_file_manager_install() {
 
-	global $wpdb;
-	$mfm_db_version = "1.00";
-	$table_name = $wpdb->prefix . "media_file_manager_log";
-	$installed_ver = get_option("mfm_db_version" ,"0");
+	#global $wpdb;
+	#$mfm_db_version = "1.00";
+	#$table_name = $wpdb->prefix . "media_file_manager_log";
+	#$installed_ver = get_option("mfm_db_version" ,"0");
 
+    /*
 	if ($installed_ver != $mfm_db_version) {
 		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 		$sql = "CREATE TABLE " . $table_name . " (
@@ -1356,9 +1363,11 @@ function media_file_manager_install() {
 		dbDelta($sql);
 
 		update_option("mfm_db_version", $mfm_db_version);
-	}
+    }
+     */
 }
 
+/*
 function log ($str) {
 	global $wpdb;
 	$str = mysql_real_escape_string($str);
@@ -1387,15 +1396,12 @@ function delete_log_callback() {
 	$ret = $wpdb->query("TRUNCATE TABLE ".$wpdb->prefix."media_file_manager_log");
 	die ($ret===FALSE ? "failure":"success");
 }
-
+ */
 
 function _set_time_limit($t) {
 	if (!get_option("mediafilemanager_disable_set_time_limit", 0)) {
 		set_time_limit($t);
 	}
 }
-
-
-
 
 ?>

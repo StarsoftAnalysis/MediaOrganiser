@@ -91,20 +91,29 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
     progressbar.progressbar({
         max: checked_items.length,
         change: function () {
-            progresslabel.text('Moving: ' + progressbar.progressbar('value') + '/' + count);
+            progresslabel.text('Moving: ' + progressbar.progressbar('value') + ' of ' + count);
         },
         complete: function () {
             progresslabel.text('Moving: Done');
         }
     });
-    progressbar.css('display', 'block');
+    // Pop-up the progress bar as a dialog
+    var progress_dialog = progressbar.dialog({
+        appendTo: '#mocd_wrap',
+        autoOpen: true,
+        resizable: false,
+        modal: true,
+        dialogClass: 'mocd_dialog_no_close',
+    });
+    //progressbar.css('display', 'block');
+    progresslabel.text('Moving: 0 of ' + count);
     progressbar.progressbar('enable');
     //for (var i = 0; i < pane_from.dir_list.length; i++) {
     //    var id = '#' + pane_from.get_chkid(i);
     //    //console.log(i, id);
     //    if (jQuery(id).attr('checked')) {
     var done_count = 0;
-    for (var c = 0; c < checked_items.length; c++) {
+    for (var c = 0; c < count; c++) {
         var i = checked_items[c];
         //flist.push(pane_from.dir_list[i].name);
         //isdirs.push(pane_from.dir_list[i].isdir);
@@ -117,7 +126,6 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
             dir_from: pane_from.cur_dir,
             dir_to:   pane_to.cur_dir,
             item_from:  pane_from.dir_list[i].name,
-                // !! add item_to if renaming
             post_id:  pane_from.dir_list[i].post_id,
             isdir:    pane_from.dir_list[i].isdir 
         };
@@ -125,7 +133,6 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
         // TODO do we need to do them in batches?
         mocd.ajax_count_in();
         // ... and dealing with a series of responses   FIXME work TODO here
-        setTimeout(function () { // TEMP
         jQuery.post(ajaxurl, data, function (response) {
             // FIXME standard way of handling responses and errors
             //if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
@@ -137,16 +144,16 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
             done_count += 1;
             progressbar.progressbar('value', done_count);
             if (done_count >= count) {
-                setTimeout(function () {
+                setTimeout(function () {  // pause with the 'Done' message on the screen
                     progressbar.progressbar('destroy');
-                    progressbar.css('display', 'none');
+                    //progressbar.css('display', 'none');
+                    progress_dialog.dialog('close');
                 }, 1000);
                 mocd.pane_left.refresh();
                 mocd.pane_right.refresh();
             }
             //}
         });
-        }, 1000);
     } 
 }
 
@@ -163,13 +170,13 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
 	this.cur_dir = "";
 	this.dir_list = new Array();
 	//this.dir_disp_list = new Array();   // NOT NEEDED -- now they're all displayed
-	this.id_root      = id_root;
-	this.wrapper   = jQuery('#' + id_root + "_wrapper");  // TODO store the jQuery thing, not just the id (?)
-	this.id_pane      = id_root + "_pane";
-    this.pane      = jQuery('#' + this.id_pane);
-	this.dir_name       = jQuery('#' + id_root + "_path");
-	this.dir_new_btn   = jQuery('#' + id_root + "_dir_new");
-	this.dir_up_btn    = jQuery('#' + id_root + "_dir_up");
+	this.id_root          = id_root;
+	this.wrapper          = jQuery('#' + id_root + "_wrapper");  // TODO store the jQuery thing, not just the id (?)
+	this.id_pane          = id_root + "_pane";
+    this.pane             = jQuery('#' + this.id_pane);
+	this.dir_name         = jQuery('#' + id_root + "_path");
+	this.dir_new_btn      = jQuery('#' + id_root + "_dir_new");
+	this.dir_up_btn       = jQuery('#' + id_root + "_dir_up");
     this.id_rename_dialog = id_root + '_rename_dialog';
     this.rename_field     = jQuery('#' + id_root + '_rename'); // input fields in the dialog
     this.rename_i_field   = jQuery('#' + id_root + '_rename_i');
@@ -177,16 +184,15 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
     this.id_newdir_dialog = id_root + '_newdir_dialog';
     this.newdir_field     = jQuery('#' + id_root + '_newdir');
     this.newdir_error     = jQuery('#' + id_root + '_newdir_error');
-	this.checked_loc = -1;
-	this.chk_prepare_id = -1;
-	this.opposite  = this; // WTF
-	//this.disp_num = 0;
+	this.opposite         = {};
 
 	var thispane = this;
 
 	this.dir_up_btn.click(function(ev) {
-		if (mocd.ajax_count) return;
-		if ("/" == thispane.cur_dir) return;
+		if (mocd.ajax_count > 0     ||
+		    thispane.cur_dir == '/'    ) {
+            return;
+        }
 		thispane.chdir("..");
 	});
 
@@ -619,9 +625,9 @@ MOCDPaneClass.prototype.chdir = function (dir) {
 }
 
 // Handle the Action drop-down -- rename, move, or delete.
-MOCDPaneClass.prototype.actions = function (action) {
-    console.log('action = ', action);
-}
+//MOCDPaneClass.prototype.actions = function (action) {
+//    console.log('action = ', action);
+//}
 
 // ----------- End of class definition 
 
@@ -638,11 +644,15 @@ jQuery(document).ready(function() {
 	mocd.pane_right.setdir("/");
 
 	jQuery('#mocd_btn_left2right').click(function() {
-		if (mocd.ajax_count) return;
+		if (mocd.ajax_count > 0) {
+            return;
+        }
 		mocd.new_move_items(mocd.pane_left, mocd.pane_right);
 	});
 	jQuery('#mocd_btn_right2left').click(function() {
-		if (mocd.ajax_count) return;
+		if (mocd.ajax_count > 0) {
+            return;
+        }
 		mocd.new_move_items(mocd.pane_right, mocd.pane_left);
 	});
 
