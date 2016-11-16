@@ -48,7 +48,6 @@ Install the plugin like usual ones. Then activate it.
 
 == Screenshots ==
 
-1. Media File Manager.
 
 == Changelog ==
 

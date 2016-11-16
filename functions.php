@@ -54,47 +54,35 @@ function remove_prefix ($prefix, $text) {
     return $text;
 }
 
-// FIXME avoid using this
-function mrl_adjpath($adr, $tailslash=false) {
-    return $adr;
-    // the rest is nonsense
-	$serverpathflag = false;
-    if (strstr($adr, "\\\\") == $adr || 
-        strstr($adr, "//"  ) == $adr    ) {
-        $serverpathflag = true;
-    }
-	$adr = str_replace('\\', '/', $adr);
-
-    // WTF?  FIXME
-	for ($i=0; $i<999; $i++) {
-		if (strstr($adr, "//") === FALSE) {
-			break;
-		}		
-		$adr = str_replace('//','/',$adr);
-	}
-	$adr = str_replace('http:/','http://',$adr);	
-	$adr = str_replace('https:/','https://',$adr);
-	$adr = str_replace('ftp:/','ftp://',$adr);
-	if ($serverpathflag) {
-		$adr = "/" . $adr;
-	}
-	$adr = rtrim($adr,"/");
-	if ($tailslash) {
-		$adr .= "/";
-	}
-	return $adr;
+// Send an AJAX response back to javascript, in the form
+// [
+//   success => true or false
+//   message => 'blah',  // reason for the failure
+//   data => an array of stuff, e.g....
+// ]
+// Could use wp_send_json_success
+// or wp_send_json? no, I prefer mine
+function ajax_response ($success = false, $message = '', $data = []) {
+    $response = [
+        'success' => ($success ? true : false),  // convert truthy/falsy into proper booleans
+        'message' => $message,
+        'data'    => $data
+    ];
+    #sleep(5); // TEMP slow it down
+    header('Content-Type: application/json;');
+    echo json_encode($response);
+    wp_die();
 }
 
 // Return a list of files and subdirectories within the given directory.
 // sorted alphabetically, and excluding '.' and '..'
 function scandir_no_dots ($dir) {
-    // scandir gives a warning AND returns false on error, so use '@'
-    $listing = @scandir($dir);
+    $listing = scandir($dir);
     if ($listing === false) {
         return [];
     }
     // Strip the dot directories
-    return array_diff ($listing, array('.', '..'));
+    return array_diff($listing, array('.', '..'));
 }
 
 // Return a list of subdirectories within the given directory

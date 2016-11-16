@@ -75,7 +75,6 @@ function pane_html ($side) {
     #echo '</select>';
     #echo '<button id="mocd_', $side, '_button_go" type="button">Go</button>';
     #echo '</div>';
-    // FIXME class should just be mocd_dir
     echo '<div class="mocd_dir_up  mocd_clickable" id="mocd_', $side, 
         '_dir_up"  title="Show parent folder"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
     echo '<div class="mocd_dir_new mocd_clickable" id="mocd_', $side, 
