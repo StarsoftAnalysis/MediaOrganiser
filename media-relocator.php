@@ -176,7 +176,7 @@ function getdir_callback () {
     foreach ($sdirs as $sdir) {
         $dirlist[] = [
             #'id' => null,
-            'path' => $sdir, // FIXME either don't use it or make it different from name
+            #'path' => $sdir, // FIXME either don't use it or make it different from name
             'name' => $sdir,
             'post_id' => null,  // needed when updating metadata
             'isdir' => true,
@@ -195,12 +195,6 @@ function getdir_callback () {
     // so get wp_postmeta where meta_key is _wp_attached_file and meta_value is like 'photos/thingy.jpg'
     // Can't just say: like 'photos/%' because that would include 'photos/otherphotos/foo.jpg'
     // This seems to work:
-
-
-    // FIXME !"!!!!!! can't always rely on attachments to be correct
-    // -- e.g. when testing and we've moved the file but not updated the database!!
-
-
     $sql = "select p.ID, p.post_mime_type, m.meta_value
               from wp_posts p
          left join wp_postmeta m on p.ID = m.post_id and m.meta_key = '_wp_attached_file'
@@ -213,7 +207,7 @@ function getdir_callback () {
     foreach ($results as $item) {
         $dirlist[] = [
             'post_id'  => $item['ID'],
-            'path'     => $item['meta_value'],
+            #'path'     => $item['meta_value'],
             'name'     => basename($item['meta_value']),
             'isdir'    => false,
             'isthumb'  => false, // always false now
@@ -258,28 +252,6 @@ function getdir_callback () {
     #wp_die(); // completes the AJAX thing
 }
 
-
-// TODO put this in functions.php
-// Send an AJAX response back to javascript, in the form
-// [
-//   success => true or false
-//   message => 'blah',  // reason for the failure
-//   data => an array of stuff, e.g....
-// ]
-// TODO Or could use wp_send_json_success
-// or wp_send_json? no, I prefer mine
-function ajax_response ($success = false, $message = '', $data = []) {
-    $response = [
-        'success' => ($success ? true : false),  // convert truthy/falsy into proper booleans
-        'message' => $message,
-        'data'    => $data
-    ];
-    #sleep(5); // TEMP slow it down
-    header('Content-Type: application/json;');
-    echo json_encode($response);
-    wp_die();
-}
-
 // Create a new secondary filename, given the old
 // and new names.
 // e.g. changing main filename from foo.jpg to bar.png
@@ -291,7 +263,7 @@ function new_secondary_name ($new, $oldsec) {
     $newsec = $oldsec;
     if (preg_match('/-\d+x\d+\./', $oldsec, $matches)) {
         $nnnxnnn = $matches[0];
-        echo 'nnnxnnn: ', $nnnxnnn, "\n";
+        #echo 'nnnxnnn: ', $nnnxnnn, "\n";
         $newsec = $newparts['filename'] . $nnnxnnn . $newparts['extension'];
     }
     return $newsec;

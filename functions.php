@@ -1,6 +1,23 @@
 <?php
 namespace media_organiser_cd;
 
+// Debug to /wp-content/debug.log (see https://codex.wordpress.org/WP_DEBUG
+// and settings in wp-config.php)
+function debug (...$args) {
+    if (!WP_DEBUG) {
+        return;
+    }
+    list(, $caller) = debug_backtrace(false);
+    #error_log('debug caller: ' . print_r($caller, true));
+    $function = isset($caller['function']) ? $caller['function'] : '<unknown function>';
+    $line = isset($caller['line']) ? ':'.$caller['line'] : '';
+    $text = '';
+    foreach ($args as $arg) {
+        $text .= ' ' . print_r($arg, true);
+    }
+    error_log($function . $line . $text);
+}
+
 function define_constants () {
     // Directories and URLs -- none of these will end in '/'
     #    ABSPATH /var/www/rotarywp-dev/
@@ -31,20 +48,6 @@ function define_constants () {
     //    '/' in a dir, but always is in an URL.
     debug('UPLOAD_DIR_REL:', UPLOAD_DIR_REL); // e.g. /wp-content/uploads
     debug('UPLOAD_URL_REL:', UPLOAD_URL_REL); // e.g. /wp-content/uploads
-}
-
-// Debug to /wp-content/debug.log (see settings in wp-config.php)
-function debug (...$args) {
-    // FIXME caller keeps being 'include_once'
-    list(, $caller) = debug_backtrace(false);
-    #error_log('debug caller: ' . print_r($caller, true));
-    $function = isset($caller['function']) ? $caller['function'] : '<unknown function>';
-    $line = isset($caller['line']) ? ':'.$caller['line'] : '';
-    $text = '';
-    foreach ($args as $arg) {
-        $text .= ' ' . print_r($arg, true);
-    }
-    error_log($function . $line . $text);
 }
 
 function remove_prefix ($prefix, $text) {
@@ -82,7 +85,7 @@ function scandir_no_dots ($dir) {
         return [];
     }
     // Strip the dot directories
-    return array_diff($listing, array('.', '..'));
+    return array_diff($listing, ['.', '..']);
 }
 
 // Return a list of subdirectories within the given directory
@@ -146,53 +149,12 @@ function isvideo ($fname, $mimetype = '') {
 }
 
 function isEmptyDir($dir) {
-    // FIXME perhaps this doesn't work
-    // FIXME deal with scandir returning false and use @
-    return count(scandir($dir)) <= 2;  // ignore '.' and '..'
-    /*
-	$dh = @opendir ($dir);
-
-	if ($dh === false) {
-		return true;
-	}
-	for ($i=0;;$i++) {
-		$str = readdir($dh);
-		if ($str=="." || $str=="..") {$i--;continue;}
-		if ($str === FALSE) break;
-		return false;
-	}
-    return true;
-     */
-}
-
-/* Just use scandir_no_dots */
-// Get a directory listing as an array
-function getdir ($dir, &$ret_arr) {
-    // FIXME can we avoid @ ? 
-	$dh = @opendir($dir);
-	if ($dh === false) {
-		die("error: cannot open directory (".$dir.")");
+    $list = scandir($dir);
+    if ($list === false) {
+        // It's not a directory, so it can't be an empty one
+        return false;
     }
-    $ret_arr = array();
-	for ($i = 0; ; $i++) {
-		$str = readdir($dh);
-		if ($str == "." || $str == "..") {$i--;continue;}
-		if ($str === FALSE) break;
-		# changed from this $ret_arr[$i] = $str;
-		$ret_arr[] = $str;
-    }
-    return $ret_arr;
-}
-
-// This could be where to fix it  FIXME what?
-function get_subdir($dir) {
-	$subdir = substr($dir,  strlen(UPLOAD_DIR));
-	if (substr($subdir,0,1)=="/" || substr($subdir,0,1)=="\\") {
-		$subdir = substr($subdir, 1);
-	}
-	$subdir = mrl_adjpath($subdir, true);
-	if ($subdir=="/") $subdir="";
-	return $subdir;
+    return count($list) <= 2;  // ignore '.' and '..'
 }
 
 function last_error_msg () {

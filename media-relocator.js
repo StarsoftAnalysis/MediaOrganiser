@@ -18,21 +18,13 @@ mocd.message = jQuery('#mocd_message');
 
 mocd.adjust_layout = function () {
 	var width_all = jQuery('#mocd_wrapper_all').width();
-	//var height_all = jQuery('#mocd_wrapper_all').height();
 	var width_center = jQuery('#mocd_center_wrapper').width(); 
 	var height_mocd_box = jQuery('.mocd_box1').height();
-
-	//var position = jQuery('#wpbody').offset();
-	//height_all = jQuery(window).height() - position.top - 100;
-
-	var pane_w = (width_all - width_center)/2 - 16;  // seems to need a bit of wiggle room -- sometimes more, sometimes less...
+	var pane_w = (width_all - width_center)/2;
 	jQuery('.mocd_wrapper_pane').width(pane_w);
 	jQuery('.mocd_path').width(pane_w);
 	jQuery('.mocd_pane').width(pane_w);
-//	// TODO does this help? -- seems better without this line:  jQuery('.mocd_pane').height(height_all - height_mocd_box);	
-	//jQuery('.mocd_filename').width(pane_w - 32);
 }
-
 
 mocd.ajax_count_in = function () {
 	mocd.ajax_count++;
@@ -47,6 +39,7 @@ mocd.ajax_count_in = function () {
 	    });
     }
 }
+
 // function name: mocd.ajax_count_out
 // description : recognize finishing ajax procedure
 // argument : (void)
@@ -214,7 +207,7 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
 	});
 
 
-    // FIXME sometimes a few files get left begind
+    // FIXME sometimes a few files get left behind
 
     // 'Select All' box affects all boxes on this pane
     // (but only for files, not folders)
@@ -278,15 +271,6 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
             thispane.newdir_error.empty();
         }
     });
-
-//?    var form = this.dialog.find("form").on("submit", function(event) {
-//        event.preventDefault();
-//        thispane.rename_dialog_callback().bind(thispane, 'ff');
-//    });
-    // Button click is done later
-    //jQuery("#create-user").button().on( "click", function() {
-    //    thispane.rename_dialog.dialog("open");
-    //});
 
 }
 
@@ -374,6 +358,9 @@ MOCDPaneClass.prototype.setdir = function(dir) {
             // Process the json directory from ajax,
             // create the html, and store the list
             that.dir_list = that.set_dir(data.dir, response.data);
+            // Adjust layout here because a long list will cause the
+            // window to get a vertical scrollbar, and become narrower
+            mocd.adjust_layout();
         } else {
             alert(response.message);
         }
@@ -418,15 +405,14 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
             select_all_done = true;
         }
 
-		//this.dir_disp_list[this.disp_num] = i;
         var divid = this.get_divid(i);
         html += '<li class="mocd_pane_item" id="' + divid + '">'; 
-//?        html += '<div style="display: table-row;">';
         // Thumbnail img URL should always be supplied by backend
+        // (i.e. even for folders and non-images)
 		if (item.thumbnail_url && item.thumbnail_url != "") {
             thumb_url = item.thumbnail_url;
 		} else {
-            thumb_url = 'notfound.jpg';
+            thumb_url = 'notfound.jpg';  
         }
         var dirclass = item.isdir ? ' mocd_clickable' : '';
         // 1st cell contains the image
@@ -487,60 +473,26 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
         if (mocd.ajax_count > 0) {
             return;
         }
-        var i = thispane.get_idx_from_id(this.id);
+        var li = jQuery(this).closest('li');
+        var i = thispane.get_idx_from_id(li.attr('id'));
         thispane.chdir(thispane.dir_list[i].name);
     });
 
     //
-    for (i = 0; i < dir.length; i++) {
-        var name = dir[i].name;
-
-        // Make item's rename button clickable
-//        BIND TRICK DOSENT OWLFK
-//        jQuery('#'+divid).on('click', 'button.mocd_pane_rename_btn', function (i, e) {
-//            if (mocd.ajax_count > 0) {
-//                return;
-//            }
-//            //alert('rename ' + thispane.dir_list[i].name);
-//            //thispane.ajax_rename_item(i);
-//            // Set the current value before opening the form
- //           thispane.rename_field.val(name); //thispane.dir_list[i].name);
- //           thispane.rename_i_field.val(i);
-  //          thispane.rename_dialog.dialog("open");
-  //      }.bind(this, i));  // index gets passed in as i
-
-        if (dir[i].isdir) {
-            // Make folder clickable
-            var divid = this.get_divid(i);  // e.g. 'mocd_left_pane_1'
-            jQuery('#'+divid).on('click', 'img', function (newdir, e) {
-                if (mocd.ajax_count > 0) {
-                    return;
-                }
-                thispane.chdir(newdir);
-            }.bind(this, name));  // name gets passed in as newdir
-//            if (dir[i].isemptydir) {
-//                // Make folder's delete button clickable 
-//                jQuery('#'+divid).on('click', 'button.mocd_pane_delete_btn', function (i, e) {
-//                    if (mocd.ajax_count > 0) {
-//                        return;
-//                    }
-//                    alert('deleting ' + thispane.dir_list[i].name);
-//                    thispane.ajax_delete_empty_dir(i);
-//                }.bind(this, i));  // index gets passed in as i
-//            }
-        }
-    }
-
-    // FIXME this looks very silly
-    // // but it also sets up the directories as left-click buttons
-    //    so we'll just call it once
-//    this.prepare_checkboxes();
-    //function callMethod_chkprepare() {
-    //    that.prepare_checkboxes();
+    //for (i = 0; i < dir.length; i++) {
+    //    var name = dir[i].name;
+    //    if (dir[i].isdir) {
+    //        // Make folder clickable
+    //        var divid = this.get_divid(i);  // e.g. 'mocd_left_pane_1'
+    //        jQuery('#'+divid).on('click', 'img', function (newdir, e) {
+    //            if (mocd.ajax_count > 0) {
+    //                return;
+    //            }
+    //            thispane.chdir(newdir);
+    //        }.bind(this, name));  // name gets passed in as newdir
+    //    }
    // }
-    //if (this.chk_prepare_id == -1) {
-    //    this.chk_prepare_id = setInterval(callMethod_chkprepare, 20);
-    //}
+
     this.wrapper.css('cursor:default');
     return dir;
 }
@@ -670,7 +622,7 @@ MOCDPaneClass.prototype.chdir = function (dir) {
 //    console.log('action = ', action);
 //}
 
-// ----------- End of class definition 
+// ----------- End of pane class definition 
 
 
 jQuery(document).ready(function() {
@@ -706,12 +658,11 @@ jQuery(document).ready(function() {
         mocd.pane_right.actions(action);
     });
 
-    // FIXME can we manage without this?
 	jQuery(window).resize(function() {
 		//jQuery('#debug').html(jQuery('#wpbody').height());
 		mocd.adjust_layout();
 	});
-	mocd.adjust_layout();
+    //mocd.adjust_layout();
 });
 
 
