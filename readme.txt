@@ -8,7 +8,7 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Allows media items (i.e. attachments) to be organised into folders.
+Allows media items (i.e. attachments) to be organised into folders.  This is ALPHA software -- not ready for serious use yet.
 
 == Description ==
 

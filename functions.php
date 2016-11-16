@@ -40,14 +40,14 @@ function define_constants () {
         define('UPLOAD_DIR_REL', DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, UPLOAD_DIR));
         define('UPLOAD_URL_REL', '/' . remove_prefix(ABSPATH, UPLOAD_DIR));
     }
-    debug('ABSPATH:', ABSPATH);       // e.g. /var/www/website/
-    debug('PLUGIN_URL:', PLUGIN_URL); // e.g. http://example.com/wp-content/plugins/media-organizer-cd
-    debug('UPLOAD_DIR:', UPLOAD_DIR); // e.g. /var/www/website/wp-content/uploads
-    debug('UPLOAD_URL:', UPLOAD_URL); // e.g. http://example.com/wp-content/uploads
+    #debug('ABSPATH:', ABSPATH);       // e.g. /var/www/website/
+    #debug('PLUGIN_URL:', PLUGIN_URL); // e.g. http://example.com/wp-content/plugins/media-organizer-cd
+    #debug('UPLOAD_DIR:', UPLOAD_DIR); // e.g. /var/www/website/wp-content/uploads
+    #debug('UPLOAD_URL:', UPLOAD_URL); // e.g. http://example.com/wp-content/uploads
     // !! need separate UPLOAD_URL_REL and UPLOAD_DIR_REL because separator may not be
     //    '/' in a dir, but always is in an URL.
-    debug('UPLOAD_DIR_REL:', UPLOAD_DIR_REL); // e.g. /wp-content/uploads
-    debug('UPLOAD_URL_REL:', UPLOAD_URL_REL); // e.g. /wp-content/uploads
+    #debug('UPLOAD_DIR_REL:', UPLOAD_DIR_REL); // e.g. /wp-content/uploads
+    #debug('UPLOAD_URL_REL:', UPLOAD_URL_REL); // e.g. /wp-content/uploads
 }
 
 function remove_prefix ($prefix, $text) {

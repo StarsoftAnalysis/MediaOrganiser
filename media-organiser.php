@@ -26,20 +26,6 @@ if (is_admin()) {
 
     require_once plugin_dir_path(__FILE__) . 'media-relocator.php';
     _set_time_limit(600); // FIXME really needed? -- gets set to 1800 somewhere
-    add_action('init', NS . 'init');
-    add_action('admin_head', NS . 'admin_register_head');
-    add_action('admin_menu', NS . 'plugin_menu');
-    add_action('admin_menu', NS . 'admin_plugin_menu');
-    #register_activation_hook(WP_PLUGIN_DIR . '/media-file-manager/media-relocator.php', 'media_file_manager_install');
-    #add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
-    add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
-    add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');
-    add_action('wp_ajax_mocd_rename',           NS . 'rename_callback');
-    add_action('wp_ajax_mocd_move',             NS . 'move_callback');
-    add_action('wp_ajax_new_mocd_move',         NS . 'new_move_callback');
-    add_action('wp_ajax_mocd_delete_empty_dir', NS . 'delete_empty_dir_callback');
-    add_action('wp_ajax_mocd_download_log',     NS . 'download_log_callback');
-    add_action('wp_ajax_mocd_delete_log',       NS . 'delete_log_callback');
 
     // Later...
     #require_once plugin_dir_path(__FILE__) . 'media-selector.php';

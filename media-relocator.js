@@ -20,7 +20,7 @@ mocd.adjust_layout = function () {
 	var width_all = jQuery('#mocd_wrapper_all').width();
 	var width_center = jQuery('#mocd_center_wrapper').width(); 
 	var height_mocd_box = jQuery('.mocd_box1').height();
-	var pane_w = (width_all - width_center)/2;
+	var pane_w = (width_all - width_center)/2 - 2;
 	jQuery('.mocd_wrapper_pane').width(pane_w);
 	jQuery('.mocd_path').width(pane_w);
 	jQuery('.mocd_pane').width(pane_w);
@@ -69,9 +69,11 @@ mocd.display_response = function (response) {
         }
     });
     // Auto-close if it's just for information
-    setTimeout(function () {
-        dialog.dialog('close');
-    }, 3000);
+    if (response.success) {
+        setTimeout(function () {
+            dialog.dialog('close');
+        }, 3000);
+    }
 }
 
 mocd.progress = function progress() {
@@ -123,6 +125,8 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
     //    //console.log(i, id);
     //    if (jQuery(id).attr('checked')) {
     var done_count = 0;
+    var fail_count = 0;
+    var err_msgs = [];
     for (var c = 0; c < count; c++) {
         var i = checked_items[c];
         //flist.push(pane_from.dir_list[i].name);
@@ -140,25 +144,46 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
             isdir:    pane_from.dir_list[i].isdir 
         };
         //console.log('nmi sending data: ', data);
-        // TODO do we need to do them in batches?
         mocd.ajax_count_in();
         // ... and dealing with a series of responses   FIXME work TODO here
         jQuery.post(ajaxurl, data, function (response) {
-            // FIXME standard way of handling responses and errors
-            //if (response.search(/Success/i) < 0) alert("mrloc_move(): "+response);
-            //mocd.display_response(response);
-            //if (mocd.move_continue) {
-            //	move_items(mocd.pane_from, mocd.pane_to, mocd.move_no+1);
-            //} else {
             mocd.ajax_count_out();
             done_count += 1;
             progressbar.progressbar('value', done_count);
+            if (!response.success) {
+                fail_count += 1;
+                err_msgs.push(response.message);
+                console.log(response);
+            }
             if (done_count >= count) {
+                var pause = 1000;
+                if (fail_count > 0) {
+                    // One or more failures
+                    // Replace the progress bar with an error message
+                    var msg = '<p>Error: ' + fail_count + ' items were not moved.';
+                    for (var i = 0; i < err_msgs.length; i++) {
+                        msg += '<p>' + err_msgs[i];
+                    }
+                    // FIXME the list of errors could be very big -- just show a few of them??
+                    mocd.message.html(msg);
+                    pause = 0;
+                    // TODO move this into a function
+                    var dialog = mocd.message.dialog({
+                        autoOpen: true,
+                        appendTo: '#mocd_wrap',
+                        modal: false,
+                        title: "One or more items could not be moved",
+                        buttons: {
+                            OK: function() {
+                                dialog.dialog("close");
+                            }
+                        }
+                    });
+                }
                 setTimeout(function () {  // pause with the 'Done' message on the screen
                     progressbar.progressbar('destroy');
-                    //progressbar.css('display', 'none');
                     progress_dialog.dialog('close');
-                }, 1000);
+                }, pause);
                 mocd.pane_left.refresh();
                 mocd.pane_right.refresh();
             }
@@ -166,13 +191,6 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
         });
     } 
 }
-
-mocd.pane_from = "";
-mocd.pane_to = "";
-mocd.num_par_no = 0;
-mocd.move_no = 0;
-mocd.move_cnt = 0;
-mocd.move_continue=0;
 
 
 //**** Pane class *******************************************************************

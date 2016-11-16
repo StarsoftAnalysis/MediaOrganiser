@@ -195,12 +195,6 @@ function getdir_callback () {
     // so get wp_postmeta where meta_key is _wp_attached_file and meta_value is like 'photos/thingy.jpg'
     // Can't just say: like 'photos/%' because that would include 'photos/otherphotos/foo.jpg'
     // This seems to work:
-
-
-    // FIXME !"!!!!!! can't always rely on attachments to be correct
-    // -- e.g. when testing and we've moved the file but not updated the database!!
-
-
     $sql = "select p.ID, p.post_mime_type, m.meta_value
               from wp_posts p
          left join wp_postmeta m on p.ID = m.post_id and m.meta_key = '_wp_attached_file'
@@ -213,7 +207,7 @@ function getdir_callback () {
     foreach ($results as $item) {
         $dirlist[] = [
             'post_id'  => $item['ID'],
-            'path'     => $item['meta_value'],
+            #'path'     => $item['meta_value'],
             'name'     => basename($item['meta_value']),
             'isdir'    => false,
             'isthumb'  => false, // always false now
@@ -258,7 +252,6 @@ function getdir_callback () {
     #wp_die(); // completes the AJAX thing
 }
 
-
 // Create a new secondary filename, given the old
 // and new names.
 // e.g. changing main filename from foo.jpg to bar.png
@@ -270,7 +263,7 @@ function new_secondary_name ($new, $oldsec) {
     $newsec = $oldsec;
     if (preg_match('/-\d+x\d+\./', $oldsec, $matches)) {
         $nnnxnnn = $matches[0];
-        echo 'nnnxnnn: ', $nnnxnnn, "\n";
+        #echo 'nnnxnnn: ', $nnnxnnn, "\n";
         $newsec = $newparts['filename'] . $nnnxnnn . $newparts['extension'];
     }
     return $newsec;
@@ -330,19 +323,20 @@ function new_move_callback () {
     #$dir_to   = filter_input(FILTER_POST, 'dir_to',   FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_to']);
     #$item     = filter_input(FILTER_POST, 'item',     FILTER_SANITIZE_STRING); //stripslashes($_POST['item']);
     // ...so use
-    $dir_from  = get_post('dir_from'); #stripslashes($_POST['dir_from']);  // e.g. '/' or '/photos/'
-    $dir_to    = get_post('dir_to');   #stripslashes($_POST['dir_to']);    //    ditto
-    $item_from = get_post('item_from');  #stripslashes($_POST['item_to']);  // e.g. 'foo.jpg' or 'images/foo.jpg'.  NOTE no leading '/'
-    //   and it's relative to $dir_from
-    $item_to   = get_post('item_to'); #stripslashes($_POST['item_from']);
+    $dir_from  = get_post('dir_from');  // e.g. '/' or '/photos/'
+    $dir_to    = get_post('dir_to');    //    ditto
+    $item_from = get_post('item_from'); // e.g. 'foo.jpg' or 'images/foo.jpg'.  NOTE no leading '/'
+    //                                      and it's relative to $dir_from
+    $item_to   = get_post('item_to');   //    ditto
     if (!$item_to) {
         $item_to = $item_from;
     }
-    $post_id   = get_post('post_id'); #stripslashes($_POST['post_id']);
-    $isdir     = get_post('isdir') == 'true';  #stripslashes($_POST['isdir']);
+    $post_id   = get_post('post_id');
+    $isdir     = get_post('isdir') == 'true';
     debug("nmc: dir_from='$dir_from' dir_to='$dir_to' item_from='$item_from' item_to='$item_to' post_id=$post_id isdir='$isdir'");
 
     // TODO check if the expected inputs are present
+
     if ($dir_from == $dir_to and $item_from == $item_to) {
         // TODO is this success or fail?
         ajax_response(false, 'same dir and item');
@@ -378,13 +372,11 @@ function new_move_callback () {
     debug("renaming $item_from_path to $item_to_path");
     if (!rename($item_from_path, $item_to_path)) {  // puts a warning in the log on failure
         debug('...rename failed');
-        ajax_response(false, 'rename failed');
+        ajax_response(false, "Unable to rename '" . $dir_from . $item_from . "' to '" . $dir_to . $item_to . "'");
     }
     $renamed[] = ['from' => $item_from_path, 'to' => $item_to_path];
 
-    // Update the databaseo
-    // ?? wp_check_post_lock(id) to see if any post is locked
-    // -- probably too much work.  maintenance mode?
+    // Update the database:
 
     try {
 
@@ -515,15 +507,22 @@ function new_move_callback () {
                     $path_from = UPLOAD_DIR . $dir_from . $oldsec;
                     $path_to   = UPLOAD_DIR . $dir_to   . $newsec;
                     debug("renaming $path_from to $path_to");
+                    // TODO last_error_msg is too wordy - just the bit after the last colon?
+                    // TODO if secondary file doesn't exist, we might as well carry on regardless.
                     if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
-                        throw new \Exception("Failed to rename $path_from to $path_to - " . last_error_msg());
+                        $lem = last_error_msg();
+                #        if (preg_match('/no such file/i', $lem)) {
+                 #           debug('Secondary file not found -- no worries');
+                  #      } else {
+                            throw new \Exception("Failed to rename '$path_from' to '$path_to'. Reason: $lem");
+                   #     }
+                    } else {
+                        $renamed[] = ['from' => $path_from, 'to' => $path_to];
+                        // Note the edit
+                        #$edits[] = ['a' => 'metadata', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
+                        $edits[] = ['a' => 'metadata', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
                     }
-                    $renamed[] = ['from' => $path_from, 'to' => $path_to];
-                    // Note the edit
-                    #$edits[] = ['a' => 'metadata', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
-                    $edits[] = ['a' => 'metadata', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
                     #'P1040025.jpg' to '/wp-content/uploadsP1040025.jpgP1040025-150x150.jpg'
-                    // TODO edit posts containing the secondary name too!
                     // TODO ?? optimization -- posts often have e.g. the thumbnail and a link to the full size one,
                     //      so need two edits.
                 }
@@ -623,10 +622,10 @@ function new_move_callback () {
                             debug("Failed to rename $path_from to $path_to, but carrying on regardless");
                         } else {
                             $renamed[] = ['from' => $path_from, 'to' => $path_to];
+                            // Note the edit (although in theory posts shouldn't refer to backup files)
+                            #??$edits[] = ['a' => 'backup', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
+                            $edits[] = ['a' => 'backup', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
                         }
-                        // Note the edit (although in theory posts shouldn't refer to backup files)
-                        #??$edits[] = ['a' => 'backup', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
-                        $edits[] = ['a' => 'backup', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
                     }
 
                     debug('changed backup metadata: ', $metadata);
@@ -708,38 +707,6 @@ function delete_empty_dir_callback() {
     ajax_response(true, 'Deleted OK');
 }
 
-/*
-function url2path($url) {
-	$urlroot = get_urlroot();
-	if (stripos($url, $urlroot) != 0) {
-		return "";
-	}
-	return $_SERVER['DOCUMENT_ROOT'] . substr($url, strlen($urlroot));
-}
-
-function path2url($pathname) {
-	$wu = wp_upload_dir();
-	$wp_content_dir = str_replace("\\","/", $wu['basedir']);
-	$wp_content_dir = str_replace("//","/", $wp_content_dir);
-	$path = str_replace("\\","/",$pathname);
-	$path = str_replace("//","/",$path);
-
-	$ret = str_replace($wp_content_dir, $wu['baseurl'], $path);
-	return $ret;
-}
-
-function get_urlroot() {
-	$urlroot = get_bloginfo('url');
-	$pos = strpos($urlroot, "//");
-	if (!$pos) return "";
-	$pos = strpos($urlroot, "/", $pos+2);
-	if ($pos) {
-		$urlroot = substr($urlroot, 0, $pos);
-	}
-	return $urlroot;
-}
- */
-
 // Add a link to the config page on the setting menu of wordpress
 function admin_plugin_menu() {
 	/*  Add a setting page  */
@@ -761,12 +728,12 @@ function get_roles(&$ret)
 	}
 }
 
-/*  Display config page  */
+// Display settings page  
 function admin_display_config() {
-	$roles = Array();
+	$roles = [];
 	get_roles($roles);
 
-	/*  Store setting information which POST has when this func is called by pressing [Save Change] btn  */
+	// Store setting information which POST has when this func is called by pressing [Save Change] btn 
 	if (isset($_POST['update_setting'])) {
 		echo '<div id="message" class="updated fade"><p><strong>Options saved.</strong></p></div>';
 		//update_option('th_linklist_vnum', $_POST['th_linklist_vnum']);
@@ -793,182 +760,85 @@ function admin_display_config() {
 
 	}
 
-	?>
-	<div class="wrap">
-		<h2>Media Organiser Configuration</h2>
+    echo '<div class="wrap">';
+	echo '<h2>Media Organiser Configuration</h2>';
+    echo '<form method="post" action="', $_SERVER["REQUEST_URI"], '">';
 
-		<form method="post" action="<?php echo $_SERVER["REQUEST_URI"]; ?>">
-		<?php
-		wp_nonce_field('update-options');
-		$accepted_roles = get_option("mediafilemanager_accepted_roles", "administrator");
-		$accepted_roles_selector = get_option("mediafilemanager_accepted_roles_selector", "administrator,editor,author,contributor,subscriber");
-		$disable_set_time_limit = get_option("mediafilemanager_disable_set_time_limit", 0);
-		?>
-		<table class="form-table">
-		<tr>
-		<th>Media Organiser can be used by </th>
-		<td style="text-align: left;">
-<?php
+    wp_nonce_field('update-options'); // echoes it too by default
+	$accepted_roles = get_option("mediafilemanager_accepted_roles", "administrator");
+    $accepted_roles_selector = get_option("mediafilemanager_accepted_roles_selector", 
+        "administrator,editor,author,contributor,subscriber");
+	$disable_set_time_limit = get_option("mediafilemanager_disable_set_time_limit", 0);
+
+    echo '<table class="form-table">';
+	echo '<tr><th>Media Organiser can be used by </th>';
+	echo '<td style="text-align: left;">';
+
 	$accepted = explode(",", $accepted_roles);
-	for($i=0; $i<count($roles); $i++) {
+	for ($i = 0; $i < count($roles); $i++) {
 		$key = $roles[$i];
-
 		$ck = "";
-		for ($j=0; $j<count($accepted); $j++) {
+		for ($j = 0; $j < count($accepted); $j++) {
 			if ($key == $accepted[$j]) {
 				$ck = "checked";
 				break;
 			}
 		}
-
-		echo '<input type="checkbox" name="roles_'.$key.'" id="roles_'.$key.'" '.$ck.'>'.$key.'</input><br>'."\n";
+        echo '<input type="checkbox" name="roles_' . $key . '" id="roles_' . 
+            $key . '" ' . $ck . '>' . $key . '</input><br>' . "\n";
 	}
-?>
 
-		</td>
-		</tr>
-		<th>File Selector can be used by </th>
-		<td style="text-align: left;">
-<?php
+    echo '</td></tr>';
+	echo '<th>File Selector can be used by </th>';
+	echo '<td style="text-align: left;">';
+
 	$accepted = explode(",", $accepted_roles_selector);
-	for($i=0; $i<count($roles); $i++) {
+	for ($i = 0; $i < count($roles); $i++) {
 		$key = $roles[$i];
-
 		$ck = "";
-		for ($j=0; $j<count($accepted); $j++) {
+		for ($j = 0; $j < count($accepted); $j++) {
 			if ($key == $accepted[$j]) {
 				$ck = "checked";
 				break;
 			}
 		}
-
-		echo '<input type="checkbox" name="roles_sel_'.$key.'" id="roles_sel_'.$key.'" '.$ck.'>'.$key.'</input><br>'."\n";
-	}
-?>
-
-		</td>
-		</tr>
-
-<?php /*
-		<th>Others</th>
-		<td style="text-align: left;">
-		<input type="checkbox" name="disable_set_time_limit" id="disable_set_time_limit" <?php echo $disable_set_time_limit?"checked":"";?>>Disable set_time_limit() (not recommended)</input><br>
-		</td>
-        </tr>
-    */ ?>
-
-		</table>
-		<input type="hidden" name="action" value="update" />
-		<p class="submit">
-			<input type="submit" name="update_setting" class="button-primary" value="<?php _e('Save Changes')?>" onclick="" />
-		</p>
-		</form>
-
-
-	</div>
-<?php /* no log nonsense
-	<a href="#" onclick="download_log()">Download Log</a>
-	<script type="text/javascript">
-	function download_log() {
-		var data = {
-			action: 'download_log'
-		};
-		jQuery.post(ajaxurl, data, function(response) {
-			download("mfm_log.txt",response);
-		});
+        echo '<input type="checkbox" name="roles_sel_' . $key . '" id="roles_sel_' . 
+            $key . '" ' . $ck . '>' . $key . '</input><br>' . "\n";
 	}
 
-	function download(filename, text) {
-  		var element = document.createElement('a');
-		element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-		element.setAttribute('download', filename);
-
-		element.style.display = 'none';
-		document.body.appendChild(element);
-
-		element.click();
-
-		document.body.removeChild(element);
-	}
-	</script>
-
-	&nbsp;&nbsp;<a href="#" onclick="delete_log()">Delete log</a>
-	<script type="text/javascript">
-	function delete_log() {
-		var data = {
-			action: 'delete_log'
-		};
-		jQuery.post(ajaxurl, data, function(response) {
-			alert(response);
-		});
-	}
-	</script>
-	<?php
-
- */
-// FIXME is this needed:?
-	if (isset($_POST['update_th_linklist_Setting'])) {
-		//echo '<script type="text/javascript">alert("Options Saved.");</script>';
-    }
+    echo '</td></tr>';
+    echo '</table>';
+	echo '<input type="hidden" name="action" value="update">';
+	echo '<p class="submit">'; // A WP-ism, apparently
+	echo '<input type="submit" name="update_setting" class="button-primary" value="', _e('Save Changes'), '">';
+	echo '</p>';
+	echo '</form>';
+    echo '</div>';
 }
-
 
 function media_file_manager_install() {
-
-	#global $wpdb;
-	#$mfm_db_version = "1.00";
-	#$table_name = $wpdb->prefix . "media_file_manager_log";
-	#$installed_ver = get_option("mfm_db_version" ,"0");
-
-    /*
-	if ($installed_ver != $mfm_db_version) {
-		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-		$sql = "CREATE TABLE " . $table_name . " (
-			date_time datetime,
-			log_data text
-		) DEFAULT CHARSET utf8 COLLATE utf8_unicode_ci;";
-		dbDelta($sql);
-
-		update_option("mfm_db_version", $mfm_db_version);
-    }
-     */
 }
-
-/*
-function log ($str) {
-	global $wpdb;
-	$str = mysql_real_escape_string($str);
-	$sql = "INSERT INTO ". $wpdb->prefix."media_file_manager_log (date_time,log_data) VALUES ('" . date("Y-m-d H:i:s") . "', '" . $str . "');";
-	$wpdb->query($sql);
-}
-
-function download_log_callback() {
-	if (!test_mfm_permission()) return 0;
-
-	global $wpdb;
-
-	$sql = "select * from " . $wpdb->prefix . "media_file_manager_log order by date_time desc";
-	$res = $wpdb->get_results($sql);
-
-	for ($i=0; $i<count($res); $i++) {
-		echo $res[$i]->date_time . "\t" . $res[$i]->log_data . "\n";
-	}
-	die("");
-}
-
-function delete_log_callback() {
-	if (!test_mfm_permission()) return 0;
-
-	global $wpdb;
-	$ret = $wpdb->query("TRUNCATE TABLE ".$wpdb->prefix."media_file_manager_log");
-	die ($ret===FALSE ? "failure":"success");
-}
- */
 
 function _set_time_limit($t) {
 	if (!get_option("mediafilemanager_disable_set_time_limit", 0)) {
 		set_time_limit($t);
 	}
 }
+
+// Register stuff:
+add_action('init', NS . 'init');
+add_action('admin_head', NS . 'admin_register_head');
+add_action('admin_menu', NS . 'plugin_menu');
+add_action('admin_menu', NS . 'admin_plugin_menu');
+#register_activation_hook(WP_PLUGIN_DIR . '/media-file-manager/media-relocator.php', 'media_file_manager_install');
+#add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
+add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
+add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');
+add_action('wp_ajax_mocd_rename',           NS . 'rename_callback');
+add_action('wp_ajax_mocd_move',             NS . 'move_callback');
+add_action('wp_ajax_new_mocd_move',         NS . 'new_move_callback');
+add_action('wp_ajax_mocd_delete_empty_dir', NS . 'delete_empty_dir_callback');
+add_action('wp_ajax_mocd_download_log',     NS . 'download_log_callback');
+add_action('wp_ajax_mocd_delete_log',       NS . 'delete_log_callback');
 
 ?>
