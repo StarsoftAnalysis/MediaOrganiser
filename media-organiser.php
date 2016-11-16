@@ -41,16 +41,8 @@ if (is_admin()) {
     add_action('wp_ajax_mocd_download_log',     NS . 'download_log_callback');
     add_action('wp_ajax_mocd_delete_log',       NS . 'delete_log_callback');
 
-    require_once plugin_dir_path(__FILE__) . 'media-selector.php';
-    add_action('wp_ajax_mocd_get_media_list',           NS . 'get_media_list_callback');
-    add_action('wp_ajax_mocd_get_media_subdir',         NS . 'get_media_subdir_callback');
-    add_action('wp_ajax_mocd_get_image_info',           NS . 'get_image_info_callback');
-    add_action('wp_ajax_mocd_get_image_insert_screen',  NS . 'get_image_insert_screen_callback');
-    add_action('wp_ajax_mocd_update_media_information', NS . 'update_media_information_callback');
-    add_action("admin_head_media_upload_mrlMS_form", NS . "onMediaHead"    ); /* reading js */
-    add_action("media_buttons",                      NS . "onMediaButtons" , 20);
-    add_action("media_upload_mrlMS",                 NS . "media_upload_mrlMS"                );
-    add_filter("admin_footer", NS . "onAddShortCode");
+    // Later...
+    #require_once plugin_dir_path(__FILE__) . 'media-selector.php';
 }
 
 ?>

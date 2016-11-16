@@ -322,12 +322,14 @@ function onMediaButtons() {
 
     $id     = (int)(0 == $post_ID ? $temp_ID : $post_ID);
     $iframe = apply_filters("media_upload_mrlMS_iframe_src", "media-upload.php?post_id={$id}&amp;type=mrlMS&amp;tab=mrlMS");
-    $option = "&amp;TB_iframe=true&amp;keepThis=true&amp;height=500&amp;width=640";
-    $title  = "Media-selector";
+    #$option = "&amp;TB_iframe=true&amp;keepThis=true&amp;height=500&amp;width=640";
+    # Try without Thickbox
+    $option = "&amp;TB_iframe=false&amp;keepThis=true&amp;height=500&amp;width=640";
+    $title  = "Media Organiser Selector";
     $button = PLUGIN_URL . "images/media_folder.png";
 
     //		echo '<a href="' . $iframe . $option . '" class="thickbox" title="' . $title . '"><img src="' . $button . '" alt="' . $title . '" /></a>';
-    echo ' <a href="' . $iframe . $option . '" class="wp-media-buttons button add_media thickbox" title="' . $title . '">';
+    echo ' <a href="' . $iframe . $option . '" class="wp-media-buttons button Xadd_media thickbox" title="' . $title . '">';
     echo '<span class="wp-media-buttons-icon" ></span><span  style="background-color:#ff0;"> &nbsp;&nbsp;'.$title.'&nbsp;&nbsp; </a> </span></span>';
 }
 
@@ -335,11 +337,12 @@ function onMediaButtons() {
  *  This function is called when showing contents in the dialog opened by pressing a media button.
  */
 function onMediaButtonPage() {
-    echo "<script type=\"text/javascript\"> var uploaddir = '".UPLOAD_DIR."' </script>\n";
-    echo "<script type=\"text/javascript\"> var uploadurl = '".UPLOAD_URL."' </script>\n";
-    echo "<script type=\"text/javascript\"> var pluginurl = '".PLUGIN_URL."' </script>\n";
+    // Now done via localise-script below
+    #echo "<script type=\"text/javascript\"> var uploaddir = '".UPLOAD_DIR."' </script>\n";
+    #echo "<script type=\"text/javascript\"> var uploadurl = '".UPLOAD_URL."' </script>\n";
+    #echo "<script type=\"text/javascript\"> var pluginurl = '".PLUGIN_URL."' </script>\n";
 
-    echo '<p></p>';
+    echo '<p>(HTML created by media-selector.php:onMediaButtonPage)</p>';
     echo '<div id="mocd_control"> </div>';
     echo '<div id="mocd_selector"> </div>';
     echo '<div id="mocd_edit"> </div>';
@@ -349,7 +352,14 @@ function onMediaButtonPage() {
  *  This function is called when generating header of a window opened by a media button.
  */
 function onMediaHead() {
+    // FIXME the frontend doesn't need to know about these.  Or does it?
+    $constants = [
+        'uploaddir' => UPLOAD_DIR,
+        'uploadurl' => UPLOAD_URL,
+        'pluginurl' => PLUGIN_URL
+    ];
     wp_enqueue_script("media-selector", plugins_url('media-selector.js', __FILE__));
+    wp_localize_script('media-selector', 'mocd_constants', $constants);
 }
 
 /**
@@ -361,7 +371,7 @@ function onMediaHead() {
  */
 function onModifyMediaTab($tabs)
 {
-    return array("mrlMS" => "Choose a media item");
+    return array("mrlMS" => "Choose a media item (ms.php~372)" );
 }
 
 
@@ -371,6 +381,7 @@ function onModifyMediaTab($tabs)
 
 /**
  * This function is called when opening a windows by pressing a media button.メディアボタンからダイアログが起動された時に呼び出されます。
+   CD   because type=tab=mrlMS when calling media-upload.php from onMediaButtons above/
  */
 function media_upload_mrlMS() {
     wp_iframe(NS . "media_upload_mrlMS_form");
@@ -384,6 +395,7 @@ function media_upload_mrlMS_form() {
 
     #wp_enqueue_script('jquery');
 
+    // add a 'tab'
     add_filter("media_upload_tabs", NS . "onModifyMediaTab");
 
     echo "<div id=\"media-upload-header\">\n";
@@ -424,4 +436,18 @@ function check_user_role ($roles, $user_id = NULL) {
     // User not in roles
     return FALSE;
 }
+
+
+    add_action('wp_ajax_mocd_get_media_list',           NS . 'get_media_list_callback');
+    add_action('wp_ajax_mocd_get_media_subdir',         NS . 'get_media_subdir_callback');
+    add_action('wp_ajax_mocd_get_image_info',           NS . 'get_image_info_callback');
+    add_action('wp_ajax_mocd_get_image_insert_screen',  NS . 'get_image_insert_screen_callback');
+    add_action('wp_ajax_mocd_update_media_information', NS . 'update_media_information_callback');
+    add_action("admin_head_media_upload_mrlMS_form", NS . "onMediaHead"    ); /* reading js */  /* what's that all about FIXME */
+    add_action("admin_head", NS . "onMediaHead"    ); /* reading js */
+    add_action("media_buttons",                      NS . "onMediaButtons" , 20);
+    // !! see wp-admin/media-upload.php -- media_upload... action seems to relate to
+    //    old media system.
+    #add_action("media_upload_mrlMS",                 NS . "media_upload_mrlMS"                );
+    add_filter("admin_footer", NS . "onAddShortCode");
 ?>
