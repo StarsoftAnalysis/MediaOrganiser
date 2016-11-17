@@ -45,23 +45,21 @@ mocd.ajax_count_in = function () {
 // argument : (void)
 mocd.ajax_count_out = function () {
 	mocd.ajax_count--;
-	if (mocd.ajax_count == 0) {
+	if (mocd.ajax_count <= 0) {
+        mocd.ajax_count = 0;
 		document.body.style.cursor = "default";
-		jQuery(document).unbind('click.mrl');
+		//? jQuery(document).unbind('click.mrl');
 	}
 }
 
-// This is the new improved version
-mocd.display_response = function (response) {
-    // TODO something better than alert
-    console.log('display_response: ', response);
-    //alert(response.message);
-    mocd.message.html(response.message);
+mocd.message_dialog = function (title, message, timeout) {
+    var timeout = timeout || 0;
+    mocd.message.html(message);
     var dialog = mocd.message.dialog({
         autoOpen: true,
         appendTo: '#mocd_wrap',
         modal: false,
-        title: (response.success ? 'Success' : 'Failure'),
+        title: title, 
         buttons: {
             OK: function() {
                 dialog.dialog("close");
@@ -69,11 +67,21 @@ mocd.display_response = function (response) {
         }
     });
     // Auto-close if it's just for information
-    if (response.success) {
+    if (timeout > 0) {
         setTimeout(function () {
             dialog.dialog('close');
         }, 3000);
     }
+}
+
+// This is the new improved version
+mocd.display_response = function (response) {
+    console.log('display_response: ', response);
+    mocd.message_dialog(
+        (response.success ? 'Success' : Failure),
+        response.message,
+        (response.success ? 3000 : 0)
+    );
 }
 
 mocd.progress = function progress() {
@@ -82,9 +90,6 @@ mocd.progress = function progress() {
 }
 
 mocd.new_move_items = function nmi (pane_from, pane_to) {
-    //// FIXME collect results and put up progress bar
-    //var flist = [];  // list of filenames to return
-    //var isdirs = []; // temp hack!!
     var checked_items = []; // list of indexes of checked items
     for (var i = 0; i < pane_from.dir_list.length; i++) {
         var id = '#' + pane_from.get_chkid(i);
@@ -165,20 +170,22 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
                         msg += '<p>' + err_msgs[i];
                     }
                     // FIXME the list of errors could be very big -- just show a few of them??
-                    mocd.message.html(msg);
-                    pause = 0;
-                    // TODO move this into a function
-                    var dialog = mocd.message.dialog({
-                        autoOpen: true,
-                        appendTo: '#mocd_wrap',
-                        modal: false,
-                        title: "One or more items could not be moved",
-                        buttons: {
-                            OK: function() {
-                                dialog.dialog("close");
-                            }
-                        }
-                    });
+                    mocd.message_dialog('One or more items could not be moved', msg, 0);
+
+                    //mocd.message.html(msg);
+                    //pause = 0;
+                    //// TODO move this into a function
+                    //var dialog = mocd.message.dialog({
+                    //    autoOpen: true,
+                    //    appendTo: '#mocd_wrap',
+                    //    modal: false,
+                    //    title: "One or more items could not be moved",
+                    //    buttons: {
+                    //        OK: function() {
+                    //            dialog.dialog("close");
+                    //        }
+                    //    }
+                    //});
                 }
                 setTimeout(function () {  // pause with the 'Done' message on the screen
                     progressbar.progressbar('destroy');
@@ -224,7 +231,6 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
 		thispane.chdir("..");
 	});
 
-
     // FIXME sometimes a few files get left behind
 
     // 'Select All' box affects all boxes on this pane
@@ -242,20 +248,28 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
     // Set up rename dialog
     // (activated by [Rename] button on each item -- added later)
     this.rename_field.keypress(this.filter_item_name_characters);
+    // FIXME get rid of the [X] and cancel buttons
+    // // -- no -- disable the cancel button once [Rename] has been pressed
+    // FIXME need a timeout in case it goes wrong...
     this.rename_dialog = jQuery("#" + this.id_rename_dialog).dialog({
         appendTo: '#mocd_wrap',
         autoOpen: false,
-        //height: 400,
-        //width: 350,
         resizable: false,
-
         modal: true,
-        buttons: {
-            "Rename": thispane.rename_dialog_callback.bind(thispane, 'x42'),
-            Cancel: function() {
-                thispane.rename_dialog.dialog("close");
+        buttons: [
+            {
+                text: 'Rename',
+                click: thispane.rename_dialog_callback.bind(thispane),
+                id: 'mocd_rename_rename_btn'
+            },
+            {
+                text: 'Cancel',
+                click: function() {
+                    thispane.rename_dialog.dialog("close");
+                },
+                id: 'mocd_rename_cancel_btn'
             }
-        },
+        ],
         open: function (event, ui) {
             //console.log('opening dialog');
         },
@@ -303,16 +317,19 @@ MOCDPaneClass.prototype.filter_item_name_characters = function (e) {
     }
 }
 
-MOCDPaneClass.prototype.rename_dialog_callback = function (x) {
+MOCDPaneClass.prototype.rename_dialog_callback = function () {
     // 'this' is the pane object, thanks to the bind on the call
     // (otherwise it would be the div containing the form element)
     var newname = this.rename_field.val();
     var index = this.rename_i_field.val();
     var existing = this.name_exists(newname);
-    if (existing === false) { // send to the backend
-       // this.rename_dialog.dialog('close');
-        //alert('newname: ' + newname);
+    if (existing === false) {
+        // disable the buttons  FIXME doesn't work; need to disable the [X] button too
+        jQuery('#mocd_rename_rename_btn').attr('disabled', true);
+        jQuery('#mocd_rename_cancel_btn').attr('disabled', true);
+        // send the request to the backend
         this.ajax_rename_item(index, newname);
+        // wait for the reply before closing the dialog
     } else if (existing === index) {
         // name hasn't changed
         this.rename_dialog.dialog('close');
@@ -364,7 +381,7 @@ MOCDPaneClass.prototype.refresh = function () {
 // description : move to the directory and display directory listing
 // argument : (dir)absolute path name of the target directory
 MOCDPaneClass.prototype.setdir = function(dir) {
-	this.wrapper.css('cursor:wait'); // TODO move this into count_in
+	//? this.wrapper.css('cursor:wait'); // TODO move this into count_in
 	var data = {
 		action: 'mocd_getdir',
 		dir: dir
@@ -401,7 +418,6 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
     var thumb_url = '';
 
     html += '<ul class=mocd_pane_list>';
-
 
     var select_all_done = false; // first-time flag for adding the 'select all files' tick box
 
@@ -511,7 +527,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
     //    }
    // }
 
-    this.wrapper.css('cursor:default');
+    //? this.wrapper.css('cursor:default');
     return dir;
 }
 
@@ -537,6 +553,8 @@ MOCDPaneClass.prototype.ajax_rename_item = function (i, newname) {
     //console.log('nmi sending data: ', data);
     mocd.ajax_count_in();
     jQuery.post(ajaxurl, data, function (response) {
+        // FIXME why do we never get here??
+        console.log('rename reply: ', response);
         mocd.ajax_count_out();
         if (response.success) {
             //        mocd.display_response(response);
@@ -651,6 +669,7 @@ jQuery(document).ready(function() {
 	mocd.pane_left.opposite = mocd.pane_right;
 	mocd.pane_right.opposite = mocd.pane_left;
 
+    // Too soon! -- unless this is only called on the right page.
 	mocd.pane_left.setdir("/");
 	mocd.pane_right.setdir("/");
 
