@@ -21,13 +21,16 @@ function plugin_menu () {
 // Add a link to the config page on the setting menu of wordpress
 function settings_menu () {
     debug('started');
-	add_submenu_page('options-general.php',
-		'Media Organiser Settings',
-		'Media Organiser',
-		'manage_options',
-		'mocd_settings_submenu',
-		NS . 'display_settings'
-	);
+	$role = test_mfm_permission();  // FIXME check this
+    if ($role) {
+        add_submenu_page('options-general.php',
+            'Media Organiser Settings',
+            'Media Organiser',
+            'manage_options',
+            'mocd_settings_submenu',
+            NS . 'display_settings'
+        );
+    }
 }
 
 add_action('admin_menu', NS . 'plugin_menu');

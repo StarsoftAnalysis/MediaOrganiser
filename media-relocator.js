@@ -46,7 +46,7 @@ mocd.ajax_count_in = function () {
 mocd.ajax_count_out = function () {
 	mocd.ajax_count--;
 	if (mocd.ajax_count <= 0) {
-        mocd.ajax_count = 0;
+		mocd.ajax_count = 0;
 		document.body.style.cursor = "default";
 		//? jQuery(document).unbind('click.mrl');
 	}
@@ -74,7 +74,6 @@ mocd.message_dialog = function (title, message, timeout) {
     }
 }
 
-// This is the new improved version
 mocd.display_response = function (response) {
     console.log('display_response: ', response);
     mocd.message_dialog(
@@ -200,7 +199,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
 }
 
 
-//**** Pane class *******************************************************************
+// **** Pane class *******************************************************************
 var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'mocd_right'
 	this.cur_dir = "";
 	this.dir_list = new Array();
@@ -320,6 +319,7 @@ MOCDPaneClass.prototype.filter_item_name_characters = function (e) {
 MOCDPaneClass.prototype.rename_dialog_callback = function () {
     // 'this' is the pane object, thanks to the bind on the call
     // (otherwise it would be the div containing the form element)
+    console.log('rdc called');
     var newname = this.rename_field.val();
     var index = this.rename_i_field.val();
     var existing = this.name_exists(newname);
@@ -534,6 +534,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
 // Send AJAX request to rename an item, given its index in the dir_list
 // // This does both 'move' and 'rename'
 MOCDPaneClass.prototype.ajax_rename_item = function (i, newname) {
+    console.log('ari called');
     var thispane = this;
     if (!thispane.dir_list[i].name) {
         console.log('ajax_rename_item -- now item for i=', i);

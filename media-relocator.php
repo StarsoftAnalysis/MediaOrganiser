@@ -3,22 +3,24 @@ namespace media_organiser_cd;
 
 if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
-function init() {
-    debug('init called');
-	wp_enqueue_script('jquery');
-}
-
-function admin_register_head() {
+function enqueue_scripts() {
     debug('started');
+	wp_enqueue_script('jquery');
+
+    #wp_enqueue_script('mocd_jqueryui', 
+    #    plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
+    #    ['jquery']);
+    #wp_enqueue_style('mocd_jqueryui', 
+    #    plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
+    #    []);
+    // These are already in WP! -- but won't have the context or default style of ours...
+    wp_enqueue_script('jquery-ui-dialog');
+    wp_enqueue_style('wp-jquery-ui-dialog'); # doesn't seem to help
+    wp_enqueue_script('jquery-ui-progressbar');
+    wp_enqueue_style('wp-jquery-ui-progressbar');
+
 	wp_enqueue_style("mocd-style", plugins_url('style.css', __FILE__));
 	wp_enqueue_script("media-relocator", plugins_url('media-relocator.js', __FILE__));
-
-    wp_enqueue_script('mocd_jqueryui', 
-        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
-        ['jquery']);
-    wp_enqueue_style('mocd_jqueryui', 
-        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
-        []);
 }
 
 // Echo the html for either the left or right pane
@@ -95,11 +97,11 @@ function main_page () {
 }
 
 // Register stuff:
-debug('mocd adding actions');
-add_action('init', NS . 'init');
+#debug('mocd adding actions');
 // TODO only load JS if called via /wp-admin/upload.php?page=mocd_submenu
 #add_action('admin_head', NS . 'admin_register_head');
+add_action('admin_enqueue_scripts', NS . 'enqueue_scripts');
 
-debug('mocd added all actions');
+#debug('mocd added all actions');
 
 ?>

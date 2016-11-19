@@ -155,7 +155,7 @@ function getdir_callback () {
 // the new secondary name will be bar-123x456.png
 function new_secondary_name ($new, $oldsec) {
     $newparts = pathinfo($new);
-    print_r($newparts);
+    //  !!! aaargh why is this here?  it messesup the ajax reply!!  print_r($newparts);
     $newsec = $oldsec;
     if (preg_match('/-\d+x\d+\./', $oldsec, $matches)) {
         $nnnxnnn = $matches[0];
