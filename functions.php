@@ -45,17 +45,16 @@ function remove_prefix ($prefix, $text) {
 // Returns one of the matching roles, or false
 function test_mfm_permission () {
 	$current_user = wp_get_current_user();
-    #debug('test_mfm_permission, cu=', $current_user);
-# FIXME why test this? why does it fail for webmaster?
-#    if (!($current_user instanceof WP_User)) {
-#        debug('... not a WP_User');
-#        return FALSE;
-#    }
+    if (empty($current_user)) {
+        debug('failed to get current_user');
+        return false;
+    }
 	$roles = $current_user->roles;
-    $accepted_roles = get_option("mediafilemanager_accepted_roles", "administrator"); // 2nd arg is default, used if option not found
-    #debug('... accepted roles = ', $accepted_roles);
+    $accepted_roles = get_option("mocd_relocator_roles", "administrator"); // 2nd arg is default, used if option not found
+    debug('roles = ', $roles);
+    debug('... accepted roles = ', $accepted_roles);
 	$accepted = explode(",", $accepted_roles);
-    // Return one of the matching roles
+    // Return one of the matching roles    TODO just return true or false
     $matches = array_intersect($accepted, $roles);
     #debug('... matches = ', $matches);
     if ($matches) {

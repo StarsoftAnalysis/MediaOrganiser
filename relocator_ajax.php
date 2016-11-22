@@ -203,7 +203,7 @@ function update_posts_content ($old, $new, $source = '') {
 //  !!! Does renaming too.
 
 // FIXME this function is too big
-function new_move_callback () {
+function move_callback () {
     global $wpdb;
     // Keep a list of renamed files in case we need to rollback
     $renamed = [];
@@ -603,5 +603,10 @@ function delete_empty_dir_callback() {
 	}
     ajax_response(true, 'Deleted OK');
 }
+
+add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
+add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');
+add_action('wp_ajax_mocd_move',             NS . 'move_callback');
+add_action('wp_ajax_mocd_delete_empty_dir', NS . 'delete_empty_dir_callback');
 
 ?>

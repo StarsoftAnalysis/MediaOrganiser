@@ -22,9 +22,9 @@ if (!is_admin() || defined('DOING_CRON')) {
 }
 
 require_once plugin_dir_path(__FILE__) . 'functions.php';
-debug('mocd running');
-if (defined('DOING_CRON')) { debug('.... DOING_CRON'); }
-if (defined('DOING_AJAX')) { debug('.... DOING_AJAX'); }
+#debug('mocd running');
+#if (defined('DOING_CRON')) { debug('.... DOING_CRON'); }
+#if (defined('DOING_AJAX')) { debug('.... DOING_AJAX'); }
 debug('...         , SCRIPT_NAME=' . $_SERVER['SCRIPT_NAME']);
 debug('...         , REQUEST: ', $_REQUEST);
 #debug('__FILE__', __FILE__);
@@ -36,28 +36,15 @@ define_constants();
 // Things needed on all admin pages
 require_once plugin_dir_path(__FILE__) . 'common.php';
 
-
-#_set_time_limit(600); // FIXME really needed? -- gets set to 1800 somewhere
-
-
-// Ajax -- don't to do anything if request is:
-// (
-//     [interval] => 60
-//     [_nonce] => eccd1e5923
-//     [action] => heartbeat
-//     [screen_id] => media_page_mocd_submenu
-//     [has_focus] => false
-// )
 if (defined('DOING_AJAX')) {
-    debug('doing ajax, action = ', $_REQUEST['action']);
 
-    require_once plugin_dir_path(__FILE__) . 'relocator_ajax.php';
-    // TODO split them up further?
-    // TODO move the add_action into the other files
-    add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
-    add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');
-    add_action('wp_ajax_new_mocd_move',         NS . 'new_move_callback');
-    add_action('wp_ajax_mocd_delete_empty_dir', NS . 'delete_empty_dir_callback');
+    $action = $_REQUEST['action'];
+    debug("doing ajax, action = '$action'");
+    if (in_array($action, 
+        ['mocd_getdir', 'mocd_mkdir', 'mocd_move', 'mocd_delete_empty_dir'])) {
+        require_once plugin_dir_path(__FILE__) . 'relocator_ajax.php';
+        // TODO split them up further?
+    }
 
 } else {
 

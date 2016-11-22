@@ -7,17 +7,17 @@ function enqueue_scripts() {
     debug('started');
 	wp_enqueue_script('jquery');
 
-    #wp_enqueue_script('mocd_jqueryui', 
-    #    plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
-    #    ['jquery']);
-    #wp_enqueue_style('mocd_jqueryui', 
-    #    plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
-    #    []);
+#    wp_enqueue_script('mocd_jqueryui', 
+#        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
+#        ['jquery']);
+#    wp_enqueue_style('mocd_jqueryui', 
+#        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
+#        []);
     // These are already in WP! -- but won't have the context or default style of ours...
     wp_enqueue_script('jquery-ui-dialog');
-    #wp_enqueue_style('jquery-ui-dialog'); # doesn't seem to help
+    wp_enqueue_style('wp-jquery-ui-dialog');
     wp_enqueue_script('jquery-ui-progressbar');
-    #wp_enqueue_style('jquery-ui-progressbar');
+    wp_enqueue_style('wp-jquery-ui-progressbar');
 
 	wp_enqueue_style("mocd-style", plugins_url('style.css', __FILE__));
 	wp_enqueue_script("media-relocator", plugins_url('media-relocator.js', __FILE__));

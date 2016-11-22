@@ -25,6 +25,12 @@ li.mocd_pane_item {
     margin-top: 0.5em;
 }
 
+#mocd_pane_select_all .mocd_pane_cell {
+    padding-top: 1em;
+    padding-bottom: 1em;
+    font-weight: bold;
+}
+
 /* Folder icon or thumbnail image in pane */
 .mocd_pane_img {
     width: 50px;

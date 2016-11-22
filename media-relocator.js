@@ -29,7 +29,8 @@ mocd.adjust_layout = function () {
 mocd.ajax_count_in = function () {
 	mocd.ajax_count++;
 	document.body.style.cursor = "wait";
-	if (mocd.ajax_count == 1) {
+    // !! Bloody hell -- this steals ALL the clicks!
+    /* if (mocd.ajax_count == 1) {
         jQuery(document).bind('click.mrl', function(e){
 	    	e.cancelBubble = true;
 		    if (e.stopPropagation) {
@@ -38,6 +39,7 @@ mocd.ajax_count_in = function () {
 		    e.preventDefault();
 	    });
     }
+    */
 }
 
 // function name: mocd.ajax_count_out
@@ -140,7 +142,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
         //console.log(flist);
         // FIXME this is duplicated
         var data = {
-            action: 'new_mocd_move',
+            action: 'mocd_move',
             dir_from: pane_from.cur_dir,
             dir_to:   pane_to.cur_dir,
             item_from:  pane_from.dir_list[i].name,
@@ -259,14 +261,14 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
             {
                 text: 'Rename',
                 click: thispane.rename_dialog_callback.bind(thispane),
-                id: 'mocd_rename_rename_btn'
+                id: 'mocd_rename_rename_btn',
             },
             {
                 text: 'Cancel',
                 click: function() {
                     thispane.rename_dialog.dialog("close");
                 },
-                id: 'mocd_rename_cancel_btn'
+                id: 'mocd_rename_cancel_btn',
             }
         ],
         open: function (event, ui) {
@@ -324,13 +326,13 @@ MOCDPaneClass.prototype.rename_dialog_callback = function () {
     var index = this.rename_i_field.val();
     var existing = this.name_exists(newname);
     if (existing === false) {
-        // disable the buttons  FIXME doesn't work; need to disable the [X] button too
+        // disable the buttons  FIXME need to disable the [X] button too
         jQuery('#mocd_rename_rename_btn').attr('disabled', true);
         jQuery('#mocd_rename_cancel_btn').attr('disabled', true);
         // send the request to the backend
         this.ajax_rename_item(index, newname);
         // wait for the reply before closing the dialog
-    } else if (existing === index) {
+    } else if (existing == index) {  // (not '===' 'cos one's a string, one's an integer)
         // name hasn't changed
         this.rename_dialog.dialog('close');
     } else {
@@ -430,7 +432,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
         if (!item.isdir && !select_all_done) {
             html += '<li class=mocd_pane_item id="mocd_pane_select_all">';
             html += '<div class="mocd_pane_cell"></div>'; // just for spacing
-            html += '<div style="mocd_pane_cell">';
+            html += '<div class="mocd_pane_cell">';
             html += '<div class="mocd_pane_img"></div>'; // just as spacing
             html += '<div><input type="checkbox" id="' + this.id_pane + '_ck_all' + '"></div>';
             html += '<div>&nbsp;Select All Files</div>';
@@ -477,6 +479,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
     // the index from the item's id or data.
     //
     // Plan B -- use delegation, getting the index from the CSS id
+    // // TODO ? use data- -- WordPress seems to use HTML5 anyway
     
     // 'Rename' buttons
     this.pane.on('click', '.mocd_pane_rename_btn', function () {
@@ -490,6 +493,8 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
         var name = thispane.dir_list[i].name;
         thispane.rename_field.val(name);
         thispane.rename_i_field.val(i);
+        jQuery('#mocd_rename_rename_btn').attr('disabled', false);
+        jQuery('#mocd_rename_cancel_btn').attr('disabled', false);
         thispane.rename_dialog.dialog("open");
     });
     
@@ -543,7 +548,7 @@ MOCDPaneClass.prototype.ajax_rename_item = function (i, newname) {
     var oldname = thispane.dir_list[i].name;
 
     var data = {
-        action:    'new_mocd_move', // TODO rename
+        action:    'mocd_move',
         dir_from:  thispane.cur_dir,
         dir_to:    thispane.cur_dir,
         item_from: oldname,

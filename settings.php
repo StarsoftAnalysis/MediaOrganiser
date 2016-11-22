@@ -28,7 +28,7 @@ function display_settings () {
 				$roles_val .= $roles[$i];
 			}
 		}
-		update_option('mediafilemanager_accepted_roles', $roles_val);
+		update_option('mocd_relocator_roles', $roles_val);
 
 		$roles_val = "";
 		for ($i = 0; $i < count($roles); $i++) {
@@ -37,10 +37,7 @@ function display_settings () {
 				$roles_val .= $roles[$i];
 			}
 		}
-		update_option('mediafilemanager_accepted_roles_selector', $roles_val);
-
-		$disable_set_time_limit = (!(empty($_POST['disable_set_time_limit']))) ? 1 : 0;
-		update_option('mediafilemanager_disable_set_time_limit', $disable_set_time_limit);
+		update_option('mocd_selector_roles', $roles_val);
 
 	}
 
@@ -49,8 +46,11 @@ function display_settings () {
     echo '<form method="post" action="', $_SERVER["REQUEST_URI"], '">';
 
     wp_nonce_field('update-options'); // echoes it too by default
-	$accepted_roles = get_option("mediafilemanager_accepted_roles", "administrator");
-    $accepted_roles_selector = get_option("mediafilemanager_accepted_roles_selector", 
+	$accepted_roles = get_option("mocd_relocator_roles", "administrator");
+		$disable_set_time_limit = (!(empty($_POST['disable_set_time_limit']))) ? 1 : 0;
+		update_option('mediafilemanager_disable_set_time_limit', $disable_set_time_limit);
+
+    $accepted_roles_selector = get_option("mocd_selector_roles", 
         "administrator,editor,author,contributor,subscriber");
 	#$disable_set_time_limit = get_option("mediafilemanager_disable_set_time_limit", 0);
 

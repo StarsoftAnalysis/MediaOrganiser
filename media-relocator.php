@@ -7,15 +7,15 @@ function enqueue_scripts() {
     debug('started');
 	wp_enqueue_script('jquery');
 
-    #wp_enqueue_script('mocd_jqueryui', 
-    #    plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
-    #    ['jquery']);
-    #wp_enqueue_style('mocd_jqueryui', 
-    #    plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
-    #    []);
+#    wp_enqueue_script('mocd_jqueryui', 
+#        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
+#        ['jquery']);
+#    wp_enqueue_style('mocd_jqueryui', 
+#        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
+#        []);
     // These are already in WP! -- but won't have the context or default style of ours...
     wp_enqueue_script('jquery-ui-dialog');
-    wp_enqueue_style('wp-jquery-ui-dialog'); # doesn't seem to help
+    wp_enqueue_style('wp-jquery-ui-dialog');
     wp_enqueue_script('jquery-ui-progressbar');
     wp_enqueue_style('wp-jquery-ui-progressbar');
 
@@ -53,7 +53,7 @@ function pane_html ($side) {
     #echo '<p class="validateTips">Enter the new item name:</p>';
     echo '<form><fieldset>';
     echo '<label for="mocd_"', $side, '_rename">New name: </label>';
-    echo '<input type="text" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
+    echo '<input type="textarea" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
     echo '<div id="mocd_', $side, '_rename_error"></div>';
     echo '<input type="hidden" name="mocd_', $side, '_rename_i" id="mocd_', $side, '_rename_i" value="">';
     echo '</fieldset></form></div>';

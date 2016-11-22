@@ -310,7 +310,7 @@ function onAddShortCode() {
  *  This function is called when setting a media button. 
  */
 function onMediaButtons() {
-    $cur_roles0 = get_option('mediafilemanager_accepted_roles_selector', 'administrator,editor,author,contributor,subscriber');
+    $cur_roles0 = get_option('mocd_selector_roles', 'administrator,editor,author,contributor,subscriber');
     $cur_roles = explode(',', $cur_roles0);
     if (!check_user_role($cur_roles)) {
         debug('onMediaButtons -- wrong role, cur_roles = ', cur_roles);
