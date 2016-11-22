@@ -45,8 +45,6 @@ function mkdir_callback() {
     ajax_response(true, "Created '$newdir' successfully");
 }
 
-
-// AJAX response ...
 function getdir_callback () {
     debug('getdir_callback');
     global $wpdb;
@@ -186,24 +184,6 @@ function update_posts_content ($old, $new, $source = '') {
     }
     return $rc;
 }
-
-// New plan -- do them one at a time (JS does the loop).
-// Why?
-// - JS can show a progress bar
-// - reduces chances of PHP timeouts
-// - makes it more atomic  -- just rename one thing and do the associated db updates
-
-// FIXME moving e.g. /test/ into /private/ fails to update posts 
-//  with /test/img.jpg to /private/test/img.jpg
-//
-// This gets called when a move arrow is clicked, with data:
-// action:    "move"
-// dir_from:  "/"
-// dir_to:    "/photos/"
-// item:     single item e.g. "AussieCricket03.jpg"
-// Returns an array: 0 for failure, 1 for success, !! perhaps need a reason too, e.g. permissions, already exists, db failed etc.
-//  !!! Does renaming too.
-
 
 // FIXME this function is too big
 //   -- extract functions such as 'get_all_secondary_files'...

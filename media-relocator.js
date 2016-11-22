@@ -29,7 +29,6 @@ mocd.adjust_layout = function () {
 mocd.ajax_count_in = function () {
 	mocd.ajax_count++;
 	document.body.style.cursor = "wait";
-    // !! Bloody hell -- this steals ALL the clicks!
     /* if (mocd.ajax_count == 1) {
         jQuery(document).bind('click.mrl', function(e){
 	    	e.cancelBubble = true;
