@@ -25,6 +25,7 @@ function enqueue_scripts() {
 
 // Echo the html for either the left or right pane
 function pane_html ($side) {
+    global $constants;
     debug('pane_html');
 	echo '<div class="mocd_wrapper_pane" id="mocd_', $side, '_wrapper">';
 	echo '<div class="mocd_box1">';
@@ -39,9 +40,9 @@ function pane_html ($side) {
     #echo '<button id="mocd_', $side, '_button_go" type="button">Go</button>';
     #echo '</div>';
     echo '<div class="mocd_dir_up  mocd_clickable" id="mocd_', $side, 
-        '_dir_up"  title="Show parent folder"><img src="', PLUGIN_URL, '/images/dir_up.png"></div>';
+        '_dir_up"  title="Show parent folder"><img src="', $plugin_url, '/images/dir_up.png"></div>';
     echo '<div class="mocd_dir_new mocd_clickable" id="mocd_', $side, 
-        '_dir_new" title="Create new folder" ><img src="', PLUGIN_URL, '/images/dir_new.png"></div>';
+        '_dir_new" title="Create new folder" ><img src="', $plugin_url, '/images/dir_new.png"></div>';
 	echo '</div>';
 	echo '<div style="clear:both;"></div>';
     // This is the div that gets filled in with the dir listing in JS
@@ -53,7 +54,7 @@ function pane_html ($side) {
     #echo '<p class="validateTips">Enter the new item name:</p>';
     echo '<form><fieldset>';
     echo '<label for="mocd_"', $side, '_rename">New name: </label>';
-    echo '<input type="text" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
+    echo '<input type="textarea" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
     echo '<div id="mocd_', $side, '_rename_error"></div>';
     echo '<input type="hidden" name="mocd_', $side, '_rename_i" id="mocd_', $side, '_rename_i" value="">';
     echo '</fieldset></form></div>';
@@ -69,6 +70,7 @@ function pane_html ($side) {
 
 // Run the main Media Organiser admin page
 function main_page () {
+    global $constants;
 
     debug('>>>> mocd main_page()');
 	echo '<div class="wrap" id="mocd_wrap">';
@@ -80,9 +82,9 @@ function main_page () {
 
 	echo '<div id="mocd_center_wrapper">';
     echo '<div id="mocd_btn_left2right" class="mocd_clickable" title="Move selected items to the folder on the right">';
-    echo '<img src="', PLUGIN_URL, '/images/right.png"></div>';
+    echo '<img src="', $plugin_url, '/images/right.png"></div>';
     echo '<div id="mocd_btn_right2left" class="mocd_clickable" title="Move selected items to the folder on the left">';
-    echo '<img src="', PLUGIN_URL, '/images/left.png"></div>';
+    echo '<img src="', $plugin_url, '/images/left.png"></div>';
     echo '</div>';
     // Progress bar -- initially hidden
     echo '<div id="mocd_progressbar" style="display: none;"><div id="mocd_progresslabel">Moving: </div></div>';

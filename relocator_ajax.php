@@ -26,13 +26,14 @@ function ajax_response ($success = false, $message = '', $data = []) {
 }
 
 function mkdir_callback() {
+    global $constants;
     debug('mkdir_callback');
     if (!test_mfm_permission()) {
         ajax_response(false, 'no permission');
     }
 	$dir    = get_post('dir');
     $newdir = get_post('newdir');
-    $path = UPLOAD_DIR . $dir;
+    $path = $upload_dir . $dir;
     $newpath = $path . $newdir;
     #debug('mkdir_c:', $path, $newpath);
     if (file_exists($newpath)) {
@@ -49,6 +50,7 @@ function mkdir_callback() {
 function getdir_callback () {
     debug('getdir_callback');
     global $wpdb;
+    global $plugin_url, $upload_dir, $upload_dir_rel;
     if (!test_mfm_permission()) {
         ajax_response(false, 'no permission');
     }
@@ -62,8 +64,8 @@ function getdir_callback () {
     ];
     $post_dir = filter_input(INPUT_POST, 'dir', FILTER_DEFAULT, $opts);
     // $dir is relative to the uploads dir, e.g. '/' or 'photos'
-	$dir = UPLOAD_DIR . $post_dir;
-    $reldir = UPLOAD_DIR_REL . $post_dir; // relative to ..  .  not used
+	$dir = $upload_dir . $post_dir;
+    $reldir = $upload_dir_rel . $post_dir; // relative to ..  .  not used
     $attdir = ltrim($post_dir, '/');  // remove leading /
     #debug("gc: post_dir = $post_dir   dir = $dir   attdir = $attdir");
     $dirlist = [];
@@ -78,7 +80,7 @@ function getdir_callback () {
             'isdir' => true,
 			'isemptydir' => isEmptyDir($dir . "/" . $sdir),
             'norename' => false, // FIXME ??
-            'thumbnail_url' => PLUGIN_URL . '/images/dir.png'
+            'thumbnail_url' => $plugin_url . '/images/dir.png'
         ];
     }
     // Then get the attachments in this directory
@@ -202,9 +204,12 @@ function update_posts_content ($old, $new, $source = '') {
 // Returns an array: 0 for failure, 1 for success, !! perhaps need a reason too, e.g. permissions, already exists, db failed etc.
 //  !!! Does renaming too.
 
+
 // FIXME this function is too big
+//   -- extract functions such as 'get_all_secondary_files'...
 function move_callback () {
     global $wpdb;
+    global $upload_dir, $upload_dir_rel;
     // Keep a list of renamed files in case we need to rollback
     $renamed = [];
 
@@ -237,20 +242,20 @@ function move_callback () {
         // TODO is this success or fail?
         ajax_response(false, 'same dir and item');
     }
-    // dirs are e.g. '/' or '/private/' or '2015/10' relative to UPLOAD_DIR
-    $path_from = UPLOAD_DIR . $dir_from;
+    // dirs are e.g. '/' or '/private/' or '2015/10' relative to $upload_dir
+    $path_from = $upload_dir . $dir_from;
     if (!file_exists($path_from)) {
         ajax_response(false, "Folder '" . $dir_from . "' does not exist");
     }
-    $path_to = UPLOAD_DIR . $dir_to;
+    $path_to = $upload_dir . $dir_to;
     if (!file_exists($path_to)) {
         ajax_response(false, "Folder '" . $dir_to . "' does not exist");
     }
     // TODO ? need to check if item_from_path exists? == yes
-    $item_from_path = UPLOAD_DIR     . $dir_from . $item_from;       // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
-    $item_to_path   = UPLOAD_DIR     . $dir_to   . $item_to;
-    $item_from_rel  = UPLOAD_DIR_REL . $dir_from . $item_from;   // relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
-    $item_to_rel    = UPLOAD_DIR_REL . $dir_to   . $item_to;
+    $item_from_path = $upload_dir     . $dir_from . $item_from;       // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
+    $item_to_path   = $upload_dir     . $dir_to   . $item_to;
+    $item_from_rel  = $upload_dir_rel . $dir_from . $item_from;   // relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
+    $item_to_rel    = $upload_dir_rel . $dir_to   . $item_to;
     debug('item paths: ', $item_from_path, $item_to_path);
     debug('item rels: ', $item_from_rel, $item_to_rel);
     // PHP rename will overwrite, so check first if it exists
@@ -263,7 +268,7 @@ function move_callback () {
     $renamed = [];
 
     // FIXME need a sanity check on what we're trying to rename!!!!  !!!!!!!!
-    // -- i.e. check that UPLOAD_DIR etc. are sensible
+    // -- i.e. check that $upload_dir etc. are sensible
 
     debug("renaming $item_from_path to $item_to_path");
     if (!rename($item_from_path, $item_to_path)) {  // puts a warning in the log on failure
@@ -323,7 +328,7 @@ function move_callback () {
             // Update the attachment itself -- the wp_posts entry is of type 'attachment',
             // but does not have the filename, that's in wp_postmeta with key '_wp_attached_file'
             // ('replace' replaces all occurrences in the string)
-            // The value is the file name relative to UPLOAD_DIR_REL (or is it an URL?? FIXME)
+            // The value is the file name relative to $upload_dir_REL (or is it an URL?? FIXME)
             // with NO leading '/', e.g. 'foo.jpg' or 'photos/foo.jpg'
             // e.g. from / to
 
@@ -400,8 +405,8 @@ function move_callback () {
                         // Change it in the metadata
                         $metadata['sizes'][$sizename]['file'] = $newsec;
                     }
-                    $path_from = UPLOAD_DIR . $dir_from . $oldsec;
-                    $path_to   = UPLOAD_DIR . $dir_to   . $newsec;
+                    $path_from = $upload_dir . $dir_from . $oldsec;
+                    $path_to   = $upload_dir . $dir_to   . $newsec;
                     debug("renaming $path_from to $path_to");
                     // TODO last_error_msg is too wordy - just the bit after the last colon?
                     // TODO if secondary file doesn't exist, we might as well carry on regardless.
@@ -416,7 +421,11 @@ function move_callback () {
                         $renamed[] = ['from' => $path_from, 'to' => $path_to];
                         // Note the edit
                         #$edits[] = ['a' => 'metadata', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
-                        $edits[] = ['a' => 'metadata', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
+                        $edits[] = [
+                            'a'    => 'metadata', 
+                            'from' => $upload_dir_rel . $dir_from . $oldsec, 
+                            'to'   => $upload_dir_rel . $dir_to . $newsec
+                        ];
                     }
                     #'P1040025.jpg' to '/wp-content/uploadsP1040025.jpgP1040025-150x150.jpg'
                     // TODO ?? optimization -- posts often have e.g. the thumbnail and a link to the full size one,
@@ -509,8 +518,8 @@ function move_callback () {
                             // Change it in the metadata
                             $metadata[$sizename]['file'] = $newsec;
                         }
-                        $path_from = UPLOAD_DIR . $dir_from . $oldsec;
-                        $path_to   = UPLOAD_DIR . $dir_to   . $newsec;
+                        $path_from = $upload_dir . $dir_from . $oldsec;
+                        $path_to   = $upload_dir . $dir_to   . $newsec;
                         debug("renaming $path_from to $path_to");
                         if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
                             //throw new \Exception("Failed to rename $path_from to $path_to");
@@ -520,7 +529,11 @@ function move_callback () {
                             $renamed[] = ['from' => $path_from, 'to' => $path_to];
                             // Note the edit (although in theory posts shouldn't refer to backup files)
                             #??$edits[] = ['a' => 'backup', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
-                            $edits[] = ['a' => 'backup', 'from' => UPLOAD_DIR_REL . $dir_from . $oldsec, 'to' => UPLOAD_DIR_REL . $dir_to . $newsec];
+                            $edits[] = [
+                                'a'    => 'backup', 
+                                'from' => $upload_dir_rel . $dir_from . $oldsec, 
+                                'to'   => $upload_dir_rel . $dir_to . $newsec
+                            ];
                         }
                     }
 
@@ -590,6 +603,7 @@ function move_callback () {
 }
 
 function delete_empty_dir_callback() {
+    global $upload_dir;
     if (!test_mfm_permission()) {
         ajax_response(false, 'no permission');
     }
@@ -597,7 +611,7 @@ function delete_empty_dir_callback() {
 	$name = get_post('name');  // e.g. 'dir_to_be_deleted'
     // FIXME need a sanity check on what we're trying to delete!!!!  !!!!!!!!
     // (open_basedir PHP setting will help)
-    $full_dir = UPLOAD_DIR . $dir . $name;
+    $full_dir = $upload_dir . $dir . $name;
 	if (!rmdir($full_dir)) {
         ajax_response(false, 'Unable to delete \'' . $dir . $name . '\'.  Reason: ' . last_error_msg());
 	}

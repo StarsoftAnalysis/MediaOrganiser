@@ -1,45 +1,36 @@
 <?php
 namespace media_organiser_cd;
 
-function define_constants () {
-    debug('define_constants');
-    // Directories and URLs -- none of these will end in '/'
-    #    ABSPATH /var/www/rotarywp-dev/
-    #   __FILE__ /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd/functions.php  
-    #       d(F) /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd                    
-    #    b(d(F)) media-file-manager-cd                                                          
-    define('PLUGIN_URL', plugins_url() . "/" . basename(dirname(__FILE__)));  // used for URLs of icon images etc.
-    $upload = wp_upload_dir();
-    if ($upload['error']) {
-        debug('failed to get WP upload directory: ' . $upload['error']);
-        // guess:
-        define('UPLOAD_DIR', '/tmp/'); // ought to be e.g. '/var/www/website/wp-content/uploads');
-        define('UPLOAD_URL', '/wp-content/uploads'); 
-        define('UPLOAD_REL', '/wp-content/uploads');
-    } else {
-        define('UPLOAD_DIR', $upload['basedir']);
-        define('UPLOAD_URL', $upload['baseurl']);
-        #define('UPLOAD_REL', _wp_relative_upload_path(UPLOAD_DIR));
-        #define('UPLOAD_REL', '/' . str_replace(ABSPATH, '', UPLOAD_DIR));
-        define('UPLOAD_DIR_REL', DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, UPLOAD_DIR));
-        define('UPLOAD_URL_REL', '/' . remove_prefix(ABSPATH, UPLOAD_DIR));
-    }
-    #debug('ABSPATH:', ABSPATH);       // e.g. /var/www/website/
-    #debug('PLUGIN_URL:', PLUGIN_URL); // e.g. http://example.com/wp-content/plugins/media-organizer-cd
-    #debug('UPLOAD_DIR:', UPLOAD_DIR); // e.g. /var/www/website/wp-content/uploads
-    #debug('UPLOAD_URL:', UPLOAD_URL); // e.g. http://example.com/wp-content/uploads
-    // !! need separate UPLOAD_URL_REL and UPLOAD_DIR_REL because separator may not be
-    //    '/' in a dir, but always is in an URL.
-    #debug('UPLOAD_DIR_REL:', UPLOAD_DIR_REL); // e.g. /wp-content/uploads
-    #debug('UPLOAD_URL_REL:', UPLOAD_URL_REL); // e.g. /wp-content/uploads
-}
-
 function remove_prefix ($prefix, $text) {
     if (strpos($text, $prefix) === 0) {
         $text = substr($text, strlen($prefix));
     }
     return $text;
 }
+
+// --------------------------------------------------------------------------------------
+
+// Set up globals
+// Directories and URLs -- none of these will end in '/'
+#    ABSPATH /var/www/rotarywp-dev/
+#   __FILE__ /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd/functions.php  
+#       d(F) /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd                    
+#    b(d(F)) media-file-manager-cd                                                          
+$plugin_url = plugins_url() . "/" . basename(dirname(__FILE__));  // used for URLs of icon images etc.
+$upload = wp_upload_dir();
+if ($upload['error']) {
+    debug('failed to get WP upload directory: ' . $upload['error']);
+    return;
+}
+$upload_dir = $upload['basedir'];
+$upload_url = $upload['baseurl'];
+// !! need separate UPLOAD_URL_REL and $upload_dir_REL because separator may not be
+//    '/' in a dir, but always is in an URL.
+// TODO _url_rel might not be needed after all
+$upload_dir_rel = DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, $upload_dir);
+$upload_url_rel = '/' . remove_prefix(ABSPATH, $upload_dir);
+
+// --------------------------------------------------------------------------------------
 
 // test permission for accessing media file manager
 // Returns one of the matching roles, or false
@@ -98,6 +89,7 @@ function request_data ($field) {
 // Provide icons for those without thumbnails
 // TODO: pdfs?
 function thumbnail_url ($fname, $mimetype = '', $id = null) {
+    global $upload_url, $plugin_url;
     #debug("turl: '$fname' '$mimetype' '$id'");
     if (isimage($fname, $mimetype)) {
         if ($id && $url = wp_get_attachment_thumb_url($id)) {
@@ -105,13 +97,13 @@ function thumbnail_url ($fname, $mimetype = '', $id = null) {
             return $url;
         } 
         #debug('turl returning: ', UPLOAD_URL . '/' . $fname);
-        return UPLOAD_URL . '/' . $fname;
+        return $upload_url . '/' . $fname;
     } elseif (isaudio($fname, $mimetype)) {
-        return PLUGIN_URL . "/images/audio.png";
+        return $plugin_url . "/images/audio.png";
     } elseif (isvideo($fname, $mimetype)) {
-        return PLUGIN_URL . "/images/video.png";
+        return $plugin_url . "/images/video.png";
     }
-    return PLUGIN_URL . "/images/file.png";
+    return $plugin_url . "/images/file.png";
 }
 
 function isimage ($fname, $mimetype = '') {
