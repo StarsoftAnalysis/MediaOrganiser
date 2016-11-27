@@ -20,7 +20,8 @@ function enqueue_scripts() {
     wp_enqueue_style('wp-jquery-ui-progressbar');
 
 	wp_enqueue_style("mocd-style", plugins_url('style.css', __FILE__));
-	wp_enqueue_script("media-relocator", plugins_url('media-relocator.js', __FILE__));
+	wp_enqueue_script("mocd-relocator", plugins_url('media-relocator.js', __FILE__));
+    wp_localize_script("mocd-relocator", 'mocd_array', ['nonce' => wp_create_nonce('mocd_relocator')]);
 }
 
 // Echo the html for either the left or right pane
@@ -49,12 +50,12 @@ function pane_html ($side) {
 	echo '<div class="mocd_pane" id="mocd_', $side, '_pane"></div>';
 	echo '</div>';
     
-    // HTML for renaming dialog -- initially hidden
+    // HTML for renaming dialog -- initially hidden  FIXME do we really need one for each side?
     echo '<div id="mocd_', $side, '_rename_dialog" title="Rename File or Folder" style="display: none;">';
     #echo '<p class="validateTips">Enter the new item name:</p>';
     echo '<form><fieldset>';
     echo '<label for="mocd_"', $side, '_rename">New name: </label>';
-    echo '<input type="textarea" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
+    echo '<input type="text" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
     echo '<div id="mocd_', $side, '_rename_error"></div>';
     echo '<input type="hidden" name="mocd_', $side, '_rename_i" id="mocd_', $side, '_rename_i" value="">';
     echo '</fieldset></form></div>';
@@ -106,4 +107,3 @@ add_action('admin_enqueue_scripts', NS . 'enqueue_scripts');
 
 #debug('mocd added all actions');
 
-?>

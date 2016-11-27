@@ -26,8 +26,8 @@ require_once plugin_dir_path(__FILE__) . 'functions.php';
 #debug('mocd running');
 #if (defined('DOING_CRON')) { debug('.... DOING_CRON'); }
 #if (defined('DOING_AJAX')) { debug('.... DOING_AJAX'); }
-debug('...         , SCRIPT_NAME=' . $_SERVER['SCRIPT_NAME']);
-debug('...         , REQUEST: ', $_REQUEST);
+#debug('...         , SCRIPT_NAME=' . $_SERVER['SCRIPT_NAME']);
+#debug('...         , REQUEST: ', $_REQUEST);
 #debug('__FILE__', __FILE__);
 #debug('__DIR__', __DIR__);
 #debug('pdp(F)', plugin_dir_path(__FILE__));  // like __DIR__ but adds trailing slash
@@ -43,6 +43,8 @@ if (defined('DOING_AJAX')) {
     debug("doing ajax, action = '$action'");
     if (in_array($action, 
         ['mocd_getdir', 'mocd_mkdir', 'mocd_move', 'mocd_delete_empty_dir'])) {
+        ob_start();  // Some error (e.g. WP SQL errors) but text onto stdout,
+                     // which messes up AJAX, so use ob_start/ob_clean to clear such text.
         require_once plugin_dir_path(__FILE__) . 'relocator_ajax.php';
         // TODO split them up further?
     }
@@ -69,4 +71,3 @@ if (defined('DOING_AJAX')) {
     #require_once plugin_dir_path(__FILE__) . 'media-selector.php';
 }
 
-?>

@@ -13,9 +13,6 @@ mocd.ajax_count = 0;    // no. of outstanding ajax calls
 mocd.pane_right = {};	// Pane class objects
 mocd.pane_left = {};
 
-// General-purpose message dialog
-mocd.message = jQuery('#mocd_message');
-
 mocd.adjust_layout = function () {
 	var width_all = jQuery('#mocd_wrapper_all').width();
 	var width_center = jQuery('#mocd_center_wrapper').width(); 
@@ -26,19 +23,31 @@ mocd.adjust_layout = function () {
 	jQuery('.mocd_pane').width(pane_w);
 }
 
+// Encode and decode HTML (from http://stackoverflow.com/questions/1219860/html-encoding-in-javascript-jquery)
+mocd.htmlEncode = function (str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/\\/g, '&#x5c;')
+        .replace(/\//g, '&#x2f;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#27;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+mocd.htmlDecode = function (str){
+    return str
+        .replace(/&quot;/g, '"')
+        .replace(/&#x5c;/g, '\\')
+        .replace(/&#x2f;/g, '/')
+        .replace(/&#x27;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+}
+
 mocd.ajax_count_in = function () {
 	mocd.ajax_count++;
-	document.body.style.cursor = "wait";
-    /* if (mocd.ajax_count == 1) {
-        jQuery(document).bind('click.mrl', function(e){
-	    	e.cancelBubble = true;
-		    if (e.stopPropagation) {
-                e.stopPropagation();
-            }
-		    e.preventDefault();
-	    });
-    }
-    */
+	//document.body.style.cursor = "wait";
 }
 
 // function name: mocd.ajax_count_out
@@ -48,18 +57,21 @@ mocd.ajax_count_out = function () {
 	mocd.ajax_count--;
 	if (mocd.ajax_count <= 0) {
 		mocd.ajax_count = 0;
-		document.body.style.cursor = "default";
-		//? jQuery(document).unbind('click.mrl');
+		//document.body.style.cursor = "default";
 	}
 }
 
+// General-purpose message dialog
+// TODO possibly needs a queue -- at the moment, a new message arriving will
+// simply replace any current one.
+mocd.message = {}; // assigned when doc is ready
 mocd.message_dialog = function (title, message, timeout) {
     var timeout = timeout || 0;
     mocd.message.html(message);
     var dialog = mocd.message.dialog({
         autoOpen: true,
         appendTo: '#mocd_wrap',
-        modal: false,
+        modal: true, //false,
         title: title, 
         buttons: {
             OK: function() {
@@ -78,7 +90,7 @@ mocd.message_dialog = function (title, message, timeout) {
 mocd.display_response = function (response) {
     console.log('display_response: ', response);
     mocd.message_dialog(
-        (response.success ? 'Success' : Failure),
+        (response.success ? 'Success' : 'Failure'),
         response.message,
         (response.success ? 3000 : 0)
     );
@@ -146,7 +158,8 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
             dir_to:   pane_to.cur_dir,
             item_from:  pane_from.dir_list[i].name,
             post_id:  pane_from.dir_list[i].post_id,
-            isdir:    pane_from.dir_list[i].isdir 
+            isdir:    pane_from.dir_list[i].isdir, 
+            nonce:    mocd_array.nonce
         };
         //console.log('nmi sending data: ', data);
         mocd.ajax_count_in();
@@ -252,7 +265,7 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
     // // -- no -- disable the cancel button once [Rename] has been pressed
     // FIXME need a timeout in case it goes wrong...
     this.rename_dialog = jQuery("#" + this.id_rename_dialog).dialog({
-        appendTo: '#mocd_wrap',
+        appendTo: '#mocd_wrap', //this.id_rename_dialog, // '#mocd_wrap',
         autoOpen: false,
         resizable: false,
         modal: true,
@@ -310,6 +323,7 @@ MOCDPaneClass.prototype.filter_item_name_characters = function (e) {
     // Filter out invalid characters
     var key = String.fromCharCode(e.which);
     // TODO make this a constant in the main class
+    // NOTE This needs to match the invalid_chars string in relocator_ajax.php
     var invalid_chr = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "&", "'", " ", "`"];
     //console.log('--- key=', key);
     if (invalid_chr.indexOf(key) >= 0) {
@@ -323,7 +337,7 @@ MOCDPaneClass.prototype.rename_dialog_callback = function () {
     console.log('rdc called');
     var newname = this.rename_field.val();
     var index = this.rename_i_field.val();
-    var existing = this.name_exists(newname);
+    var existing = false; //this.name_exists(newname);
     if (existing === false) {
         // disable the buttons  FIXME need to disable the [X] button too
         jQuery('#mocd_rename_rename_btn').attr('disabled', true);
@@ -385,7 +399,8 @@ MOCDPaneClass.prototype.setdir = function(dir) {
 	//? this.wrapper.css('cursor:wait'); // TODO move this into count_in
 	var data = {
 		action: 'mocd_getdir',
-		dir: dir
+		dir:    dir,
+        nonce:  mocd_array.nonce
 	};
 	var that = this;
 	mocd.ajax_count_in();
@@ -398,12 +413,13 @@ MOCDPaneClass.prototype.setdir = function(dir) {
             // window to get a vertical scrollbar, and become narrower
             mocd.adjust_layout();
         } else {
-            alert(response.message);
+            mocd.display_response(response);
         }
 		mocd.ajax_count_out();
 	});
 }
 
+// TODO rename this -- too similar to setdir
 // function name: MOCDPaneClass::set_dir
 // description : display directory list sent from server
 //               in response to mocd_getdir ajax request              
@@ -412,7 +428,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
     var thispane = this;
 
 	this.cur_dir = target_dir;
-	this.dir_name.text('Folder: ' + target_dir);
+	this.dir_name.text('Folder: ' + mocd.htmlEncode(target_dir));
 	this.disp_num = 0;
 
 	var html = "";
@@ -456,7 +472,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
 		html += '</div>';
         // 2nd cell contains: text <br> box button button
         html += '<div class="mocd_pane_cell">'; // b
-        html += '<div class="mocd_filename">' + item.name + '</div>';
+        html += '<div class="mocd_filename">' + mocd.htmlEncode(item.name) + '</div>';
         html += '<br><div><input type="checkbox" class="' + this.id_pane + '_ck' + '" id="' + 
             this.get_chkid(i) + '" title="Select to move this item to the opposite folder"></div>';
         html += ' <div><button type="button" class="mocd_pane_rename_btn" id="' + 
@@ -553,7 +569,8 @@ MOCDPaneClass.prototype.ajax_rename_item = function (i, newname) {
         item_from: oldname,
         item_to:   newname,
         post_id:   thispane.dir_list[i].post_id,
-        isdir:     thispane.dir_list[i].isdir 
+        isdir:     thispane.dir_list[i].isdir,
+        nonce:     mocd_array.nonce
     };
     //console.log('nmi sending data: ', data);
     mocd.ajax_count_in();
@@ -574,7 +591,10 @@ MOCDPaneClass.prototype.ajax_rename_item = function (i, newname) {
             }
             thispane.rename_dialog.dialog('close');
         } else {
+            // Keep the dialog open, display the message, re-enable the buttons
             thispane.rename_error.empty().text(response.message);
+            jQuery('#mocd_rename_rename_btn').attr('disabled', false);
+            jQuery('#mocd_rename_cancel_btn').attr('disabled', false);
         }
     });
 } 
@@ -584,13 +604,14 @@ MOCDPaneClass.prototype.ajax_newdir = function (newdir) {
     var thispane = this;
     var data = {
         action: 'mocd_mkdir',
-        dir: thispane.cur_dir,
-        newdir: newdir
+        dir:    thispane.cur_dir,
+        newdir: newdir,
+        nonce:  mocd_array.nonce
     };
     mocd.ajax_count_in();
     jQuery.post(ajaxurl, data, function(response) {
         if (!response.success) {
-            alert("mocd_mkdir: " + response.message);
+            mocd.display_response(response);
         } else {
             thispane.refresh();
             if (thispane.cur_dir == thispane.opposite.cur_dir) {
@@ -607,7 +628,8 @@ MOCDPaneClass.prototype.ajax_delete_empty_dir = function (name) {
     var data = {
         action: 'mocd_delete_empty_dir',
         dir:    this.cur_dir,
-        name:   name
+        name:   name,
+        nonce:  mocd_array.nonce
     };
     mocd.ajax_count_in();
     jQuery.post(ajaxurl, data, function(response) {
@@ -668,13 +690,15 @@ MOCDPaneClass.prototype.chdir = function (dir) {
 
 jQuery(document).ready(function() {
 
+    mocd.message = jQuery('#mocd_message');
+
 	mocd.pane_left = new MOCDPaneClass('mocd_left');
 	mocd.pane_right = new MOCDPaneClass('mocd_right');
 
 	mocd.pane_left.opposite = mocd.pane_right;
 	mocd.pane_right.opposite = mocd.pane_left;
 
-    // Too soon! -- unless this is only called on the right page.
+    // Start in the top-level folders
 	mocd.pane_left.setdir("/");
 	mocd.pane_right.setdir("/");
 

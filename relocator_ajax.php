@@ -12,22 +12,30 @@ namespace media_organiser_cd;
 // Could use wp_send_json_success
 // or wp_send_json? no, I prefer mine
 function ajax_response ($success = false, $message = '', $data = []) {
-    debug('ajax_response');
+    debug("ajax_response: success=$success message=$message");
     $response = [
         'success' => ($success ? true : false),  // convert truthy/falsy into proper booleans
         'message' => $message,
         'data'    => $data
     ];
-    #debug('send ajax: ', $response);
     #sleep(5); // TEMP slow it down
+    ob_clean();
     header('Content-Type: application/json;');
     echo json_encode($response);
     wp_die();
 }
 
+function check_nonce () {
+    $nonce = get_post('nonce');
+    debug("checking nonce $nonce");
+    if (!wp_verify_nonce($nonce, 'mocd_relocator')) {
+        ajax_response(false, 'Unauthorised access');
+    }
+}
+
 function mkdir_callback() {
-    global $constants;
     debug('mkdir_callback');
+    check_nonce();
     if (!test_mfm_permission()) {
         ajax_response(false, 'no permission');
     }
@@ -47,6 +55,7 @@ function mkdir_callback() {
 
 function getdir_callback () {
     debug('getdir_callback');
+    check_nonce();
     global $wpdb;
     global $plugin_url, $upload_dir, $upload_dir_rel;
     if (!test_mfm_permission()) {
@@ -155,7 +164,6 @@ function getdir_callback () {
 // the new secondary name will be bar-123x456.png
 function new_secondary_name ($new, $oldsec) {
     $newparts = pathinfo($new);
-    //  !!! aaargh why is this here?  it messesup the ajax reply!!  print_r($newparts);
     $newsec = $oldsec;
     if (preg_match('/-\d+x\d+\./', $oldsec, $matches)) {
         $nnnxnnn = $matches[0];
@@ -165,29 +173,46 @@ function new_secondary_name ($new, $oldsec) {
     return $newsec;
 }
 
+function db_error () {
+    if (!WP_DEBUG) {
+        return '';
+    }
+    global $wbdp;
+    return '. Reason: ' . $wpdb->$last_error;
+}
+
 // Update the content of all posts with replacement text
-// Throws on error.
+// Throws on error. 
+// NOTE: sql puts any error message on stdout, which breaks the ajax response
 // Returns the number of updates
 function update_posts_content ($old, $new, $source = '') {
     if ($old == $new) {
         debug('old = new, doing nothing: ', $old);
         return 0;
     }
-    debug("updating posts from '$old' to '$new' $source");
+    debug("updating posts from '$old' to '$new' ($source)");
     global $wpdb;
-    $sql = "update $wpdb->posts
-               set post_content = replace(post_content, '$old', '$new')
-             where post_content like '%$old%'";
+    #$sql = "update $wpdb->posts
+    #           set post_content = replace(post_content, '$old', '$new')
+    #         where post_content like '%$old%'";
+    $sql = $wpdb->prepare("
+        update $wpdb->posts
+           set post_content = replace(post_content, %s, %s)
+         where post_content like '%%%s%%'
+    ", $old, $new, $wpdb->esc_like($old));
+    debug('sql: ', $sql);
     $rc = $wpdb->query($sql);
     if ($rc === false) {
-        throw new \Exception('Failed to update post content');
+        throw new \Exception('Failed to update post content' . db_error());
     }
     return $rc;
 }
 
 // FIXME this function is too big
 //   -- extract functions such as 'get_all_secondary_files'...
+// Move an item (file or folder) and/or rename it.
 function move_callback () {
+    check_nonce();
     global $wpdb;
     global $upload_dir, $upload_dir_rel;
     // Keep a list of renamed files in case we need to rollback
@@ -210,50 +235,72 @@ function move_callback () {
     //                                      and it's relative to $dir_from
     $item_to   = get_post('item_to');   //    ditto
     if (!$item_to) {
-        $item_to = $item_from;
+        $item_to = $item_from;  // same item, so expect the dir's to be different
     }
     $post_id   = get_post('post_id');
     $isdir     = get_post('isdir') == 'true';
+    $file_or_folder = ($isdir ? 'Folder ' : 'File ');
     debug("nmc: dir_from='$dir_from' dir_to='$dir_to' item_from='$item_from' item_to='$item_to' post_id=$post_id isdir='$isdir'");
 
-    // TODO check if the expected inputs are present
-
-    if ($dir_from == $dir_to and $item_from == $item_to) {
-        // TODO is this success or fail?
-        ajax_response(false, 'same dir and item');
-    }
-    // dirs are e.g. '/' or '/private/' or '2015/10' relative to $upload_dir
-    $path_from = $upload_dir . $dir_from;
-    if (!file_exists($path_from)) {
-        ajax_response(false, "Folder '" . $dir_from . "' does not exist");
-    }
-    $path_to = $upload_dir . $dir_to;
-    if (!file_exists($path_to)) {
-        ajax_response(false, "Folder '" . $dir_to . "' does not exist");
-    }
-    // TODO ? need to check if item_from_path exists? == yes
-    $item_from_path = $upload_dir     . $dir_from . $item_from;       // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
+    $item_from_path = $upload_dir     . $dir_from . $item_from;   // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
     $item_to_path   = $upload_dir     . $dir_to   . $item_to;
     $item_from_rel  = $upload_dir_rel . $dir_from . $item_from;   // relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
     $item_to_rel    = $upload_dir_rel . $dir_to   . $item_to;
     debug('item paths: ', $item_from_path, $item_to_path);
     debug('item rels: ', $item_from_rel, $item_to_rel);
-    // PHP rename will overwrite, so check first if it exists
+
+    // TODO check if the expected inputs are present
+    // 0. check nonce
+    // 1. check things are valid
+    //   - although frontend only allows 'reasonable' data, an attack could come from elsewhere
+    // 2. check that from file exists
+    // 3. check that to file doesn't
+
+    if ($dir_from == $dir_to and $item_from == $item_to) {
+        // Count this as a success, so that dialog is closed
+        ajax_response(true, '');
+    }
+    // dirs are e.g. '/' or '/private/' or '2015/10' relative to $upload_dir
+
+    $action = 'move';  // TODO cosmetic -- change the word 'rename' to 'move' in messages -- not done yet.
+    if ($dir_from == $dir_to) {
+        $action = 'rename';
+    }
+
+    // Check item names for invalid characters 
+    // (see the invalid_chr array in the front end)
+    $invalid_chars_regex = "/[\\/:*?\"<>|&'` ]/";
+    if (preg_match($invalid_chars_regex, $item_from)) {
+        // This shouldn't happen under normal use
+        ajax_response(false, 'Old ' . $file_or_folder . "name '" . $item_from . "' contains invalid characters");
+    }
+    if (preg_match($invalid_chars_regex, $item_to)) {
+        ajax_response(false, $file_or_folder . "name '" . $item_to . "' contains invalid characters");
+    }
+
+    // Make sure old item exists
+    #$path_from = $upload_dir . $dir_from;
+    if (!file_exists($item_from_path)) {
+        ajax_response(false, $file_or_folder . "'" . $item_from_path . "' does not exist");
+    }
+    // Make sure new dir exists
+    $path_to = $upload_dir . $dir_to;
+    if (!file_exists($path_to)) {
+        ajax_response(false, "Destination folder '" . $dir_to . "' does not exists");
+    }
+    // Make sure new item does not exist
     if (file_exists($item_to_path)) {
-        debug('...exists');
-        ajax_response(false, 'exists');
+        ajax_response(false, $file_or_folder . "'" . $item_to . "' already exists");
     }
 
     // Keep a list of renamed files in case we need to rollback
     $renamed = [];
 
-    // FIXME need a sanity check on what we're trying to rename!!!!  !!!!!!!!
-    // -- i.e. check that $upload_dir etc. are sensible
-
-    debug("renaming $item_from_path to $item_to_path");
+    debug("renaming main file '$item_from_path' to '$item_to_path'");
     if (!rename($item_from_path, $item_to_path)) {  // puts a warning in the log on failure
         debug('...rename failed');
-        ajax_response(false, "Unable to rename '" . $dir_from . $item_from . "' to '" . $dir_to . $item_to . "'");
+        $lem = last_error_msg();
+        ajax_response(false, "Unable to rename '" . $dir_from . $item_from . "' to '" . $dir_to . $item_to . "'. Reason: $lem");
     }
     $renamed[] = ['from' => $item_from_path, 'to' => $item_to_path];
 
@@ -315,15 +362,21 @@ function move_callback () {
             $file_from_rel = ltrim($dir_from, '/') . $item_from;   // relative to upload dir e.g. photos/thing.jpg
             $file_to_rel   = ltrim($dir_to,   '/') . $item_to;
             debug("updating attachment with $file_to_rel");
-            $sql = "update $wpdb->postmeta
-                set meta_value = '$file_to_rel'  -- replace(meta_value, '$file_from_rel', '$file_to_rel')
-                where post_id = $post_id
-                and meta_key = '_wp_attached_file'";
+            #$sql = "update $wpdb->postmeta
+            #    set meta_value = '$file_to_rel'  -- replace(meta_value, '$file_from_rel', '$file_to_rel')
+            #    where post_id = $post_id
+            #    and meta_key = '_wp_attached_file'";
+            $sql = $wpdb->prepare("
+                update $wpdb->postmeta
+                   set meta_value = %s
+                 where post_id = %s
+                  and meta_key = '_wp_attached_file'
+                ", $file_to_rel, $post_id);
             debug('>>> sql:', $sql);
             $rc = $wpdb->query($sql);
             debug('>>> rc', $rc);
             if ($rc === false) {
-                throw new \Exception('Failed to replace name in attachment');
+                throw new \Exception("Failed to replace file name '$file_to_rel' in attachment" . db_error());
             }
             if ($rc != 1) {
                 debug('!!!!!! unexpected number of attachments renamed: ', $rc);
@@ -387,15 +440,19 @@ function move_callback () {
                     }
                     $path_from = $upload_dir . $dir_from . $oldsec;
                     $path_to   = $upload_dir . $dir_to   . $newsec;
-                    debug("renaming $path_from to $path_to");
+                    // 'rename' will overwrite, so check first
+                    if (file_exists($path_to)) {
+                        throw new \Exception("Secondary file '$newsec' already exists");
+                    }
+                    debug("renaming secondary '$path_from' to '$path_to'");
                     // TODO last_error_msg is too wordy - just the bit after the last colon?
                     // TODO if secondary file doesn't exist, we might as well carry on regardless.
                     if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
                         $lem = last_error_msg();
                         if (preg_match('/no such file/i', $lem)) {
-                            debug('Secondary file not found -- no worries');
+                            debug("Secondary file '$path_from' not found -- no worries");
                         } else {
-                            throw new \Exception("Failed to rename '$path_from' to '$path_to'. Reason: $lem");
+                            throw new \Exception("Failed to rename '$dir_from$oldsec' to '$dir_to$newsec'. Reason: $lem");
                         }
                     } else {
                         $renamed[] = ['from' => $path_from, 'to' => $path_to];
@@ -421,7 +478,7 @@ function move_callback () {
                 if ($rc === false) {
                 */
                 if (wp_update_attachment_metadata($post_id, $metadata) === false) {
-                    throw new \Exception('Failed to update attachment metadata');
+                    throw new \Exception('Failed to update attachment metadata' . db_error());
                 }
                 #debug('nmc: update metadata got rc ', $rc);
 
@@ -500,11 +557,21 @@ function move_callback () {
                         }
                         $path_from = $upload_dir . $dir_from . $oldsec;
                         $path_to   = $upload_dir . $dir_to   . $newsec;
-                        debug("renaming $path_from to $path_to");
+                        // 'rename' will overwrite, so check first
+                        if (file_exists($path_to)) {
+                            throw new \Exception("Backup file '$newsec' already exists");
+                        }
+                        debug("renaming backup '$path_from' to '$path_to'");
                         if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
-                            //throw new \Exception("Failed to rename $path_from to $path_to");
-                            // Not throwing the error, because backup files aren't so important, are they??
-                            debug("Failed to rename $path_from to $path_to, but carrying on regardless");
+                            $lem = last_error_msg();
+                            if (preg_match('/no such file/i', $lem)) {
+                                debug("Backup file not '$path_from' -- no worries");
+                            } else {
+                                throw new \Exception("Failed to rename '$dir_from$oldsec' to '$dir_to$newsec'. Reason: $lem");
+                            }
+                            #//throw new \Exception("Failed to rename $path_from to $path_to");
+                            #// Not throwing the error, because backup files aren't so important, are they??
+                            #debug("Failed to rename $path_from to $path_to, but carrying on regardless");
                         } else {
                             $renamed[] = ['from' => $path_from, 'to' => $path_to];
                             // Note the edit (although in theory posts shouldn't refer to backup files)
@@ -524,7 +591,7 @@ function move_callback () {
                         ['meta_value' => $serialized],
                         ['post_id' => $post_id, 'meta_value' => '_wp_attachment_backup_sizes']);
                     if ($rc === false) {
-                        throw new \Exception('Failed to update attachment backups');
+                        throw new \Exception('Failed to update attachment backups' . db_error());
                     }
                     debug('nmc: update backup metadata got rc ', $rc);
                 }
@@ -566,7 +633,7 @@ function move_callback () {
 
     } catch (\Exception $e) {
         // if that fails, rename it back...
-        debug('nmc: caught exception: ', $e);
+        debug('nmc: caught exception: ', $e->getMessage());
         debug('... rolling back and re-renaming');
         $wpdb->query("rollback");
         // FIXME duplicated code
@@ -574,15 +641,16 @@ function move_callback () {
             debug("nmc: unrenaming " . $r['to'] . ' back to' . $r['from']);
             rename($r['to'], $r['from']);
         }
-        rename($item_to_path, $item_from_path);   // puts a warning in the log on failure
+        # it's in the array: rename($item_to_path, $item_from_path);   // puts a warning in the log on failure
         #die("Error ".$e->getMessage());
-        ajax_response(false, $e->getMessage());
+        ajax_response(false, 'Error: "' . $e->getMessage() . '"');
     }
 
     ajax_response(false, 'went too far');
 }
 
 function delete_empty_dir_callback() {
+    check_nonce();
     global $upload_dir;
     if (!test_mfm_permission()) {
         ajax_response(false, 'no permission');
@@ -603,4 +671,3 @@ add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');
 add_action('wp_ajax_mocd_move',             NS . 'move_callback');
 add_action('wp_ajax_mocd_delete_empty_dir', NS . 'delete_empty_dir_callback');
 
-?>

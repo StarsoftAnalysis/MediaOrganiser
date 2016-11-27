@@ -100,4 +100,3 @@ function display_settings () {
     echo '</div>';
 }
 
-?>

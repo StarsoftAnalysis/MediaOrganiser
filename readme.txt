@@ -27,15 +27,18 @@ Since the fork, various changes have been made including:
 
 == Requirements ==
 
-* jQuery
-* Includes jQuery UI -- just the Dialog and ProgressBar modules.
+* jQuery  and JQueryUI -- part of WordPress
 * HTML5 (for data attributes -- used in old media-selector, not by me)
 
 == Known issues ==
 
 * may not work on Windows servers -- haven't checked the use of directory separators yet
-* something
+* does its best to make changes atomic, but things could go wrong if something
+  changes in the middle of renaming files
 * no internationalization (yet)
+* doesn't check if posts are already locked for editing before making changes to them,
+  so it's best to move and rename attachments when you're sure that no-one else
+  is working on any posts or pages that use those attachments.
 
 Icons adapted from https://github.com/iconic/open-iconic
 
