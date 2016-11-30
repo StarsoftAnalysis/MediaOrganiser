@@ -57,35 +57,61 @@ mocd.ajax_count_out = function () {
 	}
 }
 
-// General-purpose message dialog
-// TODO possibly needs a queue -- at the moment, a new message arriving will
-// simply replace any current one.
-mocd.message = {}; // assigned when doc is ready
-mocd.message_dialog = function (title, message, timeout) {
-    var timeout = timeout || 0;
-    mocd.message.html(message);
-    var dialog = mocd.message.dialog({
-        autoOpen: true,
+// TODO use this for the progress meter dialog
+// Simple queue for dialog messages
+// from http://stackoverflow.com/questions/7300040/jquery-modal-that-can-be-queued
+mocd.message  = {};  // jQuery thing for the dialog, assigned when doc is ready  // FIXME rename this
+mocd.messages = [];  // array of sets of details to display
+mocd.message_dialog = {}; // jQuery dialog object, ditto
+mocd.create_message_dialog = function () {
+    mocd.message_dialog = mocd.message.dialog({
+        autoOpen: false,
         appendTo: '#mocd_wrap',
         modal: true, //false,
-        title: title, 
+        title: 'initial title', 
         buttons: {
             OK: function() {
-                dialog.dialog("close");
+                mocd.message_dialog.dialog("close");
             }
+        },
+        close: function () {
+            if (mocd.messages.length > 0) {
+                // Let this dialog close, then open the next one
+                setTimeout(mocd.show_message_dialog, 0);
+            }   
         }
     });
-    // Auto-close if it's just for information
-    if (timeout > 0) {
-        setTimeout(function () {
-            dialog.dialog('close');
-        }, 3000);
+};
+// Show dialog with the next message in the queue
+mocd.show_message_dialog = function () {
+    if (mocd.messages.length <= 0) {
+        // Make sure dialog is closed
+        mocd.message_dialog.dialog('close');
+        return;
     }
-}
+    var details = mocd.messages.shift();
+    mocd.message.html(details.message);
+    mocd.message_dialog
+        .dialog('option', 'title', details.message)
+        .dialog('open');
+    // Auto-close if it's just for information
+    if (details.timeout > 0) {
+        setTimeout(function () {
+            mocd.message_dialog.dialog('close');
+        }, details.timeout);
+    }
+};
+mocd.add_message = function (title, message, timeout) {
+    mocd.messages.push({title: title, message: message, timeout: timeout});
+    if (!mocd.message_dialog.dialog("isOpen")) {
+        mocd.show_message_dialog(); //(mocd.messages.shift());  // displayMessage();
+    }
+};
 
 mocd.display_response = function (response) {
     console.log('display_response: ', response);
-    mocd.message_dialog(
+    //mocd.message_dialog(
+    mocd.add_message(
         (response.success ? 'Success' : 'Failure'),
         response.message,
         (response.success ? 3000 : 0)
@@ -689,6 +715,9 @@ MOCDPaneClass.prototype.chdir = function (dir) {
 jQuery(document).ready(function() {
 
     mocd.message = jQuery('#mocd_message');
+    mocd.create_message_dialog();
+    //setTimeout(function () {mocd.add_message('msg1', 'adlsakjalsdk', 3000); }, 2000);
+    //setTimeout(function () {mocd.add_message('msg1', 'no timeout',  0); }, 2000);
 
 	mocd.pane_left = new MOCDPaneClass('mocd_left');
 	mocd.pane_right = new MOCDPaneClass('mocd_right');
