@@ -27,8 +27,6 @@ mocd.adjust_layout = function () {
 mocd.htmlEncode = function (str) {
     return str
         .replace(/&/g, '&amp;')
-        .replace(/\\/g, '&#x5c;')
-        .replace(/\//g, '&#x2f;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#27;')
         .replace(/</g, '&lt;')
@@ -36,13 +34,11 @@ mocd.htmlEncode = function (str) {
 }
 mocd.htmlDecode = function (str){
     return str
+        .replace(/&amp;/g, '&')
         .replace(/&quot;/g, '"')
-        .replace(/&#x5c;/g, '\\')
-        .replace(/&#x2f;/g, '/')
         .replace(/&#x27;/g, "'")
         .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&');
+        .replace(/&gt;/g, '>');
 }
 
 mocd.ajax_count_in = function () {
@@ -324,9 +320,11 @@ MOCDPaneClass.prototype.filter_item_name_characters = function (e) {
     var key = String.fromCharCode(e.which);
     // TODO make this a constant in the main class
     // NOTE This needs to match the invalid_chars string in relocator_ajax.php
-    var invalid_chr = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "&", "'", " ", "`"];
+    // FIXME and therefore depends on the operating system of the server...
+    //var invalid_chr = ["\\", "/", ":", "*", "?", "\"", "<", ">", "|", "&", "'", " ", "`"];
     //console.log('--- key=', key);
-    if (invalid_chr.indexOf(key) >= 0) {
+    // invalid_itemname_chars depends on server OS, so is supplied by backend
+    if (mocd_array.invalid_itemname_chars.indexOf(key) >= 0) {
         return false;
     }
 }
@@ -428,7 +426,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
     var thispane = this;
 
 	this.cur_dir = target_dir;
-	this.dir_name.text('Folder: ' + mocd.htmlEncode(target_dir));
+	this.dir_name.text('Folder: ' + mocd.htmlEncode(target_dir)); 
 	this.disp_num = 0;
 
 	var html = "";

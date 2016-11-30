@@ -30,6 +30,36 @@ $upload_url = $upload['baseurl'];
 $upload_dir_rel = DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, $upload_dir);
 $upload_url_rel = '/' . remove_prefix(ABSPATH, $upload_dir);
 
+// Check if 'name' contains any characters that are invalid
+// for a file or folder (not path) name
+// on the current operating system
+// NOTE This is not complete -- we'll have to rely on trapping
+//      errors for obscurely-invalid filenames
+// SEE https://msdn.microsoft.com/en-us/library/aa365247
+function invalid_itemname_regex () {
+    $chars = "/\0";   // default is Linux-like OS
+    $class = '[:cntrl:]';
+    if (PHP_OS == 'Darwin') { // MacOS
+        $chars = ':';
+    } elseif (preg_match('/^win/i', PHP_OS)) { // Windows
+        $chars = '\/<>:"\'|?*';
+    }
+    $regex = '/[' . preg_quote($chars, '/') . $class . ']/';
+    return [$chars, $regex];
+}
+list($invalid_itemname_chars, $invalid_itemname_regex) = invalid_itemname_regex();
+
+function reserved_filenames () {
+    $names = ['.', '..'];
+    if (preg_match('/^win/i', PHP_OS)) {
+        $names = array_merge($names, ['CON', 'PRN', 'AUX', 'NUL', 
+            'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 
+            'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']);
+    }
+    return $names;
+}
+$reserved_filenames = reserved_filenames();
+
 // --------------------------------------------------------------------------------------
 
 // test permission for accessing media file manager
@@ -150,5 +180,16 @@ function get_post ($key) {
         $value = $_POST[$key];
     }
     return stripslashes($value);
+}
+
+function invalid_item_name ($name) {
+    global $reserved_filenames, $invalid_itemname_regex;
+    $name = trim($name);
+    if (in_array(strtoupper($name), $reserved_filenames)) {
+        return true;
+    }
+    $regex = $invalid_itemname_regex;
+    debug('checking name ' . $name . ' against regex ' . $regex);
+    return preg_match($regex, $name);
 }
 

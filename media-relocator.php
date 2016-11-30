@@ -20,8 +20,16 @@ function enqueue_scripts() {
     wp_enqueue_style('wp-jquery-ui-progressbar');
 
 	wp_enqueue_style("mocd-style", plugins_url('style.css', __FILE__));
-	wp_enqueue_script("mocd-relocator", plugins_url('media-relocator.js', __FILE__));
-    wp_localize_script("mocd-relocator", 'mocd_array', ['nonce' => wp_create_nonce('mocd_relocator')]);
+    wp_enqueue_script("mocd-relocator", plugins_url('media-relocator.js', __FILE__));
+    global $invalid_itemname_chars;
+    wp_localize_script(
+        "mocd-relocator", 
+        'mocd_array', 
+        [
+            'nonce' => wp_create_nonce('mocd_relocator'),
+            'invalid_itemname_chars' => $invalid_itemname_chars,
+        ]
+    );
 }
 
 // Echo the html for either the left or right pane

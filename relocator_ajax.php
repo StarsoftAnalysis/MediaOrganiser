@@ -268,14 +268,19 @@ function move_callback () {
     }
 
     // Check item names for invalid characters 
+    // TODO strip leading and trailing blanks
+    // exclude '.' '..'
+    // 
     // (see the invalid_chr array in the front end)
-    $invalid_chars_regex = "/[\\/:*?\"<>|&'` ]/";
-    if (preg_match($invalid_chars_regex, $item_from)) {
+    #$invalid_chars_regex = "/[\\/:*?\"<>|&'` ]/";
+    #if (preg_match($invalid_chars_regex, $item_from)) {
+    if (invalid_item_name($item_from)) {
         // This shouldn't happen under normal use
-        ajax_response(false, 'Old ' . $file_or_folder . "name '" . $item_from . "' contains invalid characters");
+        ajax_response(false, 'Old ' . $file_or_folder . "name '" . $item_from . "' is invalid");
     }
-    if (preg_match($invalid_chars_regex, $item_to)) {
-        ajax_response(false, $file_or_folder . "name '" . $item_to . "' contains invalid characters");
+    #if (preg_match($invalid_chars_regex, $item_to)) {
+    if (invalid_item_name($item_to)) {
+        ajax_response(false, $file_or_folder . "name '" . $item_to . "' is invalid");
     }
 
     // Make sure old item exists
