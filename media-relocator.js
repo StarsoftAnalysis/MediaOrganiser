@@ -92,7 +92,7 @@ mocd.show_message_dialog = function () {
     var details = mocd.messages.shift();
     mocd.message.html(details.message);
     mocd.message_dialog
-        .dialog('option', 'title', details.message)
+        .dialog('option', 'title', details.title)
         .dialog('open');
     // Auto-close if it's just for information
     if (details.timeout > 0) {
@@ -658,14 +658,16 @@ MOCDPaneClass.prototype.ajax_delete_empty_dir = function (name) {
     mocd.ajax_count_in();
     jQuery.post(ajaxurl, data, function(response) {
         mocd.display_response(response);
-        thispane.refresh();
-        // Refresh opposite pane if it's showing the same directory
-        if (thispane.cur_dir == thispane.opposite.cur_dir) {
-            thispane.opposite.refresh();
-        }
-        // Update the opposite pane if it's showing the dir we've just deleted
-        if (thispane.opposite.cur_dir == thispane.cur_dir + name + "/") {
-            thispane.opposite.setdir(thispane.cur_dir);
+        if (response.success) {
+            thispane.refresh();
+            // Refresh opposite pane if it's showing the same directory
+            if (thispane.cur_dir == thispane.opposite.cur_dir) {
+                thispane.opposite.refresh();
+            }
+            // Update the opposite pane if it's showing the dir we've just deleted
+            if (thispane.opposite.cur_dir == thispane.cur_dir + name + "/") {
+                thispane.opposite.setdir(thispane.cur_dir);
+            }
         }
         mocd.ajax_count_out();
     });

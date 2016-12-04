@@ -661,10 +661,23 @@ function delete_empty_dir_callback() {
         ajax_response(false, 'no permission');
     }
     $dir  = get_post('dir');   // e.g. '/' or '/photos/'
-	$name = get_post('name');  // e.g. 'dir_to_be_deleted'
-    // FIXME need a sanity check on what we're trying to delete!!!!  !!!!!!!!
-    // (open_basedir PHP setting will help)
+    $name = get_post('name');  // e.g. 'dir_to_be_deleted'
+    debug("delete empty dir: dir='$dir' name='$name'");
+    // $name must not contain '/'
+    if (strpos($name, DIRECTORY_SEPARATOR) !== false) {
+        ajax_response(false, "New folder name '$name' contains '" . DIRECTORY_SEPARATOR . "'");
+    }
+    // $dir must not contain '^../' or '/../' or '/..$'
+    if (preg_match('|^\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
+        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
+        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.$|', $dir)    ) {
+        ajax_response(false, "Path name '$dir' contains '..'");
+    }
     $full_dir = $upload_dir . $dir . $name;
+    // Check that the directory exists
+    if (!file_exists($full_dir)) {
+        ajax_response(false, "Folder '" . $dir . $name . "' does not exist'");
+    }
 	if (!rmdir($full_dir)) {
         ajax_response(false, 'Unable to delete \'' . $dir . $name . '\'.  Reason: ' . last_error_msg());
 	}

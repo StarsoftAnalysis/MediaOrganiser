@@ -177,7 +177,7 @@ function last_error_msg () {
 function get_post ($key) {
     $value = '';
     if (isset($_POST[$key])) {
-        $value = $_POST[$key];
+        $value = trim($_POST[$key]);
     }
     return stripslashes($value);
 }
