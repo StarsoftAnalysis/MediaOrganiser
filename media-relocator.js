@@ -1,9 +1,3 @@
-// TODO make it sensible
-//   - better way of deciding when it's busy than counting number of ajax calls
-//   - use wp_die, not die or exit. -- 
-// - get rid of jQuery.bind -- use .on
-// - don't use right-click
-// - nicer buttons and icons
 
 // namespace:
 var mocd = mocd || {};
@@ -185,7 +179,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
         };
         //console.log('nmi sending data: ', data);
         mocd.ajax_count_in();
-        // ... and dealing with a series of responses   FIXME work TODO here
+        // ... and dealing with a series of responses    work TODO here
         jQuery.post(ajaxurl, data, function (response) {
             mocd.ajax_count_out();
             done_count += 1;
@@ -204,7 +198,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
                     for (var i = 0; i < err_msgs.length; i++) {
                         msg += '<p>' + err_msgs[i];
                     }
-                    // FIXME the list of errors could be very big -- just show a few of them??
+                    // TODO the list of errors could be very big -- just show a few of them??
                     mocd.message_dialog('One or more items could not be moved', msg, 0);
 
                     //mocd.message.html(msg);
@@ -266,8 +260,6 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
 		thispane.chdir("..");
 	});
 
-    // FIXME sometimes a few files get left behind
-
     // 'Select All' box affects all boxes on this pane
     // (but only for files, not folders)
 	jQuery('div.mocd_pane').on('click', '#' + this.id_pane + '_ck_all', function(ev) {
@@ -283,9 +275,9 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
     // Set up rename dialog
     // (activated by [Rename] button on each item -- added later)
     this.rename_field.keypress(this.filter_item_name_characters);
-    // FIXME get rid of the [X] and cancel buttons
+    // TODO get rid of the [X] and cancel buttons
     // // -- no -- disable the cancel button once [Rename] has been pressed
-    // FIXME need a timeout in case it goes wrong...
+    // TODO need a timeout in case it goes wrong...
     this.rename_dialog = jQuery("#" + this.id_rename_dialog).dialog({
         appendTo: '#mocd_wrap', //this.id_rename_dialog, // '#mocd_wrap',
         autoOpen: false,
@@ -363,7 +355,7 @@ MOCDPaneClass.prototype.rename_dialog_callback = function () {
     var index = this.rename_i_field.val();
     var existing = false; //this.name_exists(newname);
     if (existing === false) {
-        // disable the buttons  FIXME need to disable the [X] button too
+        // disable the buttons  TODO need to disable the [X] button too
         jQuery('#mocd_rename_rename_btn').attr('disabled', true);
         jQuery('#mocd_rename_cancel_btn').attr('disabled', true);
         // send the request to the backend
@@ -383,7 +375,7 @@ MOCDPaneClass.prototype.newdir_dialog_callback = function () {
     // 'this' is the pane object, thanks to the bind on the call
     // (otherwise it would be the div containing the form element)
     var newdir = this.newdir_field.val();
-    if (this.name_exists(newdir) !== false) {       // FIXME not class=error:
+    if (this.name_exists(newdir) !== false) {       //  not class=error:
         jQuery('#' + this.id_newdir_error).html("<span class=error>There is already a file or folder called '" + newdir + "'</span>");
         jQuery(this.newdir_field).addClass('ui-state-error');
         return false;
@@ -499,14 +491,17 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
         html += '<div class="mocd_filename">' + mocd.htmlEncode(item.name) + '</div>';
         html += '<br><div><input type="checkbox" class="' + this.id_pane + '_ck' + '" id="' + 
             this.get_chkid(i) + '" title="Select to move this item to the opposite folder"></div>';
-        html += ' <div><button type="button" class="mocd_pane_rename_btn" id="' + 
-            this.get_renameid(i) + '">Rename</button></div>';
+        if (item.exists) {
+            html += ' <div><button type="button" class="mocd_pane_rename_btn" id="' + 
+                this.get_renameid(i) + '">Rename</button></div>';
+        } else {
+            html += ' (file is missing)';
+        }
         if (item.isemptydir) {
             html += ' <div><button type="button" class="mocd_pane_delete_btn" id="' + 
                 this.get_deleteid(i) + '">Delete</button></div>';
         }
-        html += '</div>' // b
-
+        html += '</div>'
         html += '</li>';
 	}
     html += '</ul>';

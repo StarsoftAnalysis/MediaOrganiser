@@ -10,7 +10,7 @@ function remove_prefix ($prefix, $text) {
 
 // --------------------------------------------------------------------------------------
 
-// Set up globals
+// Set up globals (within our namespace)
 // Directories and URLs -- none of these will end in '/'
 #    ABSPATH /var/www/rotarywp-dev/
 #   __FILE__ /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd/functions.php  
@@ -177,7 +177,7 @@ function last_error_msg () {
 function get_post ($key) {
     $value = '';
     if (isset($_POST[$key])) {
-        $value = trim($_POST[$key]);
+        $value = $_POST[$key];
     }
     return stripslashes($value);
 }

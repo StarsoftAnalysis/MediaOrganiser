@@ -25,6 +25,32 @@ function ajax_response ($success = false, $message = '', $data = []) {
     wp_die();
 }
 
+// Abort ajax call if user does not have permission
+function check_permission_ajax () {
+    if (!test_mfm_permission()) {
+        ajax_response(false, 'no permission');
+    }
+}
+
+// Check item name
+// TODO is this right? .... what about invalid item name?? -- surely not when deleting
+function check_item_name ($name, $msg) {
+    // $name must not contain '/'
+    if (strpos($name, DIRECTORY_SEPARATOR) !== false) {
+        ajax_response(false, "$msg name '$name' contains '" . DIRECTORY_SEPARATOR . "'");
+    }
+}
+
+// Check dir name
+function check_dir_name ($dir, $msg) {
+    // $dir must not contain '^../' or '/../' or '/..$'
+    if (preg_match('|^\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
+        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
+        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.$|', $dir)    ) {
+        ajax_response(false, "$msg '$dir' contains '..'");
+    }
+}
+
 function check_nonce () {
     $nonce = get_post('nonce');
     debug("checking nonce $nonce");
@@ -35,10 +61,9 @@ function check_nonce () {
 
 function mkdir_callback() {
     debug('mkdir_callback');
+    global $upload_dir;
     check_nonce();
-    if (!test_mfm_permission()) {
-        ajax_response(false, 'no permission');
-    }
+    check_permission_ajax();
 	$dir    = get_post('dir');
     $newdir = get_post('newdir');
     $path = $upload_dir . $dir;
@@ -53,14 +78,13 @@ function mkdir_callback() {
     ajax_response(true, "Created '$newdir' successfully");
 }
 
+// Respond to ajax request for a directory listing
 function getdir_callback () {
     debug('getdir_callback');
     check_nonce();
     global $wpdb;
     global $plugin_url, $upload_dir, $upload_dir_rel;
-    if (!test_mfm_permission()) {
-        ajax_response(false, 'no permission');
-    }
+    check_permission_ajax();
     // Get the directory to display, relative to...
 	//$dir = stripslashes(request_data('dir');
     // Not sure which filter thingy to use -
@@ -74,19 +98,17 @@ function getdir_callback () {
 	$dir = $upload_dir . $post_dir;
     $reldir = $upload_dir_rel . $post_dir; // relative to ..  .  not used
     $attdir = ltrim($post_dir, '/');  // remove leading /
-    #debug("gc: post_dir = $post_dir   dir = $dir   attdir = $attdir");
+    debug("gc: post_dir = $post_dir   dir = $dir   attdir = $attdir");
     $dirlist = [];
     // Get the subdirectories first
     $sdirs = subdirs($dir);
     foreach ($sdirs as $sdir) {
         $dirlist[] = [
-            #'id' => null,
-            #'path' => $sdir, // FIXME either don't use it or make it different from name
-            'name' => $sdir,
-            'post_id' => null,  // needed when updating metadata
-            'isdir' => true,
-			'isemptydir' => isEmptyDir($dir . "/" . $sdir),
-            'norename' => false, // FIXME ??
+            'name'          => $sdir,
+            'post_id'       => null,  // needed when updating metadata
+            'isdir'         => true,
+			'isemptydir'    => isEmptyDir($dir . "/" . $sdir),
+            'exists'        => true,
             'thumbnail_url' => $plugin_url . '/images/dir.png'
         ];
     }
@@ -100,25 +122,29 @@ function getdir_callback () {
     // so get wp_postmeta where meta_key is _wp_attached_file and meta_value is like 'photos/thingy.jpg'
     // Can't just say: like 'photos/%' because that would include 'photos/otherphotos/foo.jpg'
     // This seems to work:
-    $sql = "select p.ID, p.post_mime_type, m.meta_value
+    $sql = $wpdb->prepare(
+           "select p.ID, p.post_mime_type, m.meta_value
               from wp_posts p
          left join wp_postmeta m on p.ID = m.post_id and m.meta_key = '_wp_attached_file'
              where post_type = 'attachment'
-               and m.meta_value regexp '^{$attdir}[^/]+$'
-          order by m.meta_value"; // FIXME better way to interpolate
-    #debug('gc sql: ', $sql);
+               and m.meta_value regexp %s
+          order by m.meta_value",
+        '^' . $attdir . '[^/]+$');  // otherwise there are too may single quotes
+    debug('gc sql: ', $sql);
     $results = $wpdb->get_results($sql, ARRAY_A);
-    #debug('gc results: ', $results);
+
+
+
+    debug('gc results: ', $results);
     foreach ($results as $item) {
+        // Post could point to a non-existent file (not likely, but possible)
+        $basename = basename($item['meta_value']);
+        $filename = $dir . $basename;
         $dirlist[] = [
-            'post_id'  => $item['ID'],
-            #'path'     => $item['meta_value'],
-            'name'     => basename($item['meta_value']),
-            'isdir'    => false,
-            'isthumb'  => false, // always false now
-            'norename' => false, // TODO
-            'parent'   => false, // always false now
-            // TODO if it's an image, get a nice small version of it (then it will be square)
+            'post_id'       => $item['ID'],
+            'name'          => $basename, #basename($item['meta_value']),
+            'isdir'         => false,
+            'exists'        => file_exists($filename),
             'thumbnail_url' => thumbnail_url($item['meta_value'], $item['post_mime_type'], $item['ID'])
             ];
     }
@@ -127,27 +153,16 @@ function getdir_callback () {
     /*
     // Dummy data:
     $dirlist[] = [
-        //'ids' => 16, // used? no
         'name' => 'Testdir',
         'isdir' => 1,
         'isemptydir' => 0,
-        'isthumb' => 0, // will always be false now
-        'norename' => 0,
-        //'id' => 505,
-        'parent' => 0, // meaningless for dir?
         // Have to provide the icon:
         'thumbnail_url' => 'http://dev.fordingbridge-rotary.org.uk/wp-content/plugins/media-file-manager-cd/images/dir.png'
       ];
     $dirlist[] = [
-        //'ids' => 16, // used?
         'name' => 'Test.jpg',
         'isdir' => 0,
         'isemptydir' => 0,
-        'isthumb' => 0, // will always be false now
-        'norename' => 0,
-        //'id' => 505,
-        'parent' => 1, // will always be true now
-        //'thumbnail' => 14,
         'thumbnail_url' => 'http://dev.fordingbridge-rotary.org.uk/wp-content/uploads/AussieCricket04-125x125.jpg'
     ];
      */
@@ -217,10 +232,7 @@ function move_callback () {
     global $upload_dir, $upload_dir_rel;
     // Keep a list of renamed files in case we need to rollback
     $renamed = [];
-
-    if (!test_mfm_permission()) {
-        ajax_response(false, 'no permission');
-    }
+    check_permission_ajax();
 
     // TODO these don't work for some reason
     // -- because filter_input only sees the original contents of $_GET,
@@ -242,6 +254,13 @@ function move_callback () {
     $file_or_folder = ($isdir ? 'Folder ' : 'File ');
     debug("nmc: dir_from='$dir_from' dir_to='$dir_to' item_from='$item_from' item_to='$item_to' post_id=$post_id isdir='$isdir'");
 
+    if ($item_to != $item_from) {
+        // Item is different -- so we're renaming (rather than just moving)
+        $item_to = trim($item_to);
+    }
+    // (Don't trim other fields -- leading and trailing blanks are 
+    // valid in names in Linux!)
+
     $item_from_path = $upload_dir     . $dir_from . $item_from;   // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
     $item_to_path   = $upload_dir     . $dir_to   . $item_to;
     $item_from_rel  = $upload_dir_rel . $dir_from . $item_from;   // relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
@@ -250,18 +269,20 @@ function move_callback () {
     debug('item rels: ', $item_from_rel, $item_to_rel);
 
     // TODO check if the expected inputs are present
-    // 0. check nonce
-    // 1. check things are valid
-    //   - although frontend only allows 'reasonable' data, an attack could come from elsewhere
-    // 2. check that from file exists
-    // 3. check that to file doesn't
+    if (!$dir_from || !$dir_to || !$item_from) {
+        // will only happen if someone's cheating
+        ajax_response(false, 'Invalid data');
+    }
+    if (!$item_to) {
+        ajax_response(false, 'New item name is missing');
+    }
 
     if ($dir_from == $dir_to and $item_from == $item_to) {
         // Count this as a success, so that dialog is closed
         ajax_response(true, '');
     }
-    // dirs are e.g. '/' or '/private/' or '2015/10' relative to $upload_dir
 
+    // dirs are e.g. '/' or '/private/' or '2015/10' relative to $upload_dir
     $action = 'move';  // TODO cosmetic -- change the word 'rename' to 'move' in messages -- not done yet.
     if ($dir_from == $dir_to) {
         $action = 'rename';
@@ -274,13 +295,16 @@ function move_callback () {
     // (see the invalid_chr array in the front end)
     #$invalid_chars_regex = "/[\\/:*?\"<>|&'` ]/";
     #if (preg_match($invalid_chars_regex, $item_from)) {
-    if (invalid_item_name($item_from)) {
-        // This shouldn't happen under normal use
-        ajax_response(false, 'Old ' . $file_or_folder . "name '" . $item_from . "' is invalid");
-    }
+    #if (invalid_item_name($item_from)) {
+    #    // This shouldn't happen under normal use
+    #    ajax_response(false, 'Old ' . $file_or_folder . "name '" . $item_from . "' is invalid");
+    #}
     #if (preg_match($invalid_chars_regex, $item_to)) {
-    if (invalid_item_name($item_to)) {
-        ajax_response(false, $file_or_folder . "name '" . $item_to . "' is invalid");
+    if ($item_to != $item_from) {
+        // Item is different -- so we're renaming (rather than just moving)
+        if (invalid_item_name($item_to)) {
+            ajax_response(false, $file_or_folder . "name '" . $item_to . "' is invalid");
+        }
     }
 
     // Make sure old item exists
@@ -651,28 +675,27 @@ function move_callback () {
         ajax_response(false, 'Error: "' . $e->getMessage() . '"');
     }
 
-    ajax_response(false, 'went too far');
 }
 
 function delete_empty_dir_callback() {
     check_nonce();
     global $upload_dir;
-    if (!test_mfm_permission()) {
-        ajax_response(false, 'no permission');
-    }
+    check_permission_ajax();
     $dir  = get_post('dir');   // e.g. '/' or '/photos/'
     $name = get_post('name');  // e.g. 'dir_to_be_deleted'
     debug("delete empty dir: dir='$dir' name='$name'");
     // $name must not contain '/'
-    if (strpos($name, DIRECTORY_SEPARATOR) !== false) {
-        ajax_response(false, "New folder name '$name' contains '" . DIRECTORY_SEPARATOR . "'");
-    }
+    check_item_name($name, 'New folder name');
+    #if (strpos($name, DIRECTORY_SEPARATOR) !== false) {
+    #    ajax_response(false, "New folder name '$name' contains '" . DIRECTORY_SEPARATOR . "'");
+    #}
     // $dir must not contain '^../' or '/../' or '/..$'
-    if (preg_match('|^\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
-        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
-        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.$|', $dir)    ) {
-        ajax_response(false, "Path name '$dir' contains '..'");
-    }
+    check_dir_name($dir, 'Path name');
+    #if (preg_match('|^\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
+    #    preg_match('|' . DIRECTORY_SEPARATOR . '\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
+    #    preg_match('|' . DIRECTORY_SEPARATOR . '\.\.$|', $dir)    ) {
+    #    ajax_response(false, "Path name '$dir' contains '..'");
+    #}
     $full_dir = $upload_dir . $dir . $name;
     // Check that the directory exists
     if (!file_exists($full_dir)) {
@@ -681,7 +704,7 @@ function delete_empty_dir_callback() {
 	if (!rmdir($full_dir)) {
         ajax_response(false, 'Unable to delete \'' . $dir . $name . '\'.  Reason: ' . last_error_msg());
 	}
-    ajax_response(true, 'Deleted OK');
+    ajax_response(true, "Folder '$name' deleted successfully");
 }
 
 add_action('wp_ajax_mocd_getdir',           NS . 'getdir_callback');
