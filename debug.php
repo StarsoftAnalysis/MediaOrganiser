@@ -3,6 +3,7 @@ namespace media_organiser_cd;
 
 // Debug to /wp-content/debug.log (see https://codex.wordpress.org/WP_DEBUG
 // and settings in wp-config.php)
+# TODO this needs work...
 function debug (...$args) {
     if (!WP_DEBUG) {
         return;

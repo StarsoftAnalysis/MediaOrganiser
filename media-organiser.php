@@ -43,8 +43,9 @@ if (defined('DOING_AJAX')) {
     debug("doing ajax, action = '$action'");
     if (in_array($action, 
         ['mocd_getdir', 'mocd_mkdir', 'mocd_move', 'mocd_delete_empty_dir'])) {
-        ob_start();  // Some error (e.g. WP SQL errors) but text onto stdout,
+        ob_start();  // Some errors (e.g. WP SQL errors) put text onto stdout,
                      // which messes up AJAX, so use ob_start/ob_clean to clear such text.
+                     // (The ob_clean is in relocator_ajax.php)
         require_once plugin_dir_path(__FILE__) . 'relocator_ajax.php';
         // TODO split them up further?
     }

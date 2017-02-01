@@ -3,33 +3,38 @@ namespace media_organiser_cd;
 
 // Handle the settings page
 
-function get_roles () {
-    global $wp_roles;
-    debug('wp_roles: ', $wp_roles);
-    $roles = [];
+function get_role_names () {
+    global $wp_roles;   // object with details of all current roles
+    $role_names = [];
 	foreach ($wp_roles->roles as $key => $value) {
-		$roles[] = $key;
+		$role_names[] = $key;
 	}
-    return $roles;
+    #debug('wp_roles: ', $wp_roles, $role_names);
+    return $role_names;
 }
 
 // Display settings page  
 function display_settings () {
-	$roles = get_roles();
+	$role_names = get_role_names();
 
 	// Store setting information which POST has when this func is called by pressing [Save Change] btn 
-	if (isset($_POST['update_setting'])) {
+
+    debug($_POST);
+    if (isset($_POST['update_setting'])) {
+
+        debug('******************** updating settings');
 		echo '<div id="message" class="updated fade"><p><strong>Options saved.</strong></p></div>';
 		//update_option('th_linklist_vnum', $_POST['th_linklist_vnum']);
-		$roles_val = "";
-		for ($i = 0; $i <count($roles); $i++) {
-			if (!empty($_POST['roles_'.$roles[$i]])) {
-				if ($roles_val != "") $roles_val .= ",";
-				$roles_val .= $roles[$i];
+		$roles_ticked = [];
+		foreach ($role_names as $role_name) {
+			if (!empty($_POST['roles_'.$role_name])) {
+				$roles_ticked[] = $role_name;
 			}
 		}
-		update_option('mocd_relocator_roles', $roles_val);
+        debug('......... value ', $roles_ticked);
+		update_option('mocd_relocator_roles', implode(',', $roles_ticked));
 
+        /* no selector yet... 
 		$roles_val = "";
 		for ($i = 0; $i < count($roles); $i++) {
 			if (!empty($_POST['roles_sel_'.$roles[$i]])) {
@@ -37,7 +42,8 @@ function display_settings () {
 				$roles_val .= $roles[$i];
 			}
 		}
-		update_option('mocd_selector_roles', $roles_val);
+        update_option('mocd_selector_roles', $roles_val);
+         */
 
 	}
 
@@ -50,32 +56,27 @@ function display_settings () {
 		$disable_set_time_limit = (!(empty($_POST['disable_set_time_limit']))) ? 1 : 0;
 		update_option('mediafilemanager_disable_set_time_limit', $disable_set_time_limit);
 
+    /* no selector yet...
     $accepted_roles_selector = get_option("mocd_selector_roles", 
         "administrator,editor,author,contributor,subscriber");
-	#$disable_set_time_limit = get_option("mediafilemanager_disable_set_time_limit", 0);
+        #$disable_set_time_limit = get_option("mediafilemanager_disable_set_time_limit", 0);
+     */
 
     echo '<table class="form-table">';
+
 	echo '<tr><th>Media Organiser can be used by </th>';
 	echo '<td style="text-align: left;">';
-
 	$accepted = explode(",", $accepted_roles);
-	for ($i = 0; $i < count($roles); $i++) {
-		$key = $roles[$i];
-		$ck = "";
-		for ($j = 0; $j < count($accepted); $j++) {
-			if ($key == $accepted[$j]) {
-				$ck = "checked";
-				break;
-			}
-		}
-        echo '<input type="checkbox" name="roles_' . $key . '" id="roles_' . 
-            $key . '" ' . $ck . '>' . $key . '</input><br>' . "\n";
+	foreach ($role_names as $role_name) {
+		$ck = (in_array($role_name, $accepted)) ? 'checked' : '';
+        echo '<input type="checkbox" name="roles_', $role_name, '" id="roles_', $role_name,
+           '" ', $ck, '>', $role_name, '</input><br>', "\n";
 	}
-
     echo '</td></tr>';
-	echo '<th>File Selector can be used by </th>';
-	echo '<td style="text-align: left;">';
 
+    /* no selector yet...
+	echo '<tr><th>File Selector can be used by </th>';
+	echo '<td style="text-align: left;">';
 	$accepted = explode(",", $accepted_roles_selector);
 	for ($i = 0; $i < count($roles); $i++) {
 		$key = $roles[$i];
@@ -89,8 +90,9 @@ function display_settings () {
         echo '<input type="checkbox" name="roles_sel_' . $key . '" id="roles_sel_' . 
             $key . '" ' . $ck . '>' . $key . '</input><br>' . "\n";
 	}
-
     echo '</td></tr>';
+    */ 
+
     echo '</table>';
 	echo '<input type="hidden" name="action" value="update">';
 	echo '<p class="submit">'; // A WP-ism, apparently

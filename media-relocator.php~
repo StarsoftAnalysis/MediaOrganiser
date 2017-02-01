@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
 function enqueue_scripts() {
     debug('started');
-	wp_enqueue_script('jquery');
+	#wp_enqueue_script('jquery');
 
 #    wp_enqueue_script('mocd_jqueryui', 
 #        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
@@ -39,15 +39,6 @@ function pane_html ($side) {
 	echo '<div class="mocd_wrapper_pane" id="mocd_', $side, '_wrapper">';
 	echo '<div class="mocd_box1">';
     echo '<p class=mocd_path id=mocd_', $side, '_path>';
-	#echo '<div style="clear:both;"></div>';
-    #echo '<div class="mocd_action" id="mocd_', $side, '_action">Action: ';
-    #echo '<select name="mocd_', $side, '_select">';
-    #echo '<option value="rename">Rename</option>';
-    #echo '<option value="move">Move</option>';
-    #echo '<option value="delete">Delete</option>';
-    #echo '</select>';
-    #echo '<button id="mocd_', $side, '_button_go" type="button">Go</button>';
-    #echo '</div>';
     echo '<div class="mocd_dir_up  mocd_clickable" id="mocd_', $side, 
         '_dir_up"  title="Show parent folder"><img src="', $plugin_url, '/images/dir_up.png"></div>';
     echo '<div class="mocd_dir_new mocd_clickable" id="mocd_', $side, 
@@ -58,7 +49,7 @@ function pane_html ($side) {
 	echo '<div class="mocd_pane" id="mocd_', $side, '_pane"></div>';
 	echo '</div>';
     
-    // HTML for renaming dialog -- initially hidden  FIXME do we really need one for each side?
+    // HTML for renaming dialog -- initially hidden  TODO do we really need one for each side?
     echo '<div id="mocd_', $side, '_rename_dialog" title="Rename File or Folder" style="display: none;">';
     #echo '<p class="validateTips">Enter the new item name:</p>';
     echo '<form><fieldset>';
@@ -110,7 +101,6 @@ function main_page () {
 // Register stuff:
 #debug('mocd adding actions');
 // TODO only load JS if called via /wp-admin/upload.php?page=mocd_submenu
-#add_action('admin_head', NS . 'admin_register_head');
 add_action('admin_enqueue_scripts', NS . 'enqueue_scripts');
 
 #debug('mocd added all actions');

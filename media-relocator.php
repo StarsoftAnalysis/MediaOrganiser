@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
 function enqueue_scripts() {
     debug('started');
-	wp_enqueue_script('jquery');
+	// (jquery is already loaded by WP for admin pages)
 
 #    wp_enqueue_script('mocd_jqueryui', 
 #        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod

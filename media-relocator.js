@@ -169,13 +169,13 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
         //console.log(flist);
         // FIXME this is duplicated
         var data = {
-            action: 'mocd_move',
-            dir_from: pane_from.cur_dir,
-            dir_to:   pane_to.cur_dir,
-            item_from:  pane_from.dir_list[i].name,
-            post_id:  pane_from.dir_list[i].post_id,
-            isdir:    pane_from.dir_list[i].isdir, 
-            nonce:    mocd_array.nonce
+            action:    'mocd_move',
+            dir_from:  pane_from.cur_dir,
+            dir_to:    pane_to.cur_dir,
+            item_from: pane_from.dir_list[i].name,
+            post_id:   pane_from.dir_list[i].post_id,
+            isdir:     pane_from.dir_list[i].isdir, 
+            nonce:     mocd_array.nonce
         };
         //console.log('nmi sending data: ', data);
         mocd.ajax_count_in();
@@ -183,7 +183,7 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
         jQuery.post(ajaxurl, data, function (response) {
             mocd.ajax_count_out();
             done_count += 1;
-            progressbar.progressbar('value', done_count);
+            progressbar.progressbar('value', done_count);   // TODO should it say 'done' if there were errors?
             if (!response.success) {
                 fail_count += 1;
                 err_msgs.push(response.message);
@@ -199,7 +199,8 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
                         msg += '<p>' + err_msgs[i];
                     }
                     // TODO the list of errors could be very big -- just show a few of them??
-                    mocd.message_dialog('One or more items could not be moved', msg, 0);
+                    //mocd.message_dialog('One or more items could not be moved', msg, 0);
+                    mocd.add_message('Failure', msg, 0);
 
                     //mocd.message.html(msg);
                     //pause = 0;
@@ -670,6 +671,7 @@ MOCDPaneClass.prototype.ajax_delete_empty_dir = function (name) {
 
 // TODO a new 'set_checkboxes' function that disables checkboxes
 // for items that have items with the same name in the opposite pane
+// -- if both sides are the same, then can't do any moving!!! TODO
 
 // See if an item exists in the pane; return its index or false
 MOCDPaneClass.prototype.name_exists = function (str) {

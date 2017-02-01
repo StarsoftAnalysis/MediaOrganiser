@@ -19,7 +19,8 @@ function ajax_response ($success = false, $message = '', $data = []) {
         'data'    => $data
     ];
     #sleep(5); // TEMP slow it down
-    ob_clean();
+    ob_clean();  // get rid if any spurious text going to stdout
+                 // (see ob_start in media-organiser.php)
     header('Content-Type: application/json;');
     echo json_encode($response);
     wp_die();
@@ -34,26 +35,33 @@ function check_permission_ajax () {
 
 // Check item name
 // TODO is this right? .... what about invalid item name?? -- surely not when deleting
+/*
 function check_item_name ($name, $msg) {
     // $name must not contain '/'
     if (strpos($name, DIRECTORY_SEPARATOR) !== false) {
         ajax_response(false, "$msg name '$name' contains '" . DIRECTORY_SEPARATOR . "'");
     }
 }
+ */
 
-// Check dir name
-function check_dir_name ($dir, $msg) {
+// Check dir name (already sanitized, and must be the full path of an existing file or dir
+function check_path_name ($dir, $msg) {
     // $dir must not contain '^../' or '/../' or '/..$'
-    if (preg_match('|^\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
-        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
-        preg_match('|' . DIRECTORY_SEPARATOR . '\.\.$|', $dir)    ) {
-        ajax_response(false, "$msg '$dir' contains '..'");
+    if (!$dir) {
+        // realpath() interprets empty string as current dir -- not what we want
+        ajax_response(false, "$msg '$dir' is missing");
     }
+    $newdir = realpath($dir);
+    debug("dir='$dir'  newdir='$newdir'");
+    if ($newdir === false) {
+        ajax_response(false, "$msg '$dir' does not exist");
+    }
+    return $newdir;
 }
 
 function check_nonce () {
-    $nonce = get_post('nonce');
-    debug("checking nonce $nonce");
+    $nonce = get_request('nonce');
+    #debug("checking nonce '$nonce'");
     if (!wp_verify_nonce($nonce, 'mocd_relocator')) {
         ajax_response(false, 'Unauthorised access');
     }
@@ -64,8 +72,8 @@ function mkdir_callback() {
     global $upload_dir;
     check_nonce();
     check_permission_ajax();
-	$dir    = get_post('dir');
-    $newdir = get_post('newdir');
+	$dir    = get_dirname('dir');
+    $newdir = get_basename('newdir');
     $path = $upload_dir . $dir;
     $newpath = $path . $newdir;
     #debug('mkdir_c:', $path, $newpath);
@@ -85,6 +93,10 @@ function getdir_callback () {
     global $wpdb;
     global $plugin_url, $upload_dir, $upload_dir_rel;
     check_permission_ajax();
+
+    $dir = get_dirname('dir');   // e.g. '/' or '/photos/'
+
+    /*
     // Get the directory to display, relative to...
 	//$dir = stripslashes(request_data('dir');
     // Not sure which filter thingy to use -
@@ -94,20 +106,22 @@ function getdir_callback () {
         //?? 'flags' => FILTER_FLAG_STRIP_LOW | FILTER_FLAG_ENCODE_HIGH,
     ];
     $post_dir = filter_input(INPUT_POST, 'dir', FILTER_DEFAULT, $opts);
+     */
     // $dir is relative to the uploads dir, e.g. '/' or 'photos'
-	$dir = $upload_dir . $post_dir;
-    $reldir = $upload_dir_rel . $post_dir; // relative to ..  .  not used
-    $attdir = ltrim($post_dir, '/');  // remove leading /
-    debug("gc: post_dir = $post_dir   dir = $dir   attdir = $attdir");
+	$full_dir = $upload_dir . $dir;
+    $full_dir = check_path_name($full_dir, 'Folder name');  // remove '..' etc.
+    $reldir = $upload_dir_rel . $dir; // relative to ..  .  not used
+    $attdir = ltrim($dir, '/');  // remove leading /
+    debug("gc: dir = '$dir'   full_dir = '$full_dir'   attdir = '$attdir'");
     $dirlist = [];
     // Get the subdirectories first
-    $sdirs = subdirs($dir);
+    $sdirs = subdirs($full_dir);
     foreach ($sdirs as $sdir) {
         $dirlist[] = [
             'name'          => $sdir,
             'post_id'       => null,  // needed when updating metadata
             'isdir'         => true,
-			'isemptydir'    => isEmptyDir($dir . "/" . $sdir),
+			'isemptydir'    => isEmptyDir($full_dir . "/" . $sdir),
             'exists'        => true,
             'thumbnail_url' => $plugin_url . '/images/dir.png'
         ];
@@ -130,16 +144,14 @@ function getdir_callback () {
                and m.meta_value regexp %s
           order by m.meta_value",
         '^' . $attdir . '[^/]+$');  // otherwise there are too may single quotes
-    debug('gc sql: ', $sql);
+    #debug('gc sql: ', $sql);
     $results = $wpdb->get_results($sql, ARRAY_A);
 
-
-
-    debug('gc results: ', $results);
+    #debug('gc results: ', $results);
     foreach ($results as $item) {
         // Post could point to a non-existent file (not likely, but possible)
         $basename = basename($item['meta_value']);
-        $filename = $dir . $basename;
+        $filename = $full_dir . '/' . $basename;
         $dirlist[] = [
             'post_id'       => $item['ID'],
             'name'          => $basename, #basename($item['meta_value']),
@@ -167,7 +179,7 @@ function getdir_callback () {
     ];
      */
     // Send the list back to the JS
-    ajax_response(true, 'Got dir OK', $dirlist);
+    ajax_response(true, 'Folder listing obtained successfully', $dirlist);
 	#echo json_encode($dirlist);
     #wp_die(); // completes the AJAX thing
 }
@@ -205,7 +217,7 @@ function update_posts_content ($old, $new, $source = '') {
         debug('old = new, doing nothing: ', $old);
         return 0;
     }
-    debug("updating posts from '$old' to '$new' ($source)");
+    #debug("updating posts from '$old' to '$new' ($source)");
     global $wpdb;
     #$sql = "update $wpdb->posts
     #           set post_content = replace(post_content, '$old', '$new')
@@ -215,7 +227,7 @@ function update_posts_content ($old, $new, $source = '') {
            set post_content = replace(post_content, %s, %s)
          where post_content like '%%%s%%'
     ", $old, $new, $wpdb->esc_like($old));
-    debug('sql: ', $sql);
+    #debug('sql: ', $sql);
     $rc = $wpdb->query($sql);
     if ($rc === false) {
         throw new \Exception('Failed to update post content' . db_error());
@@ -227,6 +239,7 @@ function update_posts_content ($old, $new, $source = '') {
 //   -- extract functions such as 'get_all_secondary_files'...
 // Move an item (file or folder) and/or rename it.
 function move_callback () {
+    debug('=========', $_REQUEST);
     check_nonce();
     global $wpdb;
     global $upload_dir, $upload_dir_rel;
@@ -234,24 +247,28 @@ function move_callback () {
     $renamed = [];
     check_permission_ajax();
 
-    // TODO these don't work for some reason
-    // -- because filter_input only sees the original contents of $_GET,
-    //    not the results of $_GET['foo']='bar' -- which is what the AJAX code does
-    #$dir_from = filter_input(FILTER_POST, 'dir_from', FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_from']);
-    #$dir_to   = filter_input(FILTER_POST, 'dir_to',   FILTER_SANITIZE_STRING); //stripslashes($_POST['dir_to']);
-    #$item     = filter_input(FILTER_POST, 'item',     FILTER_SANITIZE_STRING); //stripslashes($_POST['item']);
-    // ...so use
-    $dir_from  = get_post('dir_from');  // e.g. '/' or '/photos/'
-    $dir_to    = get_post('dir_to');    //    ditto
-    $item_from = get_post('item_from'); // e.g. 'foo.jpg' or 'images/foo.jpg'.  NOTE no leading '/'
-    //                                      and it's relative to $dir_from
-    $item_to   = get_post('item_to');   //    ditto
+    $dir_from      = get_dirname('dir_from');   // e.g. '/' or '/photos/'
+    $full_dir_from = check_path_name($upload_dir . $dir_from);  // strip '..' etc. and check it exists
+    $dir_to        = get_dirname('dir_to');     //    ditto
+    $full_dir_to   = check_path_name($upload_dir . $dir_to);
+    $item_from     = get_basename('item_from'); // e.g. 'foo.jpg' or 'images/foo.jpg'.  NOTE no leading '/'
+                                                //        and it's relative to $dir_from
+    $item_to       = get_basename('item_to');   //    ditto
     if (!$item_to) {
         $item_to = $item_from;  // same item, so expect the dir's to be different
     }
-    $post_id   = get_post('post_id');
-    $isdir     = get_post('isdir') == 'true';
+
+    $post_id = get_request('post_id');
+
+    $isdir = get_request('isdir') == 'true';
     $file_or_folder = ($isdir ? 'Folder ' : 'File ');
+
+    // If it's not a dir, it needs a valid post_id
+    if (!$isdir && !get_post_status($post_id)) {
+        // No such post
+        ajax_response(false, "Invalid post id '$post_id'");
+    }
+
     debug("nmc: dir_from='$dir_from' dir_to='$dir_to' item_from='$item_from' item_to='$item_to' post_id=$post_id isdir='$isdir'");
 
     if ($item_to != $item_from) {
@@ -261,14 +278,15 @@ function move_callback () {
     // (Don't trim other fields -- leading and trailing blanks are 
     // valid in names in Linux!)
 
-    $item_from_path = $upload_dir     . $dir_from . $item_from;   // full file path, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
+    // Full file paths, e.g. /var/www/website/wp_content/uploads/photos/foo.jpg
+    $item_from_path = $upload_dir     . $dir_from . $item_from;   
     $item_to_path   = $upload_dir     . $dir_to   . $item_to;
-    $item_from_rel  = $upload_dir_rel . $dir_from . $item_from;   // relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
+    // Relative to site root, e.g. /wp_content/uploads/photos/foo.jpg
+    $item_from_rel  = $upload_dir_rel . $dir_from . $item_from;
     $item_to_rel    = $upload_dir_rel . $dir_to   . $item_to;
     debug('item paths: ', $item_from_path, $item_to_path);
     debug('item rels: ', $item_from_rel, $item_to_rel);
 
-    // TODO check if the expected inputs are present
     if (!$dir_from || !$dir_to || !$item_from) {
         // will only happen if someone's cheating
         ajax_response(false, 'Invalid data');
@@ -308,15 +326,10 @@ function move_callback () {
     }
 
     // Make sure old item exists
-    #$path_from = $upload_dir . $dir_from;
     if (!file_exists($item_from_path)) {
         ajax_response(false, $file_or_folder . "'" . $item_from_path . "' does not exist");
     }
-    // Make sure new dir exists
-    $path_to = $upload_dir . $dir_to;
-    if (!file_exists($path_to)) {
-        ajax_response(false, "Destination folder '" . $dir_to . "' does not exists");
-    }
+
     // Make sure new item does not exist
     if (file_exists($item_to_path)) {
         ajax_response(false, $file_or_folder . "'" . $item_to . "' already exists");
@@ -401,9 +414,9 @@ function move_callback () {
                  where post_id = %s
                   and meta_key = '_wp_attached_file'
                 ", $file_to_rel, $post_id);
-            debug('>>> sql:', $sql);
+            #debug('>>> sql:', $sql);
             $rc = $wpdb->query($sql);
-            debug('>>> rc', $rc);
+            #debug('>>> rc', $rc);
             if ($rc === false) {
                 throw new \Exception("Failed to replace file name '$file_to_rel' in attachment" . db_error());
             }
@@ -439,7 +452,7 @@ function move_callback () {
             } else {
                 #debug('results: ', $row);
                 #$metadata = unserialize($row['meta_value']);
-                debug('metadata: ', $metadata);
+                #debug('metadata: ', $metadata);
                 // Metadata is like:
                 //    [width] => 400
                 //    [height] => 600
@@ -498,7 +511,7 @@ function move_callback () {
                     //      so need two edits.
                 }
 
-                debug('changed metadata: ', $metadata);
+                #debug('changed metadata: ', $metadata);
                 /*
                 $serialized = serialize($metadata);
                 $rc = $wpdb->update($wpdb->postmeta,
@@ -571,7 +584,7 @@ function move_callback () {
                 } else {
                     #debug('results: ', $row);
                     $metadata = unserialize($row['meta_value']);
-                    debug('backup sizes: ', $metadata);
+                    #debug('backup sizes: ', $metadata);
 
                     // Move backup files, renaming if required
                     foreach ($metadata as $sizename => $size) {
@@ -613,7 +626,7 @@ function move_callback () {
                         }
                     }
 
-                    debug('changed backup metadata: ', $metadata);
+                    #debug('changed backup metadata: ', $metadata);
                     // TODO consider using wp_update_attachment_metadata as below
                     $serialized = serialize($metadata);
                     $rc = $wpdb->update($wpdb->postmeta,
@@ -634,7 +647,7 @@ function move_callback () {
 
         // Update the text of posts and pages -- for moving folders as well as files
         // ?? Could this be optimised by doing all the edits on a post at once? -- not easily
-        debug('edits: ', $edits);
+        #debug('edits: ', $edits);
         #$sql = "select * from $wpdb->posts
         foreach ($edits as $edit) {
             $post_count += update_posts_content($edit['from'], $edit['to'], $edit['a']);
@@ -681,22 +694,11 @@ function delete_empty_dir_callback() {
     check_nonce();
     global $upload_dir;
     check_permission_ajax();
-    $dir  = get_post('dir');   // e.g. '/' or '/photos/'
-    $name = get_post('name');  // e.g. 'dir_to_be_deleted'
-    debug("delete empty dir: dir='$dir' name='$name'");
-    // $name must not contain '/'
-    check_item_name($name, 'New folder name');
-    #if (strpos($name, DIRECTORY_SEPARATOR) !== false) {
-    #    ajax_response(false, "New folder name '$name' contains '" . DIRECTORY_SEPARATOR . "'");
-    #}
-    // $dir must not contain '^../' or '/../' or '/..$'
-    check_dir_name($dir, 'Path name');
-    #if (preg_match('|^\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
-    #    preg_match('|' . DIRECTORY_SEPARATOR . '\.\.' . DIRECTORY_SEPARATOR . '|', $dir) ||
-    #    preg_match('|' . DIRECTORY_SEPARATOR . '\.\.$|', $dir)    ) {
-    #    ajax_response(false, "Path name '$dir' contains '..'");
-    #}
+    $dir  = get_dirname('dir');   // e.g. '/' or '/photos/'
+    $name = get_basename('name');  // e.g. 'dir_to_be_deleted'
     $full_dir = $upload_dir . $dir . $name;
+    $full_dir = check_path_name($full_dir, 'Folder name');  // remove '..' etc.
+    #debug("delete empty dir: dir='$dir' name='$name' full_dir='$full_dir'");
     // Check that the directory exists
     if (!file_exists($full_dir)) {
         ajax_response(false, "Folder '" . $dir . $name . "' does not exist'");

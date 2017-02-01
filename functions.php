@@ -72,8 +72,8 @@ function test_mfm_permission () {
     }
 	$roles = $current_user->roles;
     $accepted_roles = get_option("mocd_relocator_roles", "administrator"); // 2nd arg is default, used if option not found
-    debug('roles = ', $roles);
-    debug('... accepted roles = ', $accepted_roles);
+    #debug('roles = ', $roles);
+    #debug('... accepted roles = ', $accepted_roles);
 	$accepted = explode(",", $accepted_roles);
     // Return one of the matching roles    TODO just return true or false
     $matches = array_intersect($accepted, $roles);
@@ -174,12 +174,40 @@ function last_error_msg () {
     return '';
 }
 
-function get_post ($key) {
-    $value = '';
-    if (isset($_POST[$key])) {
-        $value = $_POST[$key];
+// Get a request value, no sanitization
+function get_request ($key) {
+    return empty($_REQUEST[$key]) ? '' : $_REQUEST[$key];
+}
+
+// Get a file or directory base name from the request and sanitize it.
+// Nasty filenames, such as with leading or trailing blanks, can exist
+// in Linux, but they really shouldn't.  This will prevent e.g.
+// a directory called 'fred   ' from being deleted.  C'ést la vie.
+function get_basename ($key) {
+    $filename = empty($_REQUEST[$key]) ? '' : $_REQUEST[$key];
+    $sanitized = sanitize_file_name($filename);
+    #debug("filename='$filename'  sanitized='$sanitized'");
+    return $sanitized;
+}
+
+// Why do I have to invent this?
+function sanitize_dir_name ($dir) {
+    #debug('checking', $dir);
+    $filenames = explode('/', $dir);
+    $newfilenames = [];
+    foreach ($filenames as $fn) {
+        $newfilenames[] = sanitize_file_name($fn);
     }
-    return stripslashes($value);
+    #debug("filenames ", $filenames, ' becomes ', $newfilenames);
+    return implode('/', $newfilenames);
+}
+
+// Get a dir name and sanitize it
+function get_dirname ($key) {
+    $dirname = empty($_REQUEST[$key]) ? '' : $_REQUEST[$key];
+    $sanitized = sanitize_dir_name($dirname);
+    #debug("dirname '$dirname' becomes '$sanitized'");
+    return $sanitized;
 }
 
 function invalid_item_name ($name) {
@@ -189,7 +217,7 @@ function invalid_item_name ($name) {
         return true;
     }
     $regex = $invalid_itemname_regex;
-    debug('checking name ' . $name . ' against regex ' . $regex);
+    #debug('checking name ' . $name . ' against regex ' . $regex);
     return preg_match($regex, $name);
 }
 
