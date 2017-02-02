@@ -60,8 +60,13 @@ function reserved_filenames () {
 }
 $reserved_filenames = reserved_filenames();
 
+// Names for plugin-specific capabilities
+$relocate_cap = 'mocd_relocate';
+$select_cap   = 'mocd_select';
+
 // --------------------------------------------------------------------------------------
 
+/* Obsolete
 // test permission for accessing media file manager
 // Returns one of the matching roles, or false
 function test_mfm_permission () {
@@ -84,6 +89,7 @@ function test_mfm_permission () {
     }
     return FALSE;
 }
+ */
 
 // Return a list of files and subdirectories within the given directory.
 // sorted alphabetically, and excluding '.' and '..'

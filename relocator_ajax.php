@@ -28,23 +28,13 @@ function ajax_response ($success = false, $message = '', $data = []) {
 
 // Abort ajax call if user does not have permission
 function check_permission_ajax () {
-    if (!test_mfm_permission()) {
-        ajax_response(false, 'no permission');
+    global $relocate_cap;
+    if (!current_user_can($relocate_cap)) {
+        ajax_response(false, 'You do not have permission to do that');
     }
 }
 
-// Check item name
-// TODO is this right? .... what about invalid item name?? -- surely not when deleting
-/*
-function check_item_name ($name, $msg) {
-    // $name must not contain '/'
-    if (strpos($name, DIRECTORY_SEPARATOR) !== false) {
-        ajax_response(false, "$msg name '$name' contains '" . DIRECTORY_SEPARATOR . "'");
-    }
-}
- */
-
-// Check dir name (already sanitized, and must be the full path of an existing file or dir
+// Check dir name (already sanitized, and must be the full path of an existing file or dir)
 function check_path_name ($dir, $msg) {
     // $dir must not contain '^../' or '/../' or '/..$'
     if (!$dir) {
@@ -95,23 +85,8 @@ function getdir_callback () {
     check_permission_ajax();
 
     $dir = get_dirname('dir');   // e.g. '/' or '/photos/'
-
-    /*
-    // Get the directory to display, relative to...
-	//$dir = stripslashes(request_data('dir');
-    // Not sure which filter thingy to use -
-    // might depend if it's a Linux or Windows or Mac directory name...  TODO
-    $opts = [
-        'options' => ['default' => '']
-        //?? 'flags' => FILTER_FLAG_STRIP_LOW | FILTER_FLAG_ENCODE_HIGH,
-    ];
-    $post_dir = filter_input(INPUT_POST, 'dir', FILTER_DEFAULT, $opts);
-     */
-    // $dir is relative to the uploads dir, e.g. '/' or 'photos'
-	$full_dir = $upload_dir . $dir;
-    $full_dir = check_path_name($full_dir, 'Folder name');  // remove '..' etc.
-    $reldir = $upload_dir_rel . $dir; // relative to ..  .  not used
-    $attdir = ltrim($dir, '/');  // remove leading /
+    $full_dir = check_path_name($upload_dir . $dir, 'Folder name');  // remove '..' etc.
+    $attdir = ltrim($dir, '/');  // remove leading '/'
     debug("gc: dir = '$dir'   full_dir = '$full_dir'   attdir = '$attdir'");
     $dirlist = [];
     // Get the subdirectories first
@@ -248,9 +223,9 @@ function move_callback () {
     check_permission_ajax();
 
     $dir_from      = get_dirname('dir_from');   // e.g. '/' or '/photos/'
-    $full_dir_from = check_path_name($upload_dir . $dir_from);  // strip '..' etc. and check it exists
+    $full_dir_from = check_path_name($upload_dir . $dir_from, 'Source folder name');  // strip '..' etc. and check it exists
     $dir_to        = get_dirname('dir_to');     //    ditto
-    $full_dir_to   = check_path_name($upload_dir . $dir_to);
+    $full_dir_to   = check_path_name($upload_dir . $dir_to, 'Target folder name');
     $item_from     = get_basename('item_from'); // e.g. 'foo.jpg' or 'images/foo.jpg'.  NOTE no leading '/'
                                                 //        and it's relative to $dir_from
     $item_to       = get_basename('item_to');   //    ditto
