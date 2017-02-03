@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
 function enqueue_scripts() {
     debug('started');
-	#wp_enqueue_script('jquery');
+	// (jquery is already loaded by WP for admin pages)
 
 #    wp_enqueue_script('mocd_jqueryui', 
 #        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.js', __FILE__), // TODO use .min.js in prod
@@ -14,9 +14,9 @@ function enqueue_scripts() {
 #        plugins_url('/lib/jquery-ui-1.12.1.custom/jquery-ui.css', __FILE__), // TODO use .min.css in prod
 #        []);
     // These are already in WP! -- but won't have the context or default style of ours...
-    wp_enqueue_script('jquery-ui-dialog');
+#    wp_enqueue_script('jquery-ui-dialog');
     wp_enqueue_style('wp-jquery-ui-dialog');
-    wp_enqueue_script('jquery-ui-progressbar');
+#    wp_enqueue_script('jquery-ui-progressbar');
     wp_enqueue_style('wp-jquery-ui-progressbar');
 
 	wp_enqueue_style("mocd-style", plugins_url('style.css', __FILE__));
