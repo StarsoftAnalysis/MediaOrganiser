@@ -1,9 +1,9 @@
 === Media Organiser ===
 Contributors: ChrisDennis 
 Donate link: http://fbcs.co.uk/
-Tags: media,file,manager,explorer,relocate,folder,folders,files,rename,make directory,directories,organize,organizer,select,selector,database
+Tags: media,file,manager,explorer,relocate,folder,folders,files,rename,make directory,directories,organize,organise,organizer,organiser,select,selector,database
 Requires at least: 4.3.0
-Tested up to: 4.6.1
+Tested up to: 4.7.2
 Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
