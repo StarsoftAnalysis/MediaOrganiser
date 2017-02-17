@@ -21,39 +21,32 @@ function enqueue_scripts() {
 
 	wp_enqueue_style("mocd-style", plugins_url('style.css', __FILE__));
     wp_enqueue_script("mocd-relocator", plugins_url('media-relocator.js', __FILE__));
-    global $invalid_itemname_chars;
+    global $invalid_itemname_chars, $plugin_images_url;
     wp_localize_script(
         "mocd-relocator", 
         'mocd_array', 
         [
             'nonce' => wp_create_nonce('mocd_relocator'),
             'invalid_itemname_chars' => $invalid_itemname_chars,
+            'plugin_images_url' => $plugin_images_url,
         ]
     );
 }
 
 // Echo the html for either the left or right pane
 function pane_html ($side) {
-    global $plugin_url;
-    debug('pane_html');
+    global $plugin_images_url;
+    #debug('pane_html');
 	echo '<div class="mocd_wrapper_pane" id="mocd_', $side, '_wrapper">';
-	echo '<div class="mocd_box1">';
-    echo '<p class=mocd_path id=mocd_', $side, '_path>';
-    echo '<div class="mocd_dir_up  mocd_clickable" id="mocd_', $side, 
-        '_dir_up"  title="Show parent folder"><img src="', $plugin_url, '/images/dir_up.png"></div>';
-    echo '<div class="mocd_dir_new mocd_clickable" id="mocd_', $side, 
-        '_dir_new" title="Create new folder" ><img src="', $plugin_url, '/images/dir_new.png"></div>';
-	echo '</div>';
-	echo '<div style="clear:both;"></div>';
-    // This is the div that gets filled in with the dir listing in JS
+    echo '<div class="mocd_pane_header" id="mocd_', $side, '_header"></div><br>';
 	echo '<div class="mocd_pane" id="mocd_', $side, '_pane"></div>';
-	echo '</div>';
+	echo '</div>'; // mocd_wrapper_pane
     
     // HTML for renaming dialog -- initially hidden  TODO do we really need one for each side?
     echo '<div id="mocd_', $side, '_rename_dialog" title="Rename File or Folder" style="display: none;">';
     #echo '<p class="validateTips">Enter the new item name:</p>';
     echo '<form><fieldset>';
-    echo '<label for="mocd_"', $side, '_rename">New name: </label>';
+    echo '<label for="mocd_', $side, '_rename">New name: </label>';
     echo '<input type="text" name="mocd_', $side, '_rename" id="mocd_', $side, '_rename" value="">';
     echo '<div id="mocd_', $side, '_rename_error"></div>';
     echo '<input type="hidden" name="mocd_', $side, '_rename_i" id="mocd_', $side, '_rename_i" value="">';
@@ -70,11 +63,18 @@ function pane_html ($side) {
 
 // Run the main Media Organiser admin page
 function main_page () {
-    global $plugin_url;
+    global $plugin_images_url;
 
-    debug('>>>> mocd main_page()');
+    #debug('>>>> mocd main_page()');
 	echo '<div class="wrap" id="mocd_wrap">';
 	echo '<h2>Media Organiser</h2>';
+    echo '<ul class=mocd_blurb>';
+    echo '<li>Select files and folders using the tick boxes, and then click one of the big arrows to move ',
+        'them to the other side.</li>';
+    echo '<li>Click on a folder icon to open the folder.</li>';
+    echo '<li>Click on the <img src="', $plugin_images_url, 'dir_up.png" class=mocd_inline_icon alt="up icon"> folder to go up a level. ';
+    echo 'Click on the <img src="', $plugin_images_url, 'dir_new.png" class=mocd_inline_icon alt="new icon"> folder to create a new one.</li>';
+    echo '</ul>';
 
 	echo '<div id="mocd_wrapper_all">';
 
@@ -82,9 +82,9 @@ function main_page () {
 
 	echo '<div id="mocd_center_wrapper">';
     echo '<div id="mocd_btn_left2right" class="mocd_clickable" title="Move selected items to the folder on the right">';
-    echo '<img src="', $plugin_url, '/images/right.png"></div>';
+    echo '<img src="', $plugin_images_url, 'right.png" alt="right arrow"></div>';
     echo '<div id="mocd_btn_right2left" class="mocd_clickable" title="Move selected items to the folder on the left">';
-    echo '<img src="', $plugin_url, '/images/left.png"></div>';
+    echo '<img src="', $plugin_images_url, 'left.png" alt="left arrow"></div>';
     echo '</div>';
     // Progress bar -- initially hidden
     echo '<div id="mocd_progressbar" style="display: none;"><div id="mocd_progresslabel">Moving: </div></div>';

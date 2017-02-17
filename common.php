@@ -29,4 +29,11 @@ function settings_menu () {
 add_action('admin_menu', NS . 'plugin_menu');
 add_action('admin_menu', NS . 'settings_menu');
 
+# No -- this is too general -- possibly belongs in a theme
+#// Filters to make URLs relative
+#// TODO need some more of these
+#add_filter('wp_get_attachment_thumb_url', NS . 'mocd_relative_url', 10, 2);
+
+
+
 ?>

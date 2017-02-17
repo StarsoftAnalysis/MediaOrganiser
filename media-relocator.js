@@ -2,17 +2,25 @@
 // namespace:
 var mocd = mocd || {};
 
+
+// TODO:
+//  make big arrows light up when any box is selected 
+// jQuery('#mocd_btn_left2right').click(function() {
+
 mocd.ajax_count = 0;    // no. of outstanding ajax calls
 
 mocd.pane_right = {};	// Pane class objects
 mocd.pane_left = {};
 
+// TODO this is ugly -- needs to match with CSS
 mocd.adjust_layout = function () {
-	var width_all = jQuery('#mocd_wrapper_all').width();
+    return; // try to do without this
+	var width_all = jQuery('#mocd_wrapper_all').width(); // in pixels
 	var width_center = jQuery('#mocd_center_wrapper').width(); 
-	var height_mocd_box = jQuery('.mocd_box1').height();
+	//var height_mocd_box = jQuery('.mocd_box1').height();  could use this to move arrows down
 	var pane_w = (width_all - width_center)/2 - 2;
-	jQuery('.mocd_wrapper_pane').width(pane_w);
+    console.log('adjust_layout: ', pane_w, ' = (', width_all, ' - ', width_center, ')2 - 2');
+	jQuery('.mocd_wrapper_pane').width(pane_w); // pixels by default
 	jQuery('.mocd_path').width(pane_w);
 	jQuery('.mocd_pane').width(pane_w);
 }
@@ -233,10 +241,11 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
 // **** Pane class *******************************************************************
 var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'mocd_right'
 	this.cur_dir = "";
-	this.dir_list = new Array();
-	//this.dir_disp_list = new Array();   // NOT NEEDED -- now they're all displayed
+	this.dir_list         = new Array(); // array of objects describing each item:
+        // 'name', 'post_id', 'isdir', 'isemptydir', 'exit', 'thumbnail_url'
 	this.id_root          = id_root;
-	this.wrapper          = jQuery('#' + id_root + "_wrapper");  // TODO store the jQuery thing, not just the id (?)
+	this.wrapper          = jQuery('#' + id_root + "_wrapper");
+	this.header           = jQuery('#' + id_root + "_header");
 	this.id_pane          = id_root + "_pane";
     this.pane             = jQuery('#' + this.id_pane);
 	this.dir_name         = jQuery('#' + id_root + "_path");
@@ -253,21 +262,50 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
 
 	var thispane = this;
 
-	this.dir_up_btn.click(function(ev) {
+    // Handle click on 'up' icon
+	this.header.on('click', '.mocd_dir_up', function(ev) {
 		if (mocd.ajax_count > 0     ||
 		    thispane.cur_dir == '/'    ) {
             return;
         }
 		thispane.chdir("..");
 	});
+    
+    // Set up new dir button and dialog
+	this.header.on('click', '.mocd_dir_new', function () {
+        thispane.newdir_dialog.dialog("open");
+    });
+    this.newdir_field.keypress(this.filter_item_name_characters);
+    this.newdir_dialog = jQuery("#" + this.id_newdir_dialog).dialog({
+        appendTo: '#mocd_wrap',
+        autoOpen: false,
+        resizable: false,
+        modal: true,
+        buttons: {
+            "Create": thispane.newdir_dialog_callback.bind(thispane, 'x42'),
+            Cancel: function() {
+                thispane.newdir_dialog.dialog("close");
+            }
+        },
+        open: function (event, ui) {
+            //console.log('opening dialog');
+        },
+        close: function() {
+            thispane.newdir_field.removeClass("ui-state-error");
+            thispane.newdir_error.empty();
+        }
+    });
 
     // 'Select All' box affects all boxes on this pane
     // (but only for files, not folders)
+    // (and not if check box is disabled 'cos of clashing name)
 	jQuery('div.mocd_pane').on('click', '#' + this.id_pane + '_ck_all', function(ev) {
         var all_checked = this.checked;
+        // TODO would it be more efficient to loop through dir_list rather than chekboxes?? maybe not
         jQuery('.' + thispane.id_pane + '_ck').each(function () {
             var idx = thispane.get_idx_from_id(this.id);
-            if (!thispane.dir_list[idx].isdir) {
+            if (!thispane.dir_list[idx].isdir &&
+                !thispane.opposite.in_dir_list(thispane.dir_list[idx].name)) {
                 this.checked = all_checked;
             }
         });
@@ -304,31 +342,6 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
         close: function() {
             thispane.rename_field.removeClass("ui-state-error");
             thispane.rename_error.empty();
-        }
-    });
-    
-    // Set up new dir dialog
-	this.dir_new_btn.click(function () {
-        thispane.newdir_dialog.dialog("open");
-    });
-    this.newdir_field.keypress(this.filter_item_name_characters);
-    this.newdir_dialog = jQuery("#" + this.id_newdir_dialog).dialog({
-        appendTo: '#mocd_wrap',
-        autoOpen: false,
-        resizable: false,
-        modal: true,
-        buttons: {
-            "Create": thispane.newdir_dialog_callback.bind(thispane, 'x42'),
-            Cancel: function() {
-                thispane.newdir_dialog.dialog("close");
-            }
-        },
-        open: function (event, ui) {
-            //console.log('opening dialog');
-        },
-        close: function() {
-            thispane.newdir_field.removeClass("ui-state-error");
-            thispane.newdir_error.empty();
         }
     });
 
@@ -419,16 +432,19 @@ MOCDPaneClass.prototype.setdir = function(dir) {
 		dir:    dir,
         nonce:  mocd_array.nonce
 	};
-	var that = this;
+	var thispane = this;
 	mocd.ajax_count_in();
 	jQuery.post(ajaxurl, data, function(response) {
         if (response.success) {
             // Process the json directory from ajax,
             // create the html, and store the list
-            that.dir_list = that.set_dir(data.dir, response.data);
+            thispane.dir_list = thispane.display_dir(data.dir, response.data);
             // Adjust layout here because a long list will cause the
             // window to get a vertical scrollbar, and become narrower
             mocd.adjust_layout();
+            // And adjust button/checkbox status too 
+            thispane.adjust_buttons();
+            thispane.opposite.adjust_buttons();
         } else {
             mocd.display_response(response);
         }
@@ -436,20 +452,43 @@ MOCDPaneClass.prototype.setdir = function(dir) {
 	});
 }
 
+
 // TODO rename this -- too similar to setdir
-// function name: MOCDPaneClass::set_dir
+// function name: MOCDPaneClass::display_dir
 // description : display directory list sent from server
 //               in response to mocd_getdir ajax request              
-MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
+MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
 	//var dir;
     var thispane = this;
 
 	this.cur_dir = target_dir;
-	this.dir_name.text('Folder: ' + mocd.htmlEncode(target_dir)); 
+	// now in html below  this.dir_name.text(mocd.htmlEncode(target_dir)); 
 	this.disp_num = 0;
 
 	var html = "";
     var thumb_url = '';
+
+    // Add html for path, 'up' and 'new' dirs to the relevant div
+    html += '<p class=mocd_path id=' + this.id_root + '_path>';
+    html += mocd.htmlEncode(target_dir);
+    // TODO only display dir_up if not at root -- this part is currently not dynamic
+    // FIXME mocd_clickable doesn't happen -- too late
+    // so remove mocd_clickable? -- just changes pointer shape
+    var up_icon_class = 'mocd_clickable';
+    if (this.cur_dir === '/') {
+        // can't go up
+        up_icon_class = 'mocd_greyed';
+    }
+    html += '<div class="mocd_dir_up ' + up_icon_class + '" id=' + this.id_root + 
+        '_dir_up"  title="Show parent folder"><img src="' + mocd_array.plugin_images_url + 'dir_up.png" alt="up icon"></div>';
+    html += '<div class="mocd_dir_new mocd_clickable" id="mocd_' + this.id_root +
+        '_dir_new" title="Create new folder" ><img src="' + mocd_array.plugin_images_url + 'dir_new.png" alt="new icon"></div>';
+    this.header.html(html);
+
+    html = '';
+//	html += '<br>'; //'<div style="clear:both;"></div>';
+    // This is the div that gets filled in with the dir listing in JS
+//	html += '<div class="mocd_pane" id="mocd_' + this.id_root + '_pane">';
 
     html += '<ul class=mocd_pane_list>';
 
@@ -485,7 +524,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
         var dirclass = item.isdir ? ' mocd_clickable' : '';
         // 1st cell contains the image
 		html += '<div class="mocd_pane_cell">';
-		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '">';
+		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '" alt="thumbnail">';
 		html += '</div>';
         // 2nd cell contains: text <br> box button button
         html += '<div class="mocd_pane_cell">'; // b
@@ -506,6 +545,7 @@ MOCDPaneClass.prototype.set_dir = function (target_dir, dir) {
         html += '</li>';
 	}
     html += '</ul>';
+//    html += '</div>'; // mocd_pane
     this.pane.html(html);
 
     // Now that the items are in the DOM,
@@ -669,10 +709,6 @@ MOCDPaneClass.prototype.ajax_delete_empty_dir = function (name) {
     });
 }
 
-// TODO a new 'set_checkboxes' function that disables checkboxes
-// for items that have items with the same name in the opposite pane
-// -- if both sides are the same, then can't do any moving!!! TODO
-
 // See if an item exists in the pane; return its index or false
 MOCDPaneClass.prototype.name_exists = function (str) {
 	for (var i = 0; i < this.dir_list.length; i++) {
@@ -684,7 +720,7 @@ MOCDPaneClass.prototype.name_exists = function (str) {
 }
 
 // Assumes 'dir' has no slashes; this.cur_dir has start and end slashes.
-// If not changing directory, runs set_dir anyway to refresh the pane.
+// If not changing directory, runs setdir anyway to refresh the pane.
 MOCDPaneClass.prototype.chdir = function (dir) {
 	//var last_chr = this.cur_dir.substr(this.cur_dir.length-1,1);
 	var new_dir = this.cur_dir;
@@ -701,6 +737,39 @@ MOCDPaneClass.prototype.chdir = function (dir) {
         new_dir += dir + '/';
 	}
 	this.setdir(new_dir);
+}
+
+// Return true if the given item name is in the pane's dir_list
+MOCDPaneClass.prototype.in_dir_list = function (name) {
+    for (var i = 0; i < this.dir_list.length; i++) {
+        if (name === this.dir_list[i].name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Enable/disable buttons and checkboxes
+MOCDPaneClass.prototype.adjust_buttons = function () {
+    // If both sides are the same folder, disable all checkboxes
+    if (this.cur_dir == this.opposite.cur_dir) {
+        jQuery('.' + this.id_pane + '_ck').attr('disabled', true);
+	    jQuery('#' + this.id_pane + '_ck_all').attr('disabled', true);
+        // TODO disable select all too
+    // Else enable them TODO only if no clashing name
+    } else {
+        jQuery('.' + this.id_pane + '_ck').attr('disabled', false);
+        var all_files_disabled = true;
+        // Disable the ones with clashing names
+        for (var i = 0; i < this.dir_list.length; i++) {
+            if (this.opposite.in_dir_list(this.dir_list[i].name)) {
+                jQuery('#' + this.get_chkid(i)).attr('disabled', true);
+            } else {
+                all_files_disabled = false;
+            }
+        }
+	    jQuery('#' + this.id_pane + '_ck_all').attr('disabled', all_files_disabled);
+    }
 }
 
 // Handle the Action drop-down -- rename, move, or delete.

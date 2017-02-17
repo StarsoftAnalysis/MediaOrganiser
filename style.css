@@ -2,7 +2,7 @@
 	/*width:300px;
 	height:450px;*/
 	/* overflow:scroll; FIXME??? */
-	bborder: solid 1px #f00;
+	/* bborder: solid 1px #f00; */
 }
 
 ul.mocd_pane_list {
@@ -16,6 +16,16 @@ li#mocd_pane_select_all {
 li.mocd_pane_item {
     display: table-row; /* doesn't allow margin or padding */
 }
+
+/* Blurb at top of relocator page */
+ul.mocd_blurb {
+}
+img.mocd_inline_icon {
+    height: 1em; 
+    min-height: 16px;
+    vertical-align: baseline;
+}
+
 
 /* table-cells can't have margins, so apply margins  */
 /* to the things IN the cell                         */
@@ -43,7 +53,7 @@ li.mocd_pane_item {
 	/*width:800px;*/
 	width:auto;
 	/*height:655px;*/
-	xborder: solid 1px #0ff;
+	/*xborder: solid 1px #0ff;*/
 }
 
 #mocd_wrapper_all div {
@@ -51,23 +61,23 @@ li.mocd_pane_item {
     vertical-align: top;
 }
 
+/* Pane's folder name */
 .mocd_path {
-	/*float:left;
-	width:auto;
-	height:18px;*/
-	background-color:#ddd;
-	/*border: 1px solid #888;*/
-	font-size: 14px;
+	/* background-color:#ddd;
+	border: 1px solid #888; */
+	font-size: 18px;
+    line-height: 1.3;
     font-weight: bold;
-	padding: 3px; 
+    padding: 0;
 }
 
 .mocd_wrapper_pane {
-	xfloat:left;
+	/* xfloat:left; */
     display: inline-block;
-	xwidth:303px;
+    width: 47.4%; /*calc(50% - 26px); /* allow for center wrapper */
+	/* xwidth:303px;
 	xheight:540px;
-	xborder: solid 1px #ff0;
+	xborder: solid 1px #ff0; */
 }
 
 .mocd_pane_list div {
@@ -79,24 +89,24 @@ li.mocd_pane_item {
 	cursor: pointer;
 }
 
-.mocd_box1{
-	xposition:relative;
-	xwidth:200px;
-	xheight:75px;
-	padding:0 0 5px 0;
-}
-
 .mocd_filename {
-	xborder: solid 0px #f00;
+	/*xborder: solid 0px #f00;*/
 }
 
 .mocd_dir_up {
-	xfloat:left;
-	xpadding:3px;
+	/*xfloat:left;
+	xpadding:3px;*/
     padding-right: 8px;
 }
+
+/* Greyed-out icon */
+.mocd_greyed {
+    opacity: 0.4;
+    filter: alpha(opacity=40); /* msie */
+}
+
 .mocd_dir_new {
-	xfloat:left;
+	/*xfloat:left;*/
     padding-right: 8px;
 }
 /*.mocd_select_all {
@@ -122,18 +132,18 @@ li.mocd_pane_item {
 */
 
 #mocd_center_wrapper {
-	xwidth: 34px;
-	xfloat:left;
-	xborder: solid 1px #00f;
+	width: 5%; /* adjust in line with mocd_wrapper_pane */
     padding-top: 10em;
+    height: 100%;
+    /* border: 1px solid black; */
 }
 
 div#mocd_btn_left2right {
-	xpadding:10px 5px 0 5px;
+	/*xpadding:10px 5px 0 5px;*/
     display: block;
 }
 div#mocd_btn_right2left {
-	xpadding:10px 5px 0 5px;
+	/*xpadding:10px 5px 0 5px;*/
     display: block;
 }
 div#mocd_btn_left2right img,
@@ -162,16 +172,18 @@ div#mocd_btn_right2left img {
 */
 
 /* Mini dialogue  obsolete */
+/*
 #mocd_input_text {
-	position: fixed; /*absolute;*/
+	position: fixed; /*absolute;*
     z-index: 999;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* centre it on the given point */
+    transform: translate(-50%, -50%); /* centre it on the given point *
 	border: 1px solid #777;
 	background-color: #eee;
 	padding: 4px;
 }
+*/
 
 .mocd_input_text_button_wrapper {
 	margin-top: 4px;
@@ -209,6 +221,21 @@ div#mocd_btn_right2left img {
     font-weight: bold;
     text-shadow: 1px 1px 0 #fff;
 }
+
+/* Use border-box for everything in our scope */
+/* from https://css-tricks.com/box-sizing/ */
+/*
+div#mocd_wrap {
+    box-sizing: border-box; 
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+}
+div#mocd_wrap *, div#mocd_wrap *:before, div#mocd_wrap *:after {
+    box-sizing: inherit;
+    -webkit-box-sizing: inherit;
+    -moz-box-sizing: inherit;
+}
+*/
 
 #mocd_wrap .ui-progressbar-value {
     height: 1.5em;

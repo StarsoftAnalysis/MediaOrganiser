@@ -8,27 +8,58 @@ function remove_prefix ($prefix, $text) {
     return $text;
 }
 
+// Make an URL relative
+function relative_url ($absurl) {
+    #debug('relative_url  abs=', $absurl);
+    $relurl = remove_prefix(site_url(), $absurl);
+    #debug('relative_url  rel=', $relurl);
+    return $relurl;
+}
+
 // --------------------------------------------------------------------------------------
 
 // Set up globals (within our namespace)
-// Directories and URLs -- none of these will end in '/'
+// Directories and URLs
 #    ABSPATH /var/www/rotarywp-dev/
-#   __FILE__ /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd/functions.php  
-#       d(F) /var/www/rotarywp-dev/wp-content/plugins/media-file-manager-cd                    
-#    b(d(F)) media-file-manager-cd                                                          
-$plugin_url = plugins_url() . "/" . basename(dirname(__FILE__));  // used for URLs of icon images etc.
+#   __FILE__ /var/www/rotarywp-dev/wp-content/plugins/media-organiser/functions.php  
+#       d(F) /var/www/rotarywp-dev/wp-content/plugins/media-organiser
+#    b(d(F)) media-organiser
+
+# From https://codex.wordpress.org/Function_Reference/plugins_url
+# home_url()        Home URL                                 http://www.example.com
+# site_url()        Site directory URL                       http://www.example.com or http://www.example.com/wordpress
+# admin_url()       Admin directory URL                      http://www.example.com/wp-admin
+# includes_url()    Includes directory URL                   http://www.example.com/wp-includes
+# content_url()     Content directory URL                    http://www.example.com/wp-content
+# plugins_url()     Plugins directory URL                    http://www.example.com/wp-content/plugins
+# theme_url()       Themes directory URL (#18302)            http://www.example.com/wp-content/themes
+# wp_upload_dir()   Upload directory URL (returns an array)  http://www.example.com/wp-content/uploads
+
+#debug('1', plugins_url());
+#debug('2', plugins_url('functions.php'));
+#debug('3', plugins_url('fred.jpg', __FILE__));
+#debug('4', plugins_url('', __FILE__));
+#debug('ABSPATH:', ABSPATH);
+
+$plugin_dir = basename(dirname(__FILE__));  // e.g. 'media-organiser'   ?? NEEDED?
+$plugin_url = remove_prefix(site_url(), plugins_url('', __FILE__)) . '/';  // e.g. '/wp-content/plugins/media-organiser/' -- relative!
+$plugin_images_url = $plugin_url . 'images/';
+#debug('plugin_url: ', $plugin_url);
+#debug('plugin_images_url: ', $plugin_images_url);
+
 $upload = wp_upload_dir();
 if ($upload['error']) {
     debug('failed to get WP upload directory: ' . $upload['error']);
+    # TODO message to the user?
     return;
 }
 $upload_dir = $upload['basedir'];
 $upload_url = $upload['baseurl'];
 // !! need separate UPLOAD_URL_REL and $upload_dir_REL because separator may not be
 //    '/' in a dir, but always is in an URL.
-// TODO _url_rel might not be needed after all
+// FIXME should be using relative urls!!
 $upload_dir_rel = DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, $upload_dir);
-$upload_url_rel = '/' . remove_prefix(ABSPATH, $upload_dir);
+$upload_url_rel = '/' . remove_prefix(ABSPATH, $upload_url); // always '/' in an URL
 
 // Check if 'name' contains any characters that are invalid
 // for a file or folder (not path) name
@@ -66,31 +97,6 @@ $select_cap   = 'mocd_select';
 
 // --------------------------------------------------------------------------------------
 
-/* Obsolete
-// test permission for accessing media file manager
-// Returns one of the matching roles, or false
-function test_mfm_permission () {
-	$current_user = wp_get_current_user();
-    if (empty($current_user)) {
-        debug('failed to get current_user');
-        return false;
-    }
-	$roles = $current_user->roles;
-    $accepted_roles = get_option("mocd_relocator_roles", "administrator"); // 2nd arg is default, used if option not found
-    #debug('roles = ', $roles);
-    #debug('... accepted roles = ', $accepted_roles);
-	$accepted = explode(",", $accepted_roles);
-    // Return one of the matching roles    TODO just return true or false
-    $matches = array_intersect($accepted, $roles);
-    #debug('... matches = ', $matches);
-    if ($matches) {
-        return array_pop($matches);
-        # $matches[0];  doesn't work 'cos first element might be $matches[6]
-    }
-    return FALSE;
-}
- */
-
 // Return a list of files and subdirectories within the given directory.
 // sorted alphabetically, and excluding '.' and '..'
 function scandir_no_dots ($dir) {
@@ -125,21 +131,25 @@ function request_data ($field) {
 // Provide icons for those without thumbnails
 // TODO: pdfs?
 function thumbnail_url ($fname, $mimetype = '', $id = null) {
-    global $upload_url, $plugin_url;
+    global $upload_url, $plugin_images_url;
     #debug("turl: '$fname' '$mimetype' '$id'");
     if (isimage($fname, $mimetype)) {
         if ($id && $url = wp_get_attachment_thumb_url($id)) {
-            #debug('turl returning: ', $url);
+            // that returns a proper thumbnail if there is one,
+            // otherwise a bigger image.
+            // And the squareness of the thumbnail depends on site settings.
+            $url = relative_url($url);
+            debug('turl 1 returning: ', $url);
             return $url;
         } 
-        #debug('turl returning: ', UPLOAD_URL . '/' . $fname);
-        return $upload_url . '/' . $fname;
+        debug('turl 2 returning: ', $upload_url_rel . '/' . $fname);
+        return $upload_url_rel . '/' . $fname;
     } elseif (isaudio($fname, $mimetype)) {
-        return $plugin_url . "/images/audio.png";
+        return $plugin_images_url . "audio.png";
     } elseif (isvideo($fname, $mimetype)) {
-        return $plugin_url . "/images/video.png";
+        return $plugin_images_url . "video.png";
     }
-    return $plugin_url . "/images/file.png";
+    return $plugin_images_url . "file.png";
 }
 
 function isimage ($fname, $mimetype = '') {

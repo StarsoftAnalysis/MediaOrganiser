@@ -81,7 +81,7 @@ function getdir_callback () {
     debug('getdir_callback');
     check_nonce();
     global $wpdb;
-    global $plugin_url, $upload_dir, $upload_dir_rel;
+    global $plugin_images_url, $upload_dir, $upload_dir_rel;
     check_permission_ajax();
 
     $dir = get_dirname('dir');   // e.g. '/' or '/photos/'
@@ -98,7 +98,7 @@ function getdir_callback () {
             'isdir'         => true,
 			'isemptydir'    => isEmptyDir($full_dir . "/" . $sdir),
             'exists'        => true,
-            'thumbnail_url' => $plugin_url . '/images/dir.png'
+            'thumbnail_url' => $plugin_images_url . 'dir.png'
         ];
     }
     // Then get the attachments in this directory
