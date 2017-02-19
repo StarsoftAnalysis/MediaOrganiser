@@ -139,10 +139,10 @@ function thumbnail_url ($fname, $mimetype = '', $id = null) {
             // otherwise a bigger image.
             // And the squareness of the thumbnail depends on site settings.
             $url = relative_url($url);
-            debug('turl 1 returning: ', $url);
+            #debug('turl 1 returning: ', $url);
             return $url;
         } 
-        debug('turl 2 returning: ', $upload_url_rel . '/' . $fname);
+        #debug('turl 2 returning: ', $upload_url_rel . '/' . $fname);
         return $upload_url_rel . '/' . $fname;
     } elseif (isaudio($fname, $mimetype)) {
         return $plugin_images_url . "audio.png";

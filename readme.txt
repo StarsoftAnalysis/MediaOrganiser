@@ -4,7 +4,7 @@ Donate link: http://fbcs.co.uk/
 Tags: media,file,manager,explorer,relocate,folder,folders,files,rename,make directory,directories,organize,organise,organizer,organiser,select,selector
 Requires at least: 4.3.0
 Tested up to: 4.7.2
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,12 @@ It does not yet have the 'media selector' function of Media File Manager.
 
 == Requirements ==
 
+* MySQL database engine that does transactions, otherwise things will get out
+of wack of something goes wrong when renaming files.
+Information on changing engines can be found at
+    https://easyengine.io/tutorials/mysql/myisam-to-innodb/
+The tables that are affected are `wp_posts` and `wp_postmeta`.
+
 
 == Acknowledgements ==
 
@@ -34,6 +40,8 @@ Icons adapted from https://github.com/iconic/open-iconic
 == Known issues ==
 
 * may not work on sites hosted on a Windows server -- haven't checked the use of directory separators yet
+* uses database transactions -- so requires a database engine that can do
+  commit/rollback, such as InnoDB.
 * does its best to make changes atomic, but things could go wrong if something
   changes in the middle of renaming files
 * no internationalization (yet)
@@ -55,7 +63,10 @@ Then go to Settings / Media Organiser to give the Administrator (and other roles
 
 == Changelog ==
 
+= 0.1.2
 
+* Added code to cope with duplicated secondary files.
+* Documented requirement for transaction-capable database engine.
 
 = 0.1.1
 

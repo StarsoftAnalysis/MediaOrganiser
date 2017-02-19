@@ -419,15 +419,17 @@ function move_callback () {
                 and meta_key = '_wp_attachment_metadata'";
             $row = $wpdb->get_row($sql, ARRAY_A);
              
-            if (is_null($row)) {
+            if (is_null($row)) 
              */
             if ($metadata === false) {
-                debug('nmc: theres no metadata, thats ok');
+                #debug('nmc: theres no metadata, thats ok');
                 #throw new \Exception('Failed to get attachment with post_id ' . $post_id);
             } else {
-                #debug('results: ', $row);
-                #$metadata = unserialize($row['meta_value']);
-                #debug('metadata: ', $metadata);
+                if (strpos($dir_from, 'swanage') != false) {
+                    debug('results: ', $row);
+                    $unser = unserialize($row['meta_value']);
+                    debug('metadata: ', $unser);
+                }
                 // Metadata is like:
                 //    [width] => 400
                 //    [height] => 600
@@ -445,7 +447,9 @@ function move_callback () {
                 $metadata['file'] = $file_to_rel;
 
                 // Move secondary files, renaming if required
+                $to_files = []; // see below
                 foreach ($metadata['sizes'] as $sizename => $size) {
+                    debug('secondary loop: ', $sizename, $size);
                     $oldsec = $size['file'];
                     $newsec = '';
                     if ($item_to == $item_from) {
@@ -457,29 +461,41 @@ function move_callback () {
                     }
                     $path_from = $upload_dir . $dir_from . $oldsec;
                     $path_to   = $upload_dir . $dir_to   . $newsec;
+                    debug('pre-checking if exists', $path_to);
                     // 'rename' will overwrite, so check first
-                    if (file_exists($path_to)) {
-                        throw new \Exception("Secondary file '$newsec' already exists");
-                    }
-                    debug("renaming secondary '$path_from' to '$path_to'");
-                    // TODO last_error_msg is too wordy - just the bit after the last colon?
-                    // TODO if secondary file doesn't exist, we might as well carry on regardless.
-                    if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
-                        $lem = last_error_msg();
-                        if (preg_match('/no such file/i', $lem)) {
-                            debug("Secondary file '$path_from' not found -- no worries");
-                        } else {
-                            throw new \Exception("Failed to rename '$dir_from$oldsec' to '$dir_to$newsec'. Reason: $lem");
-                        }
+                    // FIXME it might already exist if metadata has duplicate entries
+                    // NOTE -- it's possible (but wrong) for there to be duplicate
+                    //  secondaries in the metadata, in which case we shouldn't give up 
+                    //  if the file exists already.
+                    //  So keep track of files moved, and don't worry about duplicates
+                    if (array_key_exists($newsec, $to_files)) {
+                        // we've done this file before, don't try again
+                        debug('secondary duplicate skipped: ', $newsec);
                     } else {
-                        $renamed[] = ['from' => $path_from, 'to' => $path_to];
-                        // Note the edit
-                        #$edits[] = ['a' => 'metadata', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
-                        $edits[] = [
-                            'a'    => 'metadata', 
-                            'from' => $upload_dir_rel . $dir_from . $oldsec, 
-                            'to'   => $upload_dir_rel . $dir_to . $newsec
-                        ];
+                        if (file_exists($path_to)) {
+                            throw new \Exception("Secondary file '$newsec' already exists [code 1]");
+                        }
+                        debug("renaming secondary '$path_from' to '$path_to'");
+                        $to_files[$newsec] = true;
+                        // TODO last_error_msg is too wordy - just the bit after the last colon?
+                        // TODO if secondary file doesn't exist, we might as well carry on regardless.
+                        if (!rename($path_from, $path_to)) {  // puts a warning in the log on failure
+                            $lem = last_error_msg();
+                            if (preg_match('/no such file/i', $lem)) {
+                                debug("Secondary file '$path_from' not found -- no worries");
+                            } else {
+                                throw new \Exception("Failed to rename '$dir_from$oldsec' to '$dir_to$newsec'. Reason: $lem");
+                            }
+                        } else {
+                            $renamed[] = ['from' => $path_from, 'to' => $path_to];
+                            // Note the edit
+                            #$edits[] = ['a' => 'metadata', 'from' => ltrim($dir_from . $oldsec, '/'), 'to' => ltrim($dir_to . $newsec, '/')];
+                            $edits[] = [
+                                'a'    => 'metadata', 
+                                'from' => $upload_dir_rel . $dir_from . $oldsec, 
+                                'to'   => $upload_dir_rel . $dir_to . $newsec
+                            ];
+                        }
                     }
                     #'P1040025.jpg' to '/wp-content/uploadsP1040025.jpgP1040025-150x150.jpg'
                     // TODO ?? optimization -- posts often have e.g. the thumbnail and a link to the full size one,
@@ -492,7 +508,7 @@ function move_callback () {
                 $rc = $wpdb->update($wpdb->postmeta,
                     ['meta_value' => $serialized],
                     ['post_id' => $post_id, 'meta_value' => '_wp_attachment_metadata']);
-                if ($rc === false) {
+                if ($rc === false) 
                 */
                 if (wp_update_attachment_metadata($post_id, $metadata) === false) {
                     throw new \Exception('Failed to update attachment metadata' . db_error());
@@ -554,7 +570,7 @@ function move_callback () {
                     and meta_key = '_wp_attachment_backup_sizes'";
                 $row = $wpdb->get_row($sql, ARRAY_A);
                 if (is_null($row)) {
-                    debug('nmc: therere no backup sizes, thats ok');
+                    #debug('nmc: therere no backup sizes, thats ok');
                     #throw new \Exception('Failed to get attachment with post_id ' . $post_id);
                 } else {
                     #debug('results: ', $row);
@@ -575,6 +591,7 @@ function move_callback () {
                         $path_from = $upload_dir . $dir_from . $oldsec;
                         $path_to   = $upload_dir . $dir_to   . $newsec;
                         // 'rename' will overwrite, so check first
+                        // FIXME copy duplicates check from above
                         if (file_exists($path_to)) {
                             throw new \Exception("Backup file '$newsec' already exists");
                         }
@@ -635,9 +652,9 @@ function move_callback () {
 
             $rc = $wpdb->query($sql);
             debug('>>> rc', $rc);
-            if ($rc === false) {
+            if ($rc === false) 
                 throw new \Exception('Failed to replace name in post content');
-            }
+            
             $post_count += $rc; */
         }
 
@@ -649,6 +666,7 @@ function move_callback () {
         ajax_response(true, 'Successful');
 
     } catch (\Exception $e) {
+        // FIXME moving the attachment back doesn't happen
         // if that fails, rename it back...
         debug('nmc: caught exception: ', $e->getMessage());
         debug('... rolling back and re-renaming');
