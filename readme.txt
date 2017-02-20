@@ -67,6 +67,8 @@ Then go to Settings / Media Organiser to give the Administrator (and other roles
 
 * Added code to cope with duplicated secondary files.
 * Documented requirement for transaction-capable database engine.
+* Automatically grant capabilities to administrators.
+* Better CSS for small screens.
 
 = 0.1.1
 

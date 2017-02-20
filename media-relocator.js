@@ -5,7 +5,7 @@ var mocd = mocd || {};
 
 // TODO:
 //  make big arrows light up when any box is selected 
-// jQuery('#mocd_btn_left2right').click(function() {
+// jQuery('#mocd_left_send').click(function() {
 
 mocd.ajax_count = 0;    // no. of outstanding ajax calls
 
@@ -125,7 +125,7 @@ mocd.progress = function progress() {
     progressbar.progressbar('value', val + 1);
 }
 
-mocd.new_move_items = function nmi (pane_from, pane_to) {
+mocd.move_items = function nmi (pane_from, pane_to) {
     var checked_items = []; // list of indexes of checked items
     for (var i = 0; i < pane_from.dir_list.length; i++) {
         var id = '#' + pane_from.get_chkid(i);
@@ -240,7 +240,6 @@ mocd.new_move_items = function nmi (pane_from, pane_to) {
 
 // **** Pane class *******************************************************************
 var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'mocd_right'
-	this.cur_dir = "";
 	this.dir_list         = new Array(); // array of objects describing each item:
         // 'name', 'post_id', 'isdir', 'isemptydir', 'exit', 'thumbnail_url'
 	this.id_root          = id_root;
@@ -258,6 +257,7 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
     this.id_newdir_dialog = id_root + '_newdir_dialog';
     this.newdir_field     = jQuery('#' + id_root + '_newdir');
     this.newdir_error     = jQuery('#' + id_root + '_newdir_error');
+	this.cur_dir          = "/";  // Is this OK? -- avoids comparing opposite.cur_dir when it's '' 
 	this.opposite         = {};
 
 	var thispane = this;
@@ -504,7 +504,7 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
             html += '<li class=mocd_pane_item id="mocd_pane_select_all">';
             html += '<div class="mocd_pane_cell"></div>'; // just for spacing
             html += '<div class="mocd_pane_cell">';
-            html += '<div class="mocd_pane_img"></div>'; // just as spacing
+            //html += '<div class="mocd_pane_img"></div>'; // just as spacing
             html += '<div><input type="checkbox" id="' + this.id_pane + '_ck_all' + '"></div>';
             html += '<div>&nbsp;Select All Files</div>';
             html += '</div>';
@@ -524,7 +524,7 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
         var dirclass = item.isdir ? ' mocd_clickable' : '';
         // 1st cell contains the image
 		html += '<div class="mocd_pane_cell">';
-		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '" alt="thumbnail">';
+		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '" alt="img">';
 		html += '</div>';
         // 2nd cell contains: text <br> box button button
         html += '<div class="mocd_pane_cell">'; // b
@@ -749,14 +749,15 @@ MOCDPaneClass.prototype.in_dir_list = function (name) {
     return false;
 }
 
-// Enable/disable buttons and checkboxes
+// Enable/disable buttons and checkboxes etc.
+// FIXME this is called too soon -- first time opposite.cur_dir is empty
 MOCDPaneClass.prototype.adjust_buttons = function () {
-    // If both sides are the same folder, disable all checkboxes
+    // If both sides are the same folder, disable all checkboxes and arrows
     if (this.cur_dir == this.opposite.cur_dir) {
         jQuery('.' + this.id_pane + '_ck').attr('disabled', true);
 	    jQuery('#' + this.id_pane + '_ck_all').attr('disabled', true);
-        // TODO disable select all too
-    // Else enable them TODO only if no clashing name
+        jQuery('#' + this.id_pane + '_send').addClass('mocd_greyed');
+    // Else enable them if no clashing name
     } else {
         jQuery('.' + this.id_pane + '_ck').attr('disabled', false);
         var all_files_disabled = true;
@@ -769,6 +770,12 @@ MOCDPaneClass.prototype.adjust_buttons = function () {
             }
         }
 	    jQuery('#' + this.id_pane + '_ck_all').attr('disabled', all_files_disabled);
+        // TODO arrows shoulw only be enabled if some things are SELECTEd
+        if (all_files_disabled) {
+            jQuery('#' + this.id_pane + '_send').addClass('mocd_greyed');
+        } else {
+            jQuery('#' + this.id_pane + '_send').removeClass('mocd_greyed');
+        }
     }
 }
 
@@ -797,19 +804,21 @@ jQuery(document).ready(function() {
 	mocd.pane_left.setdir("/");
 	mocd.pane_right.setdir("/");
 
-	jQuery('#mocd_btn_left2right').click(function() {
+    // TODO disable these actions if icon is greyed out
+	jQuery('#mocd_left_pane_send').click(function() {
 		if (mocd.ajax_count > 0) {
             return;
         }
-		mocd.new_move_items(mocd.pane_left, mocd.pane_right);
+		mocd.move_items(mocd.pane_left, mocd.pane_right);
 	});
-	jQuery('#mocd_btn_right2left').click(function() {
+	jQuery('#mocd_right_pane_send').click(function() {
 		if (mocd.ajax_count > 0) {
             return;
         }
-		mocd.new_move_items(mocd.pane_right, mocd.pane_left);
+		mocd.move_items(mocd.pane_right, mocd.pane_left);
 	});
 
+    /*
     jQuery('#mocd_left_button_go').on('click', function () {
         var action = jQuery('#mocd_left_action select').val();
         mocd.pane_left.actions(action);
@@ -818,12 +827,15 @@ jQuery(document).ready(function() {
         var action = jQuery('#mocd_right_action select').val();
         mocd.pane_right.actions(action);
     });
+    */
 
+    /*
 	jQuery(window).resize(function() {
 		//jQuery('#debug').html(jQuery('#wpbody').height());
 		mocd.adjust_layout();
 	});
     //mocd.adjust_layout();
+    */
 });
 
 

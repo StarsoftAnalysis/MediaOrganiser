@@ -25,7 +25,6 @@ function settings_menu () {
         NS . 'display_settings'
     );
 }
-
 add_action('admin_menu', NS . 'plugin_menu');
 add_action('admin_menu', NS . 'settings_menu');
 

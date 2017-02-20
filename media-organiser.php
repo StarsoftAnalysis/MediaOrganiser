@@ -23,19 +23,21 @@ if (!is_admin() || defined('DOING_CRON')) {
 
 // Define globals and load functions
 require_once plugin_dir_path(__FILE__) . 'functions.php';
-#debug('mocd running');
-#if (defined('DOING_CRON')) { debug('.... DOING_CRON'); }
-#if (defined('DOING_AJAX')) { debug('.... DOING_AJAX'); }
-#debug('...         , SCRIPT_NAME=' . $_SERVER['SCRIPT_NAME']);
-#debug('...         , REQUEST: ', $_REQUEST);
-#debug('__FILE__', __FILE__);
-#debug('__DIR__', __DIR__);
-#debug('pdp(F)', plugin_dir_path(__FILE__));  // like __DIR__ but adds trailing slash
-
-#define_constants();
 
 // Things needed on all admin pages
 require_once plugin_dir_path(__FILE__) . 'common.php';
+
+// This seems to have to be in the main file.
+// On activation, give administrators permission to use the features
+function activate() {
+    global $relocate_cap, $select_cap;
+    $role = get_role('administrator');
+    debug('adding capabilities for admin', $relocate_cap, $select_cap);
+    $role->add_cap($relocate_cap);
+    $role->add_cap($select_cap);
+}
+#debug('registering activation hook ', NS . 'activate');
+register_activation_hook(__FILE__, NS . 'activate');
 
 if (defined('DOING_AJAX')) {
 
@@ -54,6 +56,7 @@ if (defined('DOING_AJAX')) {
 
     // See which URL was used
     $script = $_SERVER['SCRIPT_NAME'];
+    debug('script: ', $script);
     switch ($script) {
     case '/wp-admin/upload.php':
         // Media menu item -- relocator page

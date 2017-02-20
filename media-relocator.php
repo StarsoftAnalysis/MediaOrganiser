@@ -69,11 +69,11 @@ function main_page () {
 	echo '<div class="wrap" id="mocd_wrap">';
 	echo '<h2>Media Organiser</h2>';
     echo '<ul class=mocd_blurb>';
-    echo '<li>Select files and folders using the tick boxes, and then click one of the big arrows to move ',
-        'them to the other side.</li>';
     echo '<li>Click on a folder icon to open the folder.</li>';
     echo '<li>Click on the <img src="', $plugin_images_url, 'dir_up.png" class=mocd_inline_icon alt="up icon"> folder to go up a level. ';
     echo 'Click on the <img src="', $plugin_images_url, 'dir_new.png" class=mocd_inline_icon alt="new icon"> folder to create a new one.</li>';
+    echo '<li>Select files and folders using the tick boxes, and then click one of the big arrows to move ',
+        'them to the other side.</li>';
     echo '</ul>';
 
 	echo '<div id="mocd_wrapper_all">';
@@ -81,9 +81,9 @@ function main_page () {
     pane_html('left');
 
 	echo '<div id="mocd_center_wrapper">';
-    echo '<div id="mocd_btn_left2right" class="mocd_clickable" title="Move selected items to the folder on the right">';
+    echo '<div id="mocd_left_pane_send" class="mocd_clickable" title="Move selected items to the folder on the right">';
     echo '<img src="', $plugin_images_url, 'right.png" alt="right arrow"></div>';
-    echo '<div id="mocd_btn_right2left" class="mocd_clickable" title="Move selected items to the folder on the left">';
+    echo '<div id="mocd_right_pane_send" class="mocd_clickable" title="Move selected items to the folder on the left">';
     echo '<img src="', $plugin_images_url, 'left.png" alt="left arrow"></div>';
     echo '</div>';
     // Progress bar -- initially hidden

@@ -20,19 +20,23 @@ li.mocd_pane_item {
 /* Blurb at top of relocator page */
 ul.mocd_blurb {
 }
+/* Folder icons minified within blurb */
 img.mocd_inline_icon {
     height: 1em; 
     min-height: 16px;
     vertical-align: baseline;
 }
 
-
+div.mocd_pane_cell {
+    display: table-cell !important;  /* to override #mocd_wrapper_all div */
+}
 /* table-cells can't have margins, so apply margins  */
 /* to the things IN the cell                         */
 /* (but not the checkboxes -- they're on the 2nd row */
 .mocd_pane_cell div,
 .mocd_pane_cell img {
     margin-top: 0.5em;
+    word-break: break-all; /* for when img is replaced by alt text */
 }
 
 #mocd_pane_select_all .mocd_pane_cell {
@@ -46,6 +50,7 @@ img.mocd_inline_icon {
     width: 50px;
     max-width: 8vw;
     margin: 0 0.8em 0 0;
+    vertical-align: text-top;
 }
 
 #mocd_wrapper_all {
@@ -53,7 +58,7 @@ img.mocd_inline_icon {
 	/*width:800px;*/
 	width:auto;
 	/*height:655px;*/
-	/*xborder: solid 1px #0ff;*/
+	/*border: solid 1px #0ff !important;*/
 }
 
 #mocd_wrapper_all div {
@@ -65,37 +70,32 @@ img.mocd_inline_icon {
 .mocd_path {
 	/* background-color:#ddd;
 	border: 1px solid #888; */
-	font-size: 18px;
+	font-size: 120%;
     line-height: 1.3;
     font-weight: bold;
     padding: 0;
+    word-break: break-all;
 }
 
 .mocd_wrapper_pane {
-	/* xfloat:left; */
     display: inline-block;
-    width: 47.4%; /*calc(50% - 26px); /* allow for center wrapper */
+    /*width: 45%; /* !! should be 47.4 -- less while using borders *//*calc(50% - 26px); /* allow for center wrapper */
+    width: calc(50% - 48px/2); /* 48px of mocd_center_wrapper (plus 6x1px border while testing)
+        /* FIXME allowing for max 48px of center wastes space on small screens */
 	/* xwidth:303px;
-	xheight:540px;
-	xborder: solid 1px #ff0; */
+	xheight:540px; */
+	/*border: solid 1px #ff0 !important; */
 }
 
 .mocd_pane_list div {
     vertical-align: middle;
 }
 
-
 .mocd_clickable {
 	cursor: pointer;
 }
 
-.mocd_filename {
-	/*xborder: solid 0px #f00;*/
-}
-
 .mocd_dir_up {
-	/*xfloat:left;
-	xpadding:3px;*/
     padding-right: 8px;
 }
 
@@ -106,85 +106,32 @@ img.mocd_inline_icon {
 }
 
 .mocd_dir_new {
-	/*xfloat:left;*/
     padding-right: 8px;
 }
-/*.mocd_select_all {
-	float:left;
-	padding-left: 7px;
-}
-.mocd_deselect_all {
-	float:left;
-	padding-left: 7px;
-    position:relative;top:-2px; 
-}
-.mocd_select_all_button {
-    
-	height:14px;
-	font-weight:bold;
-	font-size:7px;
-	line-height:8px;
-	color:#000099;
-	background-color:#def3ff;
-	border:1px solid #050505;
-	cursor:pointer;
-}
-*/
 
 #mocd_center_wrapper {
-	width: 5%; /* adjust in line with mocd_wrapper_pane */
-    padding-top: 10em;
+	width: 8%; /* adjust in line with mocd_wrapper_pane */
+    min-width: 20px;
+    max-width: 48px;  /* arrows are 48x48 px including space on left and right */
+    padding-top: 9em;
     height: 100%;
-    /* border: 1px solid black; */
+    /*border: 1px solid black !important;*/
 }
 
-div#mocd_btn_left2right {
-	/*xpadding:10px 5px 0 5px;*/
+div#mocd_left_pane_send,
+div#mocd_right_pane_send {
     display: block;
+    margin-top: 1em; /* space between arrows */
+    /*min-width: 16px; see _wrapper 
+    max-width: 5vw;*/
 }
-div#mocd_btn_right2left {
-	/*xpadding:10px 5px 0 5px;*/
-    display: block;
-}
-div#mocd_btn_left2right img,
-div#mocd_btn_right2left img {
-    max-width: 5vw;
-}
-
-/*
-#mocd_right_menu {
-	position:absolute;
-	border: 1px solid #555;
-	background-color: #eee;
-	padding: 4px;
+/* TODO do arrows need a div around them? */
+div#mocd_left_pane_send img ,
+div#mocd_right_pane_send img {
+    width: 100%;
 }
 
-.mocd_right_menu_item {
-	font-size: 12px;
-	font-color:#000;
-	background-color:#eee;
-}
-.mocd_right_menu_item:hover {
-	font-size: 12px;
-	color:#fff;
-	background-color:#111;
-}
-*/
-
-/* Mini dialogue  obsolete */
-/*
-#mocd_input_text {
-	position: fixed; /*absolute;*
-    z-index: 999;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%); /* centre it on the given point *
-	border: 1px solid #777;
-	background-color: #eee;
-	padding: 4px;
-}
-*/
-
+/* Used?? */
 .mocd_input_text_button_wrapper {
 	margin-top: 4px;
 }
@@ -198,28 +145,7 @@ div#mocd_btn_right2left img {
 .mocd_filename {
     font-size: 110%;
     font-weight: bold;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-}
-
-/* Progress bar */
-#xmocd_progressbar {
-	position: fixed; /*absolute;*/
-    z-index: 999;
-    top: 50%;
-    left: 50%;
-    width: 50%;
-    transform: translate(-50%, -50%); /* centre it on the given point */
-	border: 1px solid #777;
-	background-color: #eee;
-	padding: 4px;
-}
-#xmocd_progresslabel {
-    position: absolute;
-    /*left: 50%;*/
-    top: 4px;
-    font-weight: bold;
-    text-shadow: 1px 1px 0 #fff;
+    word-break: break-all;
 }
 
 /* Use border-box for everything in our scope */
@@ -257,5 +183,30 @@ div#mocd_wrap *, div#mocd_wrap *:before, div#mocd_wrap *:after {
 	background: grey;
 	color: black;
 	border: 1px solid black;
+}
+*/
+
+
+.mocd_wrapper_all input[type=checkbox]:disabled {
+    opacity: 1.0; /* WP standard 0.7 is too much */
+}
+
+/****************** Media-specifc *********************/
+
+@media screen and (max-width: 782px)
+
+/* Note: WP sets this for @media screen per screen size */
+/* e.g. 
+ * @media screen and (max-width: 782px)
+ * load-styles.php…list-table…:11
+ * input[type=radio], input[type=checkbox] {
+ *     height: 25px;
+ *         width: 25px;
+ *         }
+ */
+/* TODO this isn't working...
+.mocd_wrapper_all input[type=checkbox] {
+    width: 2em !important;
+    height: 2em;
 }
 */

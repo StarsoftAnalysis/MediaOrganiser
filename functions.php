@@ -41,6 +41,7 @@ function relative_url ($absurl) {
 #debug('4', plugins_url('', __FILE__));
 #debug('ABSPATH:', ABSPATH);
 
+global $plugin_dir, $plugin_url, $plugin_images_url;
 $plugin_dir = basename(dirname(__FILE__));  // e.g. 'media-organiser'   ?? NEEDED?
 $plugin_url = remove_prefix(site_url(), plugins_url('', __FILE__)) . '/';  // e.g. '/wp-content/plugins/media-organiser/' -- relative!
 $plugin_images_url = $plugin_url . 'images/';
@@ -53,6 +54,7 @@ if ($upload['error']) {
     # TODO message to the user?
     return;
 }
+global $upload_dir, $upload_url, $upload_dir_rel, $upload_url_rel;
 $upload_dir = $upload['basedir'];
 $upload_url = $upload['baseurl'];
 // !! need separate UPLOAD_URL_REL and $upload_dir_REL because separator may not be
@@ -78,6 +80,7 @@ function invalid_itemname_regex () {
     $regex = '/[' . preg_quote($chars, '/') . $class . ']/';
     return [$chars, $regex];
 }
+global $invalid_itemname_chars, $invalid_itemname_regex;
 list($invalid_itemname_chars, $invalid_itemname_regex) = invalid_itemname_regex();
 
 function reserved_filenames () {
@@ -89,11 +92,14 @@ function reserved_filenames () {
     }
     return $names;
 }
+global $reserved_filenames;
 $reserved_filenames = reserved_filenames();
 
 // Names for plugin-specific capabilities
+global $relocate_cap;
 $relocate_cap = 'mocd_relocate';
-$select_cap   = 'mocd_select';
+global $select_cap;
+$select_cap = 'mocd_select';
 
 // --------------------------------------------------------------------------------------
 
