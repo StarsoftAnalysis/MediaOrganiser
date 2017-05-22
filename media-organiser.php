@@ -5,7 +5,7 @@ define(__NAMESPACE__ . '\NS', __NAMESPACE__ . '\\'); // (need to escape \ before
 /*
 Plugin Name: Media Organiser
 Plugin URI: https://github.com/StarsoftAnalysis/MediaOrganiser
-Description: Allows media items (i.e. attachments) to be organised into folders.  This is ALPHA software -- not ready for serious use yet.
+Description: Allows media items (i.e. attachments) to be organised into folders.
 Version: 0.1.2
 Author:  ChrisDennis
 Author URI: https://github.com/StarsoftAnalysis
