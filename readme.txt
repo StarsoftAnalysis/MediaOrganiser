@@ -18,7 +18,7 @@ This plugin allows attachments to be organised into folders on the server.
 
 Attachments are physically moved into folders, and all references to them in pages and posts are updated accordingly.
 
-Media Organiser was originally forked from version 1.4.2 of Media File Manager by Atsushi Ueda, and has been largely rewritten since then.  It does not yet have the 'media selector' function of Media File Manager.
+Media Organiser was originally forked from version 1.4.2 of Media File Manager by Atsushi Ueda, and has been largely rewritten since then.  It does not yet have the 'media selector' function of Media File Manager -- in fact, the 'new' interface to choosing media is so poorly documented that I can't work out how to use it.  Any ideas?
 
 == Requirements ==
 
