@@ -18,6 +18,7 @@ function display_settings () {
 
     $nonce_action = 'mocd update settings';
 
+    // Handle press of 'Settings' button
     #debug($_REQUEST);
     if (isset($_REQUEST['update_setting'])) {
         check_admin_referer($nonce_action);
@@ -31,7 +32,23 @@ function display_settings () {
             }
 		}
 		echo '<div id="message" class="updated fade"><p><strong>Options saved.</strong></p></div>';
-	}
+    }
+
+    // Handle press of 'Tidy' button
+    if (isset($_REQUEST['tidy_attachments'])) {
+        check_admin_referer($nonce_action);
+        $posts = get_posts(['post_type' => 'attachment', 'numberposts' => -1]);
+        $count = 0;
+        foreach ($posts as $post) {
+            $file = get_attached_file($post->ID);
+            if (!file_exists($file)) {
+                #debug("deleting post with ID", $file->ID);
+                wp_delete_post($post->ID, false);
+                $count += 1;
+            }
+        }
+		echo '<div id="message" class="updated fade"><p><strong>' . $count . ' attachments tidied.</strong></p></div>';
+    }
 
     echo '<form method="post" action="', $_SERVER["REQUEST_URI"], '">';
     wp_nonce_field($nonce_action); // echoes it too by default
@@ -55,7 +72,39 @@ function display_settings () {
 	echo '<p class="submit">'; // A WP-ism, apparently
 	echo '<input type="submit" name="update_setting" class="button-primary" value="', _e('Save Changes'), '">';
 	echo '</p>';
-	echo '</form>';
+    echo '</form>';
+
+    // Extra section for tidying attachments.  Here, because where else? -- ought to be in the Tools menu really
+
+    // First, see if any such attachments exist.
+    $posts = get_posts(['post_type' => 'attachment', 'numberposts' => -1]);
+    $count = 0;
+    $orphans = [];
+    foreach ($posts as $post){
+        $file = get_attached_file($post->ID);
+        if (!file_exists($file)) {
+            $orphans[] = $post->ID;
+            $count += 1;
+        }
+    }
+
+    echo '<hr><h2>Tidy File Attachments with Missing Files</h2>';
+    echo '<p>Click the button to check for file attachments whose associated images or other files are missing from the file system.  This may be required if the files have been deleted directly rather than through WordPress.';
+    if ($count == 0) {
+        echo '<p>There are currently no attachments with missing files.';
+    } else {
+        echo "<p>There are currently $count attachments with missing files. Their IDs are: ";
+        foreach ($orphans as $orphan) {
+            echo ' ', $orphan;
+        }
+    }
+    echo '<form method="post" action="', $_SERVER["REQUEST_URI"], '">';
+    wp_nonce_field($nonce_action); // echoes it too by default
+	echo '<p class="submit">'; // A WP-ism, apparently
+	echo "<input type=submit name=tidy_attachments class=button-primary value='", _e('Tidy'), "' ", (($count == 0) ? 'disabled' : ''), ">";
+    echo " (There won't be any confirmation -- it will just happen!)";
+    echo '</form>';
+
     echo '</div>';
 }
 
