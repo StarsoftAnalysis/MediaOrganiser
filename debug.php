@@ -34,4 +34,5 @@ if (!function_exists(NS . 'debug')) {
 
 }
 
+// vim: set tabstop=4 softtabstop=4 expandtab :
 ?>

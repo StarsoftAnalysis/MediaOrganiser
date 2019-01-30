@@ -15,14 +15,14 @@ mocd.pane_left = {};
 // TODO this is ugly -- needs to match with CSS
 mocd.adjust_layout = function () {
     return; // try to do without this
-	var width_all = jQuery('#mocd_wrapper_all').width(); // in pixels
-	var width_center = jQuery('#mocd_center_wrapper').width(); 
-	//var height_mocd_box = jQuery('.mocd_box1').height();  could use this to move arrows down
-	var pane_w = (width_all - width_center)/2 - 2;
+    var width_all = jQuery('#mocd_wrapper_all').width(); // in pixels
+    var width_center = jQuery('#mocd_center_wrapper').width(); 
+    //var height_mocd_box = jQuery('.mocd_box1').height();  could use this to move arrows down
+    var pane_w = (width_all - width_center)/2 - 2;
     console.log('adjust_layout: ', pane_w, ' = (', width_all, ' - ', width_center, ')2 - 2');
-	jQuery('.mocd_wrapper_pane').width(pane_w); // pixels by default
-	jQuery('.mocd_path').width(pane_w);
-	jQuery('.mocd_pane').width(pane_w);
+    jQuery('.mocd_wrapper_pane').width(pane_w); // pixels by default
+    jQuery('.mocd_path').width(pane_w);
+    jQuery('.mocd_pane').width(pane_w);
 }
 
 // Encode and decode HTML (from http://stackoverflow.com/questions/1219860/html-encoding-in-javascript-jquery)
@@ -44,19 +44,19 @@ mocd.htmlDecode = function (str){
 }
 
 mocd.ajax_count_in = function () {
-	mocd.ajax_count++;
-	//document.body.style.cursor = "wait";
+    mocd.ajax_count++;
+    //document.body.style.cursor = "wait";
 }
 
 // function name: mocd.ajax_count_out
 // description : recognize finishing ajax procedure
 // argument : (void)
 mocd.ajax_count_out = function () {
-	mocd.ajax_count--;
-	if (mocd.ajax_count <= 0) {
-		mocd.ajax_count = 0;
-		//document.body.style.cursor = "default";
-	}
+    mocd.ajax_count--;
+    if (mocd.ajax_count <= 0) {
+        mocd.ajax_count = 0;
+        //document.body.style.cursor = "default";
+    }
 }
 
 // TODO use this for the progress meter dialog
@@ -240,16 +240,16 @@ mocd.move_items = function nmi (pane_from, pane_to) {
 
 // **** Pane class *******************************************************************
 var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'mocd_right'
-	this.dir_list         = new Array(); // array of objects describing each item:
-        // 'name', 'post_id', 'isdir', 'isemptydir', 'exit', 'thumbnail_url'
-	this.id_root          = id_root;
-	this.wrapper          = jQuery('#' + id_root + "_wrapper");
-	this.header           = jQuery('#' + id_root + "_header");
-	this.id_pane          = id_root + "_pane";
+    this.dir_list         = new Array(); // array of objects describing each item:
+    // 'name', 'post_id', 'isdir', 'isemptydir', 'exit', 'thumbnail_url'
+    this.id_root          = id_root;
+    this.wrapper          = jQuery('#' + id_root + "_wrapper");
+    this.header           = jQuery('#' + id_root + "_header");
+    this.id_pane          = id_root + "_pane";
     this.pane             = jQuery('#' + this.id_pane);
-	this.dir_name         = jQuery('#' + id_root + "_path");
-	this.dir_new_btn      = jQuery('#' + id_root + "_dir_new");
-	this.dir_up_btn       = jQuery('#' + id_root + "_dir_up");
+    this.dir_name         = jQuery('#' + id_root + "_path");
+    this.dir_new_btn      = jQuery('#' + id_root + "_dir_new");
+    this.dir_up_btn       = jQuery('#' + id_root + "_dir_up");
     this.id_rename_dialog = id_root + '_rename_dialog';
     this.rename_field     = jQuery('#' + id_root + '_rename'); // input fields in the dialog
     this.rename_i_field   = jQuery('#' + id_root + '_rename_i');
@@ -257,22 +257,22 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
     this.id_newdir_dialog = id_root + '_newdir_dialog';
     this.newdir_field     = jQuery('#' + id_root + '_newdir');
     this.newdir_error     = jQuery('#' + id_root + '_newdir_error');
-	this.cur_dir          = "/";  // Is this OK? -- avoids comparing opposite.cur_dir when it's '' 
-	this.opposite         = {};
+    this.cur_dir          = "/";  // Is this OK? -- avoids comparing opposite.cur_dir when it's '' 
+    this.opposite         = {};
 
-	var thispane = this;
+    var thispane = this;
 
     // Handle click on 'up' icon
-	this.header.on('click', '.mocd_dir_up', function(ev) {
-		if (mocd.ajax_count > 0     ||
-		    thispane.cur_dir == '/'    ) {
+    this.header.on('click', '.mocd_dir_up', function(ev) {
+        if (mocd.ajax_count > 0     ||
+            thispane.cur_dir == '/'    ) {
             return;
         }
-		thispane.chdir("..");
-	});
-    
+        thispane.chdir("..");
+    });
+
     // Set up new dir button and dialog
-	this.header.on('click', '.mocd_dir_new', function () {
+    this.header.on('click', '.mocd_dir_new', function () {
         thispane.newdir_dialog.dialog("open");
     });
     this.newdir_field.keypress(this.filter_item_name_characters);
@@ -299,7 +299,7 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
     // 'Select All' box affects all boxes on this pane
     // (but only for files, not folders)
     // (and not if check box is disabled 'cos of clashing name)
-	jQuery('div.mocd_pane').on('click', '#' + this.id_pane + '_ck_all', function(ev) {
+    jQuery('div.mocd_pane').on('click', '#' + this.id_pane + '_ck_all', function(ev) {
         var all_checked = this.checked;
         // TODO would it be more efficient to loop through dir_list rather than chekboxes?? maybe not
         jQuery('.' + thispane.id_pane + '_ck').each(function () {
@@ -309,7 +309,7 @@ var MOCDPaneClass = function (id_root) {  // id_root is either 'mocd_left' or 'm
                 this.checked = all_checked;
             }
         });
-	});
+    });
 
     // Set up rename dialog
     // (activated by [Rename] button on each item -- added later)
@@ -426,15 +426,15 @@ MOCDPaneClass.prototype.refresh = function () {
 // description : move to the directory and display directory listing
 // argument : (dir)absolute path name of the target directory
 MOCDPaneClass.prototype.setdir = function(dir) {
-	//? this.wrapper.css('cursor:wait'); // TODO move this into count_in
-	var data = {
-		action: 'mocd_getdir',
-		dir:    dir,
+    //? this.wrapper.css('cursor:wait'); // TODO move this into count_in
+    var data = {
+        action: 'mocd_getdir',
+        dir:    dir,
         nonce:  mocd_array.nonce
-	};
-	var thispane = this;
-	mocd.ajax_count_in();
-	jQuery.post(ajaxurl, data, function(response) {
+    };
+    var thispane = this;
+    mocd.ajax_count_in();
+    jQuery.post(ajaxurl, data, function(response) {
         if (response.success) {
             // Process the json directory from ajax,
             // create the html, and store the list
@@ -448,8 +448,8 @@ MOCDPaneClass.prototype.setdir = function(dir) {
         } else {
             mocd.display_response(response);
         }
-		mocd.ajax_count_out();
-	});
+        mocd.ajax_count_out();
+    });
 }
 
 
@@ -458,14 +458,14 @@ MOCDPaneClass.prototype.setdir = function(dir) {
 // description : display directory list sent from server
 //               in response to mocd_getdir ajax request              
 MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
-	//var dir;
+    //var dir;
     var thispane = this;
 
-	this.cur_dir = target_dir;
-	// now in html below  this.dir_name.text(mocd.htmlEncode(target_dir)); 
-	this.disp_num = 0;
+    this.cur_dir = target_dir;
+    // now in html below  this.dir_name.text(mocd.htmlEncode(target_dir)); 
+    this.disp_num = 0;
 
-	var html = "";
+    var html = "";
     var thumb_url = '';
 
     // Add html for path, 'up' and 'new' dirs to the relevant div
@@ -486,9 +486,9 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
     this.header.html(html);
 
     html = '';
-//	html += '<br>'; //'<div style="clear:both;"></div>';
+    //	html += '<br>'; //'<div style="clear:both;"></div>';
     // This is the div that gets filled in with the dir listing in JS
-//	html += '<div class="mocd_pane" id="mocd_' + this.id_root + '_pane">';
+    //	html += '<div class="mocd_pane" id="mocd_' + this.id_root + '_pane">';
 
     html += '<ul class=mocd_pane_list>';
 
@@ -496,7 +496,7 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
 
     // Display all items as a list
     // On each row, use CSS table properties to arrange the bits.
-	for (i = 0; i < dir.length; i++) {
+    for (i = 0; i < dir.length; i++) {
         var item = dir[i];
 
         // Add the 'select all' box before the first non-directory
@@ -516,16 +516,16 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
         html += '<li class="mocd_pane_item" id="' + divid + '">'; 
         // Thumbnail img URL should always be supplied by backend
         // (i.e. even for folders and non-images)
-		if (item.thumbnail_url && item.thumbnail_url != "") {
+        if (item.thumbnail_url && item.thumbnail_url != "") {
             thumb_url = item.thumbnail_url;
-		} else {
+        } else {
             thumb_url = 'notfound.jpg';  
         }
         var dirclass = item.isdir ? ' mocd_clickable' : '';
         // 1st cell contains the image
-		html += '<div class="mocd_pane_cell">';
-		html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '" alt="img">';
-		html += '</div>';
+        html += '<div class="mocd_pane_cell">';
+        html += '<img class="mocd_pane_img' + dirclass + '" src="' + thumb_url + '" alt="img">';
+        html += '</div>';
         // 2nd cell contains: text <br> box button button
         html += '<div class="mocd_pane_cell">'; // b
         html += '<div class="mocd_filename">' + mocd.htmlEncode(item.name) + '</div>';
@@ -543,9 +543,9 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
         }
         html += '</div>'
         html += '</li>';
-	}
+    }
     html += '</ul>';
-//    html += '</div>'; // mocd_pane
+    //    html += '</div>'; // mocd_pane
     this.pane.html(html);
 
     // Now that the items are in the DOM,
@@ -555,7 +555,7 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
     //
     // Plan B -- use delegation, getting the index from the CSS id
     // // TODO ? use data- -- WordPress seems to use HTML5 anyway
-    
+
     // 'Rename' buttons
     this.pane.on('click', '.mocd_pane_rename_btn', function () {
         if (mocd.ajax_count > 0) {
@@ -572,7 +572,7 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
         jQuery('#mocd_rename_cancel_btn').attr('disabled', false);
         thispane.rename_dialog.dialog("open");
     });
-    
+
     // 'Delete' buttons (only exist on empty dirs)    // TODO allow files to be deleted??
     this.pane.on('click', '.mocd_pane_delete_btn', function () {
         if (mocd.ajax_count > 0) {
@@ -605,7 +605,7 @@ MOCDPaneClass.prototype.display_dir = function (target_dir, dir) {
     //            thispane.chdir(newdir);
     //        }.bind(this, name));  // name gets passed in as newdir
     //    }
-   // }
+    // }
 
     //? this.wrapper.css('cursor:default');
     return dir;
@@ -711,19 +711,19 @@ MOCDPaneClass.prototype.ajax_delete_empty_dir = function (name) {
 
 // See if an item exists in the pane; return its index or false
 MOCDPaneClass.prototype.name_exists = function (str) {
-	for (var i = 0; i < this.dir_list.length; i++) {
-		if (this.dir_list[i]['name'] === str) {
-			return i;
-		}
-	}
-	return false;
+    for (var i = 0; i < this.dir_list.length; i++) {
+        if (this.dir_list[i]['name'] === str) {
+            return i;
+        }
+    }
+    return false;
 }
 
 // Assumes 'dir' has no slashes; this.cur_dir has start and end slashes.
 // If not changing directory, runs setdir anyway to refresh the pane.
 MOCDPaneClass.prototype.chdir = function (dir) {
-	//var last_chr = this.cur_dir.substr(this.cur_dir.length-1,1);
-	var new_dir = this.cur_dir;
+    //var last_chr = this.cur_dir.substr(this.cur_dir.length-1,1);
+    var new_dir = this.cur_dir;
     if (dir == '.') {
         // nothing to do
     } else if (dir == "..") {
@@ -732,11 +732,11 @@ MOCDPaneClass.prototype.chdir = function (dir) {
         } else {
             // convert e.g. /photos/big/ to /photos/
             new_dir = new_dir.split('/').slice(0, -2).join('/') + '/'; // FIXME Linux only
-		}
-	} else {
+        }
+    } else {
         new_dir += dir + '/';
-	}
-	this.setdir(new_dir);
+    }
+    this.setdir(new_dir);
 }
 
 // Return true if the given item name is in the pane's dir_list
@@ -755,9 +755,9 @@ MOCDPaneClass.prototype.adjust_buttons = function () {
     // If both sides are the same folder, disable all checkboxes and arrows
     if (this.cur_dir == this.opposite.cur_dir) {
         jQuery('.' + this.id_pane + '_ck').attr('disabled', true);
-	    jQuery('#' + this.id_pane + '_ck_all').attr('disabled', true);
+        jQuery('#' + this.id_pane + '_ck_all').attr('disabled', true);
         jQuery('#' + this.id_pane + '_send').addClass('mocd_greyed');
-    // Else enable them if no clashing name
+        // Else enable them if no clashing name
     } else {
         jQuery('.' + this.id_pane + '_ck').attr('disabled', false);
         var all_files_disabled = true;
@@ -769,7 +769,7 @@ MOCDPaneClass.prototype.adjust_buttons = function () {
                 all_files_disabled = false;
             }
         }
-	    jQuery('#' + this.id_pane + '_ck_all').attr('disabled', all_files_disabled);
+        jQuery('#' + this.id_pane + '_ck_all').attr('disabled', all_files_disabled);
         // TODO arrows shoulw only be enabled if some things are SELECTEd
         if (all_files_disabled) {
             jQuery('#' + this.id_pane + '_send').addClass('mocd_greyed');
@@ -794,29 +794,29 @@ jQuery(document).ready(function() {
     //setTimeout(function () {mocd.add_message('msg1', 'adlsakjalsdk', 3000); }, 2000);
     //setTimeout(function () {mocd.add_message('msg1', 'no timeout',  0); }, 2000);
 
-	mocd.pane_left = new MOCDPaneClass('mocd_left');
-	mocd.pane_right = new MOCDPaneClass('mocd_right');
+    mocd.pane_left = new MOCDPaneClass('mocd_left');
+    mocd.pane_right = new MOCDPaneClass('mocd_right');
 
-	mocd.pane_left.opposite = mocd.pane_right;
-	mocd.pane_right.opposite = mocd.pane_left;
+    mocd.pane_left.opposite = mocd.pane_right;
+    mocd.pane_right.opposite = mocd.pane_left;
 
     // Start in the top-level folders
-	mocd.pane_left.setdir("/");
-	mocd.pane_right.setdir("/");
+    mocd.pane_left.setdir("/");
+    mocd.pane_right.setdir("/");
 
     // TODO disable these actions if icon is greyed out
-	jQuery('#mocd_left_pane_send').click(function() {
-		if (mocd.ajax_count > 0) {
+    jQuery('#mocd_left_pane_send').click(function() {
+        if (mocd.ajax_count > 0) {
             return;
         }
-		mocd.move_items(mocd.pane_left, mocd.pane_right);
-	});
-	jQuery('#mocd_right_pane_send').click(function() {
-		if (mocd.ajax_count > 0) {
+        mocd.move_items(mocd.pane_left, mocd.pane_right);
+    });
+    jQuery('#mocd_right_pane_send').click(function() {
+        if (mocd.ajax_count > 0) {
             return;
         }
-		mocd.move_items(mocd.pane_right, mocd.pane_left);
-	});
+        mocd.move_items(mocd.pane_right, mocd.pane_left);
+    });
 
     /*
     jQuery('#mocd_left_button_go').on('click', function () {
@@ -830,13 +830,12 @@ jQuery(document).ready(function() {
     */
 
     /*
-	jQuery(window).resize(function() {
-		//jQuery('#debug').html(jQuery('#wpbody').height());
-		mocd.adjust_layout();
-	});
+    jQuery(window).resize(function() {
+    //jQuery('#debug').html(jQuery('#wpbody').height());
+        mocd.adjust_layout();
+    });
     //mocd.adjust_layout();
     */
 });
 
-
-
+// vim: set tabstop=4 softtabstop=4 expandtab :

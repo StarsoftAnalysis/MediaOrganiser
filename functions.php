@@ -243,3 +243,4 @@ function invalid_item_name ($name) {
     return preg_match($regex, $name);
 }
 
+// vim: set tabstop=4 softtabstop=4 expandtab :

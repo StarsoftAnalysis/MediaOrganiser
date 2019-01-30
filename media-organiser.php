@@ -46,8 +46,8 @@ if (defined('DOING_AJAX')) {
     if (in_array($action, 
         ['mocd_getdir', 'mocd_mkdir', 'mocd_move', 'mocd_delete_empty_dir'])) {
         ob_start();  // Some errors (e.g. WP SQL errors) put text onto stdout,
-                     // which messes up AJAX, so use ob_start/ob_clean to clear such text.
-                     // (The ob_clean is in relocator_ajax.php)
+        // which messes up AJAX, so use ob_start/ob_clean to clear such text.
+        // (The ob_clean is in relocator_ajax.php)
         require_once plugin_dir_path(__FILE__) . 'relocator_ajax.php';
         // TODO split them up further?
     }
@@ -75,3 +75,4 @@ if (defined('DOING_AJAX')) {
     #require_once plugin_dir_path(__FILE__) . 'media-selector.php';
 }
 
+// vim: set tabstop=4 softtabstop=4 expandtab :

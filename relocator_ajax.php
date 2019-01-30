@@ -20,7 +20,7 @@ function ajax_response ($success = false, $message = '', $data = []) {
     ];
     #sleep(5); // TEMP slow it down
     ob_clean();  // get rid if any spurious text going to stdout
-                 // (see ob_start in media-organiser.php)
+    // (see ob_start in media-organiser.php)
     header('Content-Type: application/json;');
     echo json_encode($response);
     wp_die();
@@ -62,7 +62,7 @@ function mkdir_callback() {
     global $upload_dir;
     check_nonce();
     check_permission_ajax();
-	$dir    = get_dirname('dir');
+    $dir    = get_dirname('dir');
     $newdir = get_basename('newdir');
     $path = $upload_dir . $dir;
     $newpath = $path . $newdir;
@@ -96,7 +96,7 @@ function getdir_callback () {
             'name'          => $sdir,
             'post_id'       => null,  // needed when updating metadata
             'isdir'         => true,
-			'isemptydir'    => isEmptyDir($full_dir . "/" . $sdir),
+            'isemptydir'    => isEmptyDir($full_dir . "/" . $sdir),
             'exists'        => true,
             'thumbnail_url' => $plugin_images_url . 'dir.png'
         ];
@@ -112,13 +112,13 @@ function getdir_callback () {
     // Can't just say: like 'photos/%' because that would include 'photos/otherphotos/foo.jpg'
     // This seems to work:
     $sql = $wpdb->prepare(
-           "select p.ID, p.post_mime_type, m.meta_value
-              from wp_posts p
-         left join wp_postmeta m on p.ID = m.post_id and m.meta_key = '_wp_attached_file'
-             where post_type = 'attachment'
-               and m.meta_value regexp %s
-          order by m.meta_value",
-        '^' . $attdir . '[^/]+$');  // otherwise there are too may single quotes
+        "select p.ID, p.post_mime_type, m.meta_value
+        from wp_posts p
+        left join wp_postmeta m on p.ID = m.post_id and m.meta_key = '_wp_attached_file'
+        where post_type = 'attachment'
+        and m.meta_value regexp %s
+        order by m.meta_value",
+    '^' . $attdir . '[^/]+$');  // otherwise there are too may single quotes
     #debug('gc sql: ', $sql);
     $results = $wpdb->get_results($sql, ARRAY_A);
 
@@ -133,7 +133,7 @@ function getdir_callback () {
             'isdir'         => false,
             'exists'        => file_exists($filename),
             'thumbnail_url' => thumbnail_url($item['meta_value'], $item['post_mime_type'], $item['ID'])
-            ];
+        ];
     }
     #debug('gc dirlist: ', $dirlist);
 
@@ -155,7 +155,7 @@ function getdir_callback () {
      */
     // Send the list back to the JS
     ajax_response(true, 'Folder listing obtained successfully', $dirlist);
-	#echo json_encode($dirlist);
+    #echo json_encode($dirlist);
     #wp_die(); // completes the AJAX thing
 }
 
@@ -418,7 +418,7 @@ function move_callback () {
                 where post_id = $post_id
                 and meta_key = '_wp_attachment_metadata'";
             $row = $wpdb->get_row($sql, ARRAY_A);
-             
+
             if (is_null($row)) 
              */
             if ($metadata === false) {
@@ -509,7 +509,7 @@ function move_callback () {
                     ['meta_value' => $serialized],
                     ['post_id' => $post_id, 'meta_value' => '_wp_attachment_metadata']);
                 if ($rc === false) 
-                */
+                 */
                 if (wp_update_attachment_metadata($post_id, $metadata) === false) {
                     throw new \Exception('Failed to update attachment metadata' . db_error());
                 }
@@ -654,7 +654,7 @@ function move_callback () {
             debug('>>> rc', $rc);
             if ($rc === false) 
                 throw new \Exception('Failed to replace name in post content');
-            
+
             $post_count += $rc; */
         }
 
@@ -696,9 +696,9 @@ function delete_empty_dir_callback() {
     if (!file_exists($full_dir)) {
         ajax_response(false, "Folder '" . $dir . $name . "' does not exist'");
     }
-	if (!rmdir($full_dir)) {
+    if (!rmdir($full_dir)) {
         ajax_response(false, 'Unable to delete \'' . $dir . $name . '\'.  Reason: ' . last_error_msg());
-	}
+    }
     ajax_response(true, "Folder '$name' deleted successfully");
 }
 
@@ -707,3 +707,4 @@ add_action('wp_ajax_mocd_mkdir',            NS . 'mkdir_callback');
 add_action('wp_ajax_mocd_move',             NS . 'move_callback');
 add_action('wp_ajax_mocd_delete_empty_dir', NS . 'delete_empty_dir_callback');
 
+// vim: set tabstop=4 softtabstop=4 expandtab :

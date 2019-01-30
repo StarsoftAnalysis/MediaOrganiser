@@ -33,6 +33,5 @@ add_action('admin_menu', NS . 'settings_menu');
 #// TODO need some more of these
 #add_filter('wp_get_attachment_thumb_url', NS . 'mocd_relative_url', 10, 2);
 
-
-
+// vim: set tabstop=4 softtabstop=4 expandtab :
 ?>
