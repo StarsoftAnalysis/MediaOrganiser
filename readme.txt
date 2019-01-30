@@ -4,7 +4,7 @@ Donate link: http://fbcs.co.uk/mocd-donation/
 Tags: media,file,manager,explorer,relocate,folder,folders,files,rename,make directory,directories,organize,organise,organizer,organiser,select,selector
 Requires at least: 4.3.0
 Tested up to: 5.0.1
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,6 +17,9 @@ This plugin allows attachments to be organised into folders on the server.
 Attachments are physically moved into folders, and all references to them in pages and posts are updated accordingly.
 
 Media Organiser was originally forked from version 1.4.2 of Media File Manager by Atsushi Ueda, and has been largely rewritten since then.  It does not yet have the 'media selector' function of Media File Manager -- in fact, the 'new' interface to choosing media is so poorly documented that I can't work out how to use it.  Any ideas?
+
+There is also a tool on the plugin's Settings page which allows attachments
+whose files are missing from the file system to be tidied up.
 
 == Requirements ==
 
@@ -48,6 +51,11 @@ Administrators should get permission to use the plug-in automatically.  Go to Se
 
 
 == Changelog ==
+
+= 0.1.5 =
+
+* Added a feature on the Settings pages to allow any post attachments with
+  missing files to be deleted.
 
 = 0.1.4 =
 
