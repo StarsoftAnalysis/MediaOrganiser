@@ -41,12 +41,13 @@ function relative_url ($absurl) {
 #debug('4', plugins_url('', __FILE__));
 #debug('ABSPATH:', ABSPATH);
 
-global $plugin_dir, $plugin_url, $plugin_images_url;
-$plugin_dir = basename(dirname(__FILE__));  // e.g. 'media-organiser'   ?? NEEDED?
-$plugin_url = remove_prefix(site_url(), plugins_url('', __FILE__)) . '/';  // e.g. '/wp-content/plugins/media-organiser/' -- relative!
-$plugin_images_url = $plugin_url . 'images/';
-#debug('plugin_url: ', $plugin_url);
-#debug('plugin_images_url: ', $plugin_images_url);
+# FIXME Use of globals is ugly and fragile -- find a better way.
+global $mocd_plugin_dir, $mocd_plugin_url, $mocd_plugin_images_url;
+$mocd_plugin_dir = basename(dirname(__FILE__));  // e.g. 'media-organiser'   ?? NEEDED?
+$mocd_plugin_url = remove_prefix(site_url(), plugins_url('', __FILE__)) . '/';  // e.g. '/wp-content/plugins/media-organiser/' -- relative!
+$mocd_plugin_images_url = $mocd_plugin_url . 'images/';
+#debug('plugin_url: ', $mocd_plugin_url);
+#debug('plugin_images_url: ', $mocd_plugin_images_url);
 
 $upload = wp_upload_dir();
 if ($upload['error']) {
@@ -54,14 +55,16 @@ if ($upload['error']) {
     # TODO message to the user?
     return;
 }
-global $upload_dir, $upload_url, $upload_dir_rel, $upload_url_rel;
-$upload_dir = $upload['basedir'];
-$upload_url = $upload['baseurl'];
+global $mocd_upload_dir, $mocd_upload_url, $mocd_upload_dir_rel, $mocd_upload_url_rel;
+$mocd_upload_dir = $upload['basedir'];
+$mocd_upload_url = $upload['baseurl'];
 // !! need separate UPLOAD_URL_REL and $upload_dir_REL because separator may not be
 //    '/' in a dir, but always is in an URL.
 // FIXME should be using relative urls!!
-$upload_dir_rel = DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, $upload_dir);
-$upload_url_rel = '/' . remove_prefix(ABSPATH, $upload_url); // always '/' in an URL
+$mocd_upload_dir_rel = DIRECTORY_SEPARATOR . remove_prefix(ABSPATH, $mocd_upload_dir);
+$mocd_upload_url_rel = '/' . remove_prefix(ABSPATH, $mocd_upload_url); // always '/' in an URL
+#debug('$upload:', $upload);
+#debug('$mocd_upload_dir:', print_r($mocd_upload_dir,true));
 
 // Check if 'name' contains any characters that are invalid
 // for a file or folder (not path) name
@@ -137,7 +140,7 @@ function request_data ($field) {
 // Provide icons for those without thumbnails
 // TODO: pdfs?
 function thumbnail_url ($fname, $mimetype = '', $id = null) {
-    global $upload_url, $plugin_images_url;
+    global $mocd_upload_url, $mocd_plugin_images_url;
     #debug("turl: '$fname' '$mimetype' '$id'");
     if (isimage($fname, $mimetype)) {
         if ($id && $url = wp_get_attachment_thumb_url($id)) {
@@ -148,14 +151,14 @@ function thumbnail_url ($fname, $mimetype = '', $id = null) {
             #debug('turl 1 returning: ', $url);
             return $url;
         } 
-        #debug('turl 2 returning: ', $upload_url_rel . '/' . $fname);
-        return $upload_url_rel . '/' . $fname;
+        #debug('turl 2 returning: ', $mocd_upload_url_rel . '/' . $fname);
+        return $mocd_upload_url_rel . '/' . $fname;
     } elseif (isaudio($fname, $mimetype)) {
-        return $plugin_images_url . "audio.png";
+        return $mocd_plugin_images_url . "audio.png";
     } elseif (isvideo($fname, $mimetype)) {
-        return $plugin_images_url . "video.png";
+        return $mocd_plugin_images_url . "video.png";
     }
-    return $plugin_images_url . "file.png";
+    return $mocd_plugin_images_url . "file.png";
 }
 
 function isimage ($fname, $mimetype = '') {

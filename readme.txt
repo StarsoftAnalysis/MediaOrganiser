@@ -3,8 +3,8 @@ Contributors: ChrisDennis
 Donate link: http://fbcs.co.uk/mocd-donation/
 Tags: media,file,manager,explorer,relocate,folder,folders,files,rename,make directory,directories,organize,organise,organizer,organiser,select,selector
 Requires at least: 4.3.0
-Tested up to: 5.0.1
-Stable tag: 0.1.5
+Tested up to: 5.0.3
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,12 @@ Administrators should get permission to use the plug-in automatically.  Go to Se
 
 
 == Changelog ==
+
+= 0.1.6 =
+
+* Fixed an obscure bug by giving global variables even longer names.  I really
+  need to avoid globals.
+* Tested with WordPress 5.0.3.
 
 = 0.1.5 =
 

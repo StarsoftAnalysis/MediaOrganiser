@@ -6,7 +6,7 @@ define(__NAMESPACE__ . '\NS', __NAMESPACE__ . '\\'); // (need to escape \ before
 Plugin Name: Media Organiser
 Plugin URI: https://wordpress.org/plugins/media-organiser/
 Description: Allows media items (i.e. attachments) to be organised into folders.
-Version: 0.1.5
+Version: 0.1.6
 Author:  ChrisDennis
 Author URI: https://profiles.wordpress.org/chrisdennis#content-plugins
 License: GPLv2 or later
